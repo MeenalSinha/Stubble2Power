@@ -6,18 +6,20 @@ services:
     container_name: stubble2power-db
     restart: always
     environment:
-      POSTGRES_DB: stubble2power
-      POSTGRES_USER: stubble_user
-      POSTGRES_PASSWORD: stubble_secure_password
+      POSTGRES_DB: ${POSTGRES_DB:-stubble2power}
+      POSTGRES_USER: ${POSTGRES_USER:-stubble_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stubble_secure_password}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stubble_user -d stubble2power"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stubble_user} -d ${POSTGRES_DB:-stubble2power}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - s2p-network
 
   backend:
     build: .
@@ -28,13 +30,16 @@ services:
         condition: service_healthy
     command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
     environment:
-      APP_ENV: production
-      DATABASE_URL: postgresql+psycopg2://stubble_user:stubble_secure_password@db:5432/stubble2power
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://${POSTGRES_USER:-stubble_user}:${POSTGRES_PASSWORD:-stubble_secure_password}@db:5432/${POSTGRES_DB:-stubble2power}}
       API_HOST: 0.0.0.0
       API_PORT: 8000
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-stubble2power-secure-production-jwt-secret-key-2026-v230}
       NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-}
     ports:
       - "8000:8000"
+    networks:
+      - s2p-network
 
   frontend:
     build: .
@@ -44,10 +49,18 @@ services:
       - backend
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
     environment:
-      DATABASE_URL: postgresql+psycopg2://stubble_user:stubble_secure_password@db:5432/stubble2power
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://${POSTGRES_USER:-stubble_user}:${POSTGRES_PASSWORD:-stubble_secure_password}@db:5432/${POSTGRES_DB:-stubble2power}}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-stubble2power-secure-production-jwt-secret-key-2026-v230}
       NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-}
     ports:
       - "8501:8501"
+    networks:
+      - s2p-network
+
+networks:
+  s2p-network:
+    driver: bridge
 
 volumes:
   postgres_data:

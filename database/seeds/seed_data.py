@@ -7,6 +7,7 @@ Initializes persistent reference data:
 - Baseline harmonization run
 """
 
+import os
 from datetime import date, datetime
 from sqlalchemy.orm import Session
 from backend.models.database import SessionLocal, init_db
@@ -22,6 +23,16 @@ logger = get_logger("stubble2power.seed")
 
 
 def seed_database():
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    allow_prod_seed = os.getenv("ALLOW_PRODUCTION_SEED", "false").strip().lower() == "true"
+    if app_env in ("production", "prod") and not allow_prod_seed:
+        logger.warning(
+            "Production environment detected (APP_ENV=production). "
+            "Skipping benchmark demo seed data and static test credentials. "
+            "Set ALLOW_PRODUCTION_SEED=true if initializing an isolated demo instance."
+        )
+        return
+
     init_db()
     db: Session = SessionLocal()
 

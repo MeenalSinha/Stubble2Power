@@ -4,6 +4,7 @@ Implements DPDP Act 2023, ISO 27701 consent management, location obfuscation, an
 """
 
 from datetime import datetime
+import math
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, desc
@@ -134,11 +135,13 @@ class PrivacyService:
         latitude: float,
         longitude: float,
         viewer_role: Optional[str] = None,
-        is_owner: bool = False
+        is_owner: bool = False,
+        use_metric_scaling: bool = False
     ) -> Tuple[float, float, bool]:
         """
-        Enforces geospatial privacy protection.
+        Enforces geospatial privacy protection under DPDP Act 2023.
         Truncates coordinates to 2 decimal places (~1.1 km precision) for public/unprivileged viewers.
+        Optionally applies latitude-scaled metric tensor scaling (scaled by 1/cos(lat)).
         Returns (lat, lon, is_blurred).
         """
         role = (viewer_role or "PUBLIC_VISITOR").upper()
@@ -147,5 +150,13 @@ class PrivacyService:
             return (latitude, longitude, False)
 
         blurred_lat = round(latitude, self.blur_decimals)
-        blurred_lon = round(longitude, self.blur_decimals)
+        if use_metric_scaling:
+            lat_rad = math.radians(latitude)
+            cos_lat = max(math.cos(lat_rad), 0.1)  # Guard against poles
+            step_lat = 10 ** (-self.blur_decimals)
+            step_lon = step_lat / cos_lat
+            blurred_lon = round(round(longitude / step_lon) * step_lon, self.blur_decimals)
+        else:
+            blurred_lon = round(longitude, self.blur_decimals)
+
         return (blurred_lat, blurred_lon, True)

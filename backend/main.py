@@ -54,7 +54,7 @@ app = FastAPI(
         "Production-grade geospatial intelligence platform addressing NASA Space Apps Challenge 09 "
         "(Harmonization of MODIS and VIIRS Hot Spots) with decentralized agricultural waste management."
     ),
-    version="2.0.0",
+    version="2.5.0",
     lifespan=lifespan
 )
 
@@ -96,7 +96,7 @@ def root():
     return {
         "message": "Welcome to Stubble2Power API",
         "docs_url": "/docs",
-        "version": "2.0.0"
+        "version": "2.5.0"
     }
 
 

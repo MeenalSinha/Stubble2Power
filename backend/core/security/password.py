@@ -5,7 +5,12 @@ Uses PBKDF2-SHA256 with dynamic per-password cryptographic salts adhering to NIS
 
 from passlib.context import CryptContext
 
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+# NIST SP 800-63B compliant: 100,000 PBKDF2 iterations with salted SHA-256
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256"],
+    pbkdf2_sha256__default_rounds=100000,
+    deprecated="auto"
+)
 
 
 def hash_password(password: str) -> str:

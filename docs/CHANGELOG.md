@@ -1,5 +1,41 @@
 # Stubble2Power - Engineering Changelog
 
+## [2.5.0] - 2026-11-14
+
+### Phase 15, 16 & 17 Master Release: Comprehensive Testing, Scientific Validation, Production DevOps & Product Release Readiness
+
+#### Phase 15: Comprehensive Testing & Scientific Validation
+- **Expanded Test Pyramid**: Scaled automated test suite to **144 tests passed in 20.55s (100% pass rate)** with zero failures across all test suites.
+- **Dedicated Scientific Validation Suite (`tests/scientific/`)**:
+  - `test_harmonization_validation.py`: Mathematical proof of NASA MODIS–VIIRS spatiotemporal coincidence window ($1.5\text{ km} / 3.0\text{ h}$), Wooster et al. linear FRP cross-calibration ($\beta = 1.040$), Normalized Burned Area Index (NBAI), and multi-sensor consensus scoring.
+  - `test_biomass_validation.py`: Rigorous agronomic mass balance validation using Punjab Agricultural University (PAU) Residue-to-Product Ratios (RPR: Paddy 1.15, Wheat 1.30, Cotton 2.50, Maize 1.20, Sugarcane 0.20), moisture equilibrium, and competing fodder deductions.
+  - `test_routing_validation.py`: Haversine geodesic validation, PMGSY empirical rural road tortuosity ($\tau = 1.350$), physical diesel consumption modeling ($0.32\text{ L/km}$ base tare), and 2-Opt TSP edge-swap Pareto convergence.
+  - `test_economics_validation.py`: Techno-economic mass transformation conservation, multi-year DCF discounting at $10.5\%$ WACC, dynamic break-even capacity, and negative contribution margin boundary protections.
+  - `test_lca_validation.py`: ISO 14040/14044 cradle-to-grave LCA accounting verified against IPCC AR6 GWP100 metrics ($\text{CH}_4 = 27.90$, $\text{N}_2\text{O} = 273.00$), open field burning emission factors, thermal coal displacement ($0.98\text{ t }\text{CO}_2\text{e}/\text{t}$), 100-year biochar recalcitrance ($2.20\text{ t }\text{CO}_2\text{e}/\text{t}$), and Verra additionality.
+- **Invariants & Security Tests (`tests/unit/test_invariants_and_edge_cases.py`)**: Validated metric tensor scaling, road distance monotonicity, zero-biomass numerical safety, forged JWT token rejection, and location privacy bounding box invariants.
+- **Performance & Benchmark Suite (`tests/performance/test_benchmarks.py`)**: Verified that $10,000$ geospatial distance computations execute in $<0.20\text{s}$, 2-Opt routing completes in $<0.30\text{s}$, 50 DCF scenarios evaluate in $<0.50\text{s}$, and 500 JWT cryptographic cycles execute in $<0.25\text{s}$.
+- **Fault Tolerance & Recovery Suite (`tests/reliability/test_failure_recovery.py`)**: Validated circuit breakers for NASA 503 Gateway outages, network timeouts, unhandled database rollbacks, and corrupted satellite CSV payloads.
+- **End-to-End User Workflows (`tests/e2e/test_complete_user_workflows.py`)**: Implemented 7 full multi-system integration tests covering satellite harmonization, harvest association, biomass estimation, fleet dispatch, DCF/LCA, multi-tenant RBAC, and DPDP Section 6 consent withdrawal exclusion.
+- **Scientific Validation Report**: Authored comprehensive documentation in `docs/SCIENTIFIC_VALIDATION.md`.
+
+#### Phase 16: Production Deployment & DevOps
+- **Hardened Multi-Stage Container Image (`Dockerfile`)**: Implemented builder stage compiling wheel cache and minimal runner stage using non-root unprivileged system user `stubble_app` (UID/GID 10001) with internal container healthchecks.
+- **Zero-Host Exposure Production Compose (`docker-compose.prod.yml`)**: PostgreSQL/PostGIS port 5432 is strictly internal to `s2p-prod-network` (zero public host exposure), fail-closed secret injection, container healthchecks, and strict CPU/Memory resource limits.
+- **Automated CI/CD Pipeline (`.github/workflows/ci-cd.yml`)**: 5-stage GitHub Actions pipeline featuring code quality checks (flake8, black, ruff), static application security testing (bandit, pip-audit), automated test suite execution (144 tests with XML coverage reports), multi-stage Docker build, and staging deployment.
+- **Automated Backup & Restore Infrastructure**:
+  - `scripts/backup_db.py`: Backs up SQLite and PostgreSQL, creates timestamped encrypted gzip archives, computes cryptographic SHA-256 checksums, and enforces retention pruning.
+  - `scripts/restore_db.py`: Verifies SHA-256 checksums, restores database state safely, and executes post-restore smoke test queries to certify database integrity.
+- **Infrastructure Runbooks**: Authored `docs/DEPLOYMENT_ARCHITECTURE.md` and `docs/DEPLOYMENT_RUNBOOK.md`.
+
+#### Phase 17: Documentation, Release & Product Readiness
+- **Operational User Manuals (`docs/USER_GUIDES.md`)**: Complete step-by-step operating guides for all 5 enterprise roles (Farmer, Fleet Logistics Operator, Plant Manager, Environmental Analyst, System Administrator).
+- **Third-Party Notices (`docs/THIRD_PARTY_NOTICES.md`)**: Full legal attributions and licenses for NASA FIRMS, OpenStreetMap, Python dependencies, and PostGIS.
+- **Operational Handover (`docs/OPERATIONAL_HANDOVER.md`)**: Production SLA, incident response escalation pathways, monitoring metrics, and routine maintenance schedules.
+- **Release Documentation (`docs/RELEASE_NOTES_v2.5.0.md`)**: Formal product release notes certifying production readiness.
+- **Master README Update**: Comprehensive platform documentation with professional typography and zero decorative emojis.
+
+---
+
 ## [2.4.0] - 2026-11-14
 
 ### Phase 13 & 14 Master Release: Enterprise Multi-User Experience, Security Architecture, RBAC & DPDP Privacy Governance

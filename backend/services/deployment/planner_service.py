@@ -14,6 +14,8 @@ from backend.models.entities import (
     MobileBioRefinery,
     Farm,
     FarmCrop,
+    Farmer,
+    ConsentRecord,
     BiomassEstimate,
     BiomassInventoryTransaction,
     DeploymentPlan,
@@ -66,15 +68,30 @@ class DeploymentPlannerService:
             raise ValidationError("No active mobile bio-refineries registered in fleet.")
 
         # 2. Query candidate biomass estimates in region and date window
+        # Downstream DPDP Consent Enforcement: Fetch set of farmers who actively withdrew logistics/dispatch consent
+        withdrawn_farmer_ids = set(
+            self.db.scalars(
+                select(ConsentRecord.farmer_id)
+                .where(
+                    and_(
+                        ConsentRecord.consent_purpose.in_(["LOGISTICS_DISPATCH", "BIOMASS_AGGREGATION", "DATA_PROCESSING"]),
+                        ConsentRecord.is_granted == False
+                    )
+                )
+            ).all()
+        )
+
         estimates_stmt = (
-            select(BiomassEstimate, FarmCrop, Farm)
+            select(BiomassEstimate, FarmCrop, Farm, Farmer)
             .join(FarmCrop, BiomassEstimate.farm_crop_id == FarmCrop.id)
             .join(Farm, FarmCrop.farm_id == Farm.id)
+            .join(Farmer, Farm.farmer_id == Farmer.id)
             .where(
                 and_(
                     BiomassEstimate.net_usable_biomass_tons > 0,
                     BiomassEstimate.availability_start_date <= payload.date_end,
-                    BiomassEstimate.availability_end_date >= payload.date_start
+                    BiomassEstimate.availability_end_date >= payload.date_start,
+                    Farmer.consent_given == True
                 )
             )
         )
@@ -88,7 +105,15 @@ class DeploymentPlannerService:
 
         candidate_farms: List[Dict[str, Any]] = []
         seen_farms = set()
-        for est, crop, farm in candidates_raw:
+        for est, crop, farm, farmer in candidates_raw:
+            # Downstream consent check: Exclude any farm with withdrawn processing consent
+            if farm.farmer_id in withdrawn_farmer_ids:
+                logger.info(
+                    f"Consent enforcement: Farm ID {farm.id} ({farm.farm_name}) excluded "
+                    f"because landholder {farm.farmer_id} withdrew processing/dispatch consent."
+                )
+                continue
+
             # Check already allocated tonnage in active plans
             allocated_tons = self.db.scalar(
                 select(func.coalesce(func.sum(DeploymentAssignment.assigned_biomass_tons), 0.0))
@@ -325,3 +350,7 @@ class DeploymentPlannerService:
         self.db.refresh(plan)
         logger.info(f"Deployment plan {plan.plan_code} cancelled.")
         return plan
+
+    # Alias for API compatibility across test suites
+    generate_deployment_plan = plan_deployment
+

@@ -7,20 +7,22 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-PostGIS-336791.svg)](https://postgis.net/)
 [![NASA Space Apps](https://img.shields.io/badge/NASA_Space_Apps-Challenge_09-0B3D91.svg)](https://www.spaceappschallenge.org/)
+[![Test Suite](https://img.shields.io/badge/Tests-144%20Passed%20(100%25)-brightgreen.svg)](docs/SCIENTIFIC_VALIDATION.md)
 [![Security: PBKDF2--SHA256](https://img.shields.io/badge/Security-PBKDF2--SHA256-green.svg)](docs/SECURITY_THREAT_MODEL.md)
 [![Compliance: DPDP Act 2023](https://img.shields.io/badge/Compliance-DPDP_Act_2023-blue.svg)](docs/PRIVACY_GOVERNANCE.md)
+[![Release: v2.5.0](https://img.shields.io/badge/Release-v2.5.0-blue.svg)](docs/RELEASE_NOTES_v2.5.0.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
 ## Executive Overview
 
-**Stubble2Power** is an enterprise-grade Earth Observation, Agricultural Waste Logistics, and Clean Energy platform. It addresses the annual crop residue burning crisis in Northern India by bridging satellite active fire intelligence with decentralized mobile bio-refineries.
+**Stubble2Power** is an enterprise-grade Earth Observation, Agricultural Waste Logistics, and Clean Energy decision-support platform. It addresses the annual crop residue burning crisis in Northern India by bridging satellite active fire intelligence with decentralized mobile bio-refineries.
 
 The platform unites three core pillars:
 1. **NASA Satellite Fire Intelligence**: Harmonizes NASA FIRMS MODIS (Terra & Aqua) and VIIRS (NOAA-20, Suomi-NPP, NOAA-21) active fire observations into a coherent spatial and temporal burning activity calendar with statistical anomaly detection and agricultural context classification.
-2. **Agricultural Waste Management Intelligence**: Connects farm parcel coordinates with on-site mobile bio-refinery routing (2-opt TSP road routing), crop-specific residue estimation, techno-economic DCF modeling, and cradle-to-grave LCA carbon accounting (Verra VM0044/Puro.earth additionality).
-3. **Enterprise Identity, Governance & Privacy Platform (Phases 13 & 14)**: Features dedicated role-oriented workspaces (7 standard roles), multi-tenant cooperative isolation, salted PBKDF2-SHA256 authentication, HMAC-SHA256 JWT sessions, fine-grained server-side RBAC, purpose-bound DPDP Act 2023 consent tracking, statutory data subject requests, 2-decimal geospatial location obfuscation (~1.1 km blur for public access), immutable audit logs, and multilingual localization (English, Hindi, Punjabi).
+2. **Agricultural Waste Management Intelligence**: Connects farm parcel coordinates with on-site mobile bio-refinery routing (2-Opt TSP road routing), crop-specific residue estimation, techno-economic DCF modeling, and cradle-to-grave LCA carbon accounting (Verra VM0044/Puro.earth additionality).
+3. **Enterprise Identity, Governance, DevOps & Testing Platform (Phases 13 to 17)**: Features dedicated role-oriented workspaces (7 standard roles), multi-tenant cooperative isolation, salted PBKDF2-SHA256 authentication, HMAC-SHA256 JWT sessions, fine-grained server-side RBAC, purpose-bound DPDP Act 2023 consent tracking, 144 automated tests with 100% pass rate, multi-stage non-root container deployment, automated database backups with SHA-256 verification, and multilingual localization (English, Hindi, Punjabi).
 
 ### Selected NASA Space Apps Challenge
 - **Challenge 09: Harmonization of MODIS and VIIRS Hot Spots**
@@ -29,186 +31,242 @@ The platform unites three core pillars:
 
 ---
 
-## 🏗️ Platform Architecture
+## Platform Architecture
 
 ```
 Stubble2Power/
 ├── backend/
-│   ├── api/routes/          # RESTful endpoints (health, config, farmers, clustering, economics, nasa, harmonization, calendar)
+│   ├── api/routes/          # 21 RESTful route modules (Auth, NASA, Harmonization, Logistics, Economics, LCA, Privacy)
 │   ├── core/
 │   │   ├── config/          # Centralized, versioned configuration with literature provenance & validation bounds
 │   │   ├── logging/         # Structured logger with automatic secret masking
-│   │   └── exceptions/      # Domain exception hierarchy
-│   ├── models/              # SQLAlchemy ORM models (PostgreSQL/PostGIS & SQLite)
-│   ├── schemas/             # Pydantic validation schemas
+│   │   ├── exceptions/      # Domain exception hierarchy
+│   │   └── security/        # PBKDF2 password hashing, JWT management, RBAC matrices
+│   ├── models/              # SQLAlchemy ORM models (PostGIS & SQLite with immutable audit hooks)
+│   ├── schemas/             # Pydantic validation schemas with fail-closed bounds
 │   ├── repositories/        # Database abstraction layer
 │   ├── services/
 │   │   ├── nasa/            # NASA FIRMS API client with backoff and retry
 │   │   ├── fire/            # Normalization, quality control, deduplication, quarantine
 │   │   ├── harmonization/   # Scientific MODIS-VIIRS cross-sensor association & calibrated FRP
 │   │   ├── calendar/        # Dynamic daily, weekly, monthly, annual activity calendar
-│   │   ├── farmers/         # Farmer CRUD, validation, CSV import/export
-│   │   ├── clustering/      # Geodesic Haversine K-Means route optimization
-│   │   ├── economics/       # Unit economics, breakeven tonnage, logistics savings
-│   │   ├── environmental/   # Avoided CO2, coal replacement, EPA social equivalents
-│   │   └── geospatial/      # Great-circle calculations, bounding box validation, grid binning
-│   └── main.py              # FastAPI application entrypoint with OpenAPI docs
+│   │   ├── seasonal/        # 5-year rolling baseline & statistical anomaly detection
+│   │   ├── agriculture/     # Land-use masking, crop calendar classification
+│   │   ├── biomass/         # PAU agronomic biomass estimation & mass balances
+│   │   ├── deployment/      # Capacity-constrained fleet deployment planner
+│   │   ├── logistics/       # 2-Opt TSP vehicle routing with PMGSY road tortuosity
+│   │   ├── economics/       # Multi-year DCF, WACC discounting, and break-even analysis
+│   │   ├── environmental/   # IPCC AR6 cradle-to-grave Life Cycle Assessment (LCA)
+│   │   ├── privacy/         # DPDP consent tracking, DSR processing, geospatial obfuscation
+│   │   └── audit/           # Immutable audit trails and security event logging
+│   └── main.py              # FastAPI application entrypoint with OpenAPI docs (v2.5.0)
 │
 ├── frontend/
-│   └── streamlit_app/
-│       └── styles/          # Glassmorphism theme CSS
+│   ├── streamlit_app/
+│   │   ├── components/      # Glassmorphism UI components (cards, metrics, maps)
+│   │   ├── localization/    # Multilingual localization engine (English, Hindi, Punjabi)
+│   │   ├── styles/          # WCAG 2.2 AA compliant glassmorphism theme CSS
+│   │   └── workspaces/      # 7 Persona workspaces + Technical Engine Explorer
+│   └── app.py               # Main Streamlit interactive application
 │
 ├── database/
 │   ├── migrations/          # Alembic database migration scripts
 │   └── seeds/               # Reference datasets: benchmark farmers, satellite fire observations, AOIs
 │
-├── tests/
-│   ├── unit/                # Core calculation and service unit tests
-│   ├── integration/         # Database persistence, NASA ingestion, and harmonization tests
-│   └── regression/          # Mathematical parity tests verifying legacy formula accuracy
+├── scripts/
+│   ├── backup_db.py         # Automated SQLite & PostgreSQL backup with SHA-256 integrity
+│   └── restore_db.py        # Automated restore utility with cryptographic validation and smoke testing
 │
-├── docs/                    # Architecture, Database, NASA Data, Harmonization, and Config specifications
-├── app.py                   # Upgraded multi-system Streamlit frontend
-├── Dockerfile               # Multi-stage container definition
-├── docker-compose.yml       # Production deployment with PostGIS, FastAPI, and Streamlit
+├── .github/workflows/
+│   └── ci-cd.yml            # 5-Stage GitHub Actions CI/CD pipeline
+│
+├── tests/
+│   ├── unit/                # Core calculation and service unit tests (invariants, config, models)
+│   ├── integration/         # Database persistence, NASA ingestion, and harmonization tests
+│   ├── regression/          # Mathematical parity tests verifying legacy formula accuracy
+│   ├── scientific/          # Peer-reviewed validation tests (Harmonization, Biomass, Routing, Economics, LCA)
+│   ├── performance/         # High-throughput benchmarks (Geospatial, 2-Opt, DCF, JWT)
+│   ├── reliability/         # Fault tolerance & circuit breaker tests (NASA 503, timeouts, DB rollback)
+│   └── e2e/                 # 7 End-to-end complete user workflow integration tests
+│
+├── docs/                    # Architecture, Scientific Validation, Runbooks, User Guides, and API specs
+├── Dockerfile               # Hardened multi-stage non-root container image
+├── docker-compose.yml       # Development Docker Compose specification
+├── docker-compose.prod.yml  # Production Docker Compose specification (zero host DB port exposure)
 └── requirements.txt         # Production Python dependencies
 ```
 
 ---
 
-## ✨ Key Capabilities
+## Key Capabilities Across Phases 0 to 17
 
-### System A: NASA Fire Intelligence
+### System A: NASA Fire Intelligence (Phases 0 to 9)
 - **NASA FIRMS Integration**: Native support for `MODIS_NRT`, `MODIS_SP`, `VIIRS_NOAA20_NRT`, `VIIRS_SNPP_NRT`, and `VIIRS_NOAA21_NRT`.
 - **Quality Control Pipeline**: UTC normalization, coordinate range validation, brightness temperature thresholding, and quarantine auditing.
-- **Scientific Harmonization Engine**:
+- **Scientific Harmonization Engine (Challenge 09)**:
   - Reconciles MODIS (1km) and VIIRS (375m) footprint disparities.
-  - Groups detections into configurable spatial grid cells (default: 0.05° ≈ 5 km).
-  - Matches cross-sensor candidate pairs within 1.5 km and 3.0-hour overpass windows.
-  - Applies Wooster et al. (2021) empirical Fire Radiative Power (FRP) intercalibration ($\beta = 1.04$).
-  - Computes a Normalized Burning Activity Index (0 to 100) and Sensor Consensus Score (0.0 to 1.0).
-- **Historical Burning Activity Calendar**: Continuous daily heatmaps, monthly aggregations, Kharif seasonal peak detection, and data completeness tracking (distinguishes real zero burning from lack of overpass).
-- **Advanced Geospatial Map**: Multi-layer Folium mapping showing MODIS (1km red), VIIRS (375m orange), Harmonized Activity Grid (colored by index), and Mobile Bio-Refineries with interactive popups.
+  - Spatiotemporal coincidence matching within $1.5\text{ km}$ and $3.0\text{ hours}$.
+  - Applies Wooster et al. (2021) linear Fire Radiative Power (FRP) cross-calibration ($\beta = 1.040$).
+  - Computes Normalized Burned Area Index (NBAI) and multi-sensor consensus scoring ($0.0$ to $1.0$).
+- **Historical Burning Activity Calendar**: Daily heatmaps, monthly aggregations, Kharif seasonal peak detection, and data completeness tracking.
+- **Statistical Anomaly Detection**: 5-year rolling baselines with robust Median Absolute Deviation (MAD) isolating unusual spikes ($Z \ge 2.0$).
+- **Agricultural Land-Use Intelligence**: Remote sensing land-cover masking distinguishing agricultural burning from forest/industrial fires.
 
-### System B: Agricultural Waste Management
-- **Persistent Farmer Registry**: Database-backed farm acreage, stubble estimates, harvest dates, and WGS84 coordinates.
-- **AI Geodesic Clustering & 2-Opt TSP Routing**: Groups farm locations and solves vehicle routing using 2-Opt edge-swaps with NRIDA PMGSY empirical rural road tortuosity factors.
-- **Techno-Economic DCF Modeling**: Simulates briquette production, biochar, direct farmer payments (₹1,800/ton), DCF NPV, IRR, and breakeven tonnages across dynamic scenarios.
-- **Cradle-to-Grave Life Cycle Assessment (LCA)**: Quantifies net emissions, displacement of fossil coal, biochar stable soil sequestration, and Verra VM0044/Puro.earth additionality.
+### System B: Agricultural Waste Management & Clean Energy (Phases 10 to 12)
+- **Farmer & Farm Parcel Management**: Database-backed land parcels, soil classification, harvest records, and WGS84 coordinates.
+- **Mathematical Biomass Estimation**: Punjab Agricultural University (PAU) Residue-to-Product Ratios (Paddy 1.15, Wheat 1.30, Cotton 2.50), moisture equilibrium, and competing livestock fodder deductions.
+- **Biomass Inventory Funnel**: Audited transitions across `ESTIMATED`, `CONFIRMED`, `COMMITTED`, `COLLECTED`, `STORED`, `ALLOCATED`, and `PROCESSED` with double-allocation prevention.
+- **Mobile Bio-Refinery Fleet Deployment**: Fleet registry with hourly capacities, daily operating limits, and capacity-constrained multi-unit dispatching.
+- **Vehicle Routing Optimization**: Nearest-neighbor 2-Opt TSP edge-swap heuristic with NRIDA PMGSY rural road network tortuosity factors ($\tau = 1.350$) and diesel physics modeling.
+- **Techno-Economic DCF Modeling**: Capital budgeting discounted cash flow analysis at $10.5\%$ WACC over a 10-year project lifetime, calculating NPV, IRR, LCOE, and break-even tonnages.
+- **Cradle-to-Grave Life Cycle Assessment (LCA)**: ISO 14040/14044 compliant greenhouse gas accounting with IPCC AR6 GWP100 metrics ($\text{CH}_4=27.90, \text{N}_2\text{O}=273.00$), thermal coal displacement ($0.98\text{ t }\text{CO}_2\text{e}/\text{t}$), 100-year biochar recalcitrance ($2.20\text{ t }\text{CO}_2\text{e}/\text{t}$), and Verra VM0044 additionality certification.
 
-### System C: Multi-User Platform, Security & Governance (Phases 13 & 14)
+### System C: Multi-User Experience, Security & Governance (Phases 13 & 14)
 - **Role-Oriented Workspaces**: 7 distinct persona workspaces (`Public Visitor`, `Farmer`, `Field Operator`, `Agricultural Analyst`, `Environmental Analyst`, `Organization Manager`, `System Administrator`) plus `Technical Engine Explorer`.
-- **Identity & Session Architecture**: Salted PBKDF2-SHA256 password hashing (100k iterations) and HMAC-SHA256 JWT access & refresh tokens with active session tracking (`UserSession`).
-- **Server-Side RBAC & IDOR Prevention**: 32 granular permissions enforced via FastAPI dependencies with object-level ownership checks (`verify_resource_ownership`).
-- **Multi-Tenant Organization Isolation**: Row-level tenant partitioning across cooperatives (`PB-BIO-COOP`, `MAPS-MALWA`) with strict cross-tenant denial rules.
-- **DPDP Act 2023 Statutory Privacy Compliance**: Purpose-bound consent records (`ConsentRecord`), Data Subject Requests (`DataSubjectRequest`), automated retention sweeps (`DataRetentionPolicy`), and 2-decimal geospatial location obfuscation (~1.1 km blur for public visitors).
-- **Multilingual Framework**: Centralized localization supporting English (`en`), Hindi (`hi`), and Punjabi (`pa`).
-- **Zero-Emoji Professional UX**: Modern agricultural glassmorphism conforming to WCAG 2.2 AA accessibility standards.
+- **Multilingual Localization**: Verified UI translations in English (`en`), Hindi (`hi`), and Punjabi (`pa`).
+- **Professional Typography**: Strict zero-emoji interface adhering to professional enterprise design guidelines.
+- **Cryptographic Security**: Salted PBKDF2-SHA256 password hashing (100,000 rounds), HMAC-SHA256 JWT access and refresh tokens, and active session management.
+- **Granular RBAC & Tenant Isolation**: 32 distinct permissions, row-level tenant organization partitioning, and object-level ownership guards.
+- **DPDP Act 2023 Compliance**: Purpose-bound consent recording and withdrawal, Data Subject Request (DSR) management, and 2-decimal geospatial location obfuscation (~1.1 km blur for public access).
+- **Immutable Audit Trails**: Relational `audit_logs` and `security_events` with database engine triggers forbidding update and delete operations.
+
+### System D: Production Quality, DevOps & Release Readiness (Phases 15 to 17)
+- **100% Automated Test Suite**: 144 automated tests across 8 categories (Unit, Integration, Regression, Scientific, Performance, Reliability, and E2E) with 100% pass rate.
+- **Scientific Validation Report**: Comprehensive documentation in `docs/SCIENTIFIC_VALIDATION.md`.
+- **Hardened Multi-Stage Dockerfile**: Unprivileged non-root user execution (`stubble_app`, UID 10001) with internal healthchecks.
+- **Fail-Closed Production Compose**: Isolated Docker network, zero host database port exposure, and resource quotas.
+- **Automated CI/CD Pipeline**: 5-stage GitHub Actions workflow covering linting, security scanning, testing, container build, and deployment.
+- **Disaster Recovery Subsystem**: Automated database backup and restore utilities (`scripts/backup_db.py`, `scripts/restore_db.py`) with cryptographic SHA-256 verification and retention management.
 
 ---
 
-## 🔒 Non-Negotiable Engineering Standards
-
-1. **Nothing Hardcoded**: All economic parameters, yields, prices, haulage distances, emission factors, and sensor tolerances are managed through `ConfigManager` with documented citations and units. No magic numbers remain in source code.
-2. **No Fake Functionality**: Satellite observations, consensus scores, and analytics reflect verified database records. When NASA credentials are unconfigured, clear diagnostic status is reported.
-3. **Preserved Functionality**: All five original application sections (Home, Data Input, Clustering, Economics, Executive Dashboard) are preserved and upgraded.
-4. **Complete Test Suite**: Automated unit, integration, and regression tests cover all domain services (100% pass rate).
-
----
-
-## 🚀 Quick Start & Execution
+## Quickstart & Local Execution
 
 ### 1. Prerequisites
 - Python 3.11+
-- Virtual environment tool (`venv`)
+- Git
 - (Optional) Docker and Docker Compose
 
-### 2. Environment Setup
-Clone the repository and create an isolated virtual environment:
+### 2. Local Installation
 ```bash
-git clone https://github.com/your-org/Stubble2Power.git
-cd Stubble2Power
+# Clone the repository
+git clone https://github.com/your-org/stubble2power.git
+cd stubble2power
 
+# Create and activate a virtual environment
 python -m venv venv
-# Windows:
-.\venv\Scripts\activate
-# Linux/macOS:
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
+# Install dependencies
 pip install -r requirements.txt
-```
 
-Create your `.env` configuration from template:
-```bash
+# Configure environment variables
 cp .env.example .env
+# Edit .env and insert your NASA FIRMS MAP key if available
 ```
-*(Optional: Request a free NASA FIRMS MAP_KEY at [https://firms.modaps.eosdis.nasa.gov/api/map_key/](https://firms.modaps.eosdis.nasa.gov/api/map_key/) and add it to `NASA_FIRMS_MAP_KEY` in `.env`).*
 
-### 3. Initialize Database & Seed Benchmark Data
+### 3. Initialize and Seed the Database
 ```bash
-# Windows PowerShell:
-$env:PYTHONPATH="."
-python database/seeds/seed_data.py
-
-# Linux / macOS:
-PYTHONPATH=. python database/seeds/seed_data.py
+# Initialize schema and seed benchmark reference data
+python -c "
+from backend.models.entities import Base
+from backend.core.database.engine import engine
+from database.seeds.seed_data import seed_all
+Base.metadata.create_all(bind=engine)
+seed_all()
+print('Database initialized and benchmark data seeded successfully.')
+"
 ```
 
-### 4. Run Automated Test Suite
+### 4. Run the Backend API Server
 ```bash
-pytest -v
+uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-*Executes all 81 automated unit, integration, regression, and pipeline tests across Phases 0 through 12 with 100% pass rate.*
+Interactive API documentation:
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
-### 5. Launch Application
-
-#### Option A: Streamlit Unified Frontend (Default)
+### 5. Run the Streamlit Frontend Dashboard
 ```bash
-streamlit run app.py
+streamlit run app.py --server.port=8501
 ```
-Open [http://localhost:8501](http://localhost:8501) in your browser.
-
-#### Option B: FastAPI Backend API Server
-```bash
-uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
-```
-Access interactive OpenAPI documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
-
-#### Option C: Production Docker Compose
-```bash
-docker compose up -d --build
-```
-Provisions PostgreSQL 16 with PostGIS 3.4, FastAPI backend on port 8000, and Streamlit on port 8501.
+Open your browser at `http://localhost:8501`.
 
 ---
 
-## 📚 Technical Documentation Directory
+## Production Deployment via Docker Compose
 
-### Architecture & Schemas
-- [System Architecture](docs/ARCHITECTURE.md)
-- [Database Schema & Entity Models](docs/DATABASE.md)
-- [REST API Reference (OpenAPI 3.0)](docs/API.md)
-- [Configuration Registry & Parameter Provenance](docs/CONFIGURATION.md)
-- [Master Emission Factors Registry](docs/EMISSION_FACTORS.md)
-- [Engineering Changelog](docs/CHANGELOG.md)
+### 1. Configure Production Environment
+```bash
+cp .env.production.example .env.production
+# Securely configure POSTGRES_PASSWORD, JWT_SECRET_KEY, and NASA_FIRMS_MAP_KEY
+```
 
-### Earth Observation & Remote Sensing
-- [NASA FIRMS Data Integration](docs/NASA_DATA.md)
-- [MODIS & VIIRS Scientific Harmonization](docs/HARMONIZATION.md)
-- [Seasonal Intelligence & Empirical Fire Profiles](docs/SEASONAL_INTELLIGENCE.md)
-- [Statistical Anomaly Detection & Diagnostics](docs/ANOMALY_DETECTION.md)
-- [Agricultural Crop Calendars & Phenology](docs/CROP_CALENDAR_METHODOLOGY.md)
-- [Land Use Land Cover (LULC) Classification](docs/AGRICULTURAL_DATA_SOURCES.md)
+### 2. Deploy Full Stack
+```bash
+# Build and launch production stack with zero host DB port exposure
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 
-### Agricultural Intelligence & Supply Chain (Phases 10–12)
-- [Farmer & Farm Management Architecture](docs/FARMER_AND_FARM_MANAGEMENT.md)
-- [Biomass Estimation & Inventory Methodology](docs/BIOMASS_METHODOLOGY.md)
-- [Mobile Bio-Refinery Fleet & Technology](docs/MOBILE_BIOREFINERY.md)
-- [Rural Road Network Routing & Tortuosity Optimization](docs/ROUTE_OPTIMIZATION.md)
-- [Techno-Economic Feasibility & Financial Methodology](docs/ECONOMIC_METHODOLOGY.md)
-- [Life Cycle Assessment (LCA) & Net Climate Accounting](docs/ENVIRONMENTAL_METHODOLOGY.md)
+# Verify container health
+docker compose -f docker-compose.prod.yml ps
+```
 
 ---
 
-## 📜 License
-Distributed under the MIT License. See `LICENSE` for details.
+## Automated Testing & Scientific Verification
+
+Execute the complete 144-test automated pyramid:
+
+```bash
+# Run all test suites
+python -m pytest tests/ -v
+
+# Run scientific validation suite specifically
+python -m pytest tests/scientific/ -v
+
+# Run end-to-end user workflows
+python -m pytest tests/e2e/ -v
+
+# Run performance benchmarks
+python -m pytest tests/performance/ -v
+
+# Run reliability & fault-tolerance tests
+python -m pytest tests/reliability/ -v
+```
+
+---
+
+## Documentation Suite
+
+| Document | Description |
+|:---|:---|
+| [SCIENTIFIC_VALIDATION.md](docs/SCIENTIFIC_VALIDATION.md) | Peer-reviewed mathematical models, empirical tests, and literature benchmarks. |
+| [DEPLOYMENT_ARCHITECTURE.md](docs/DEPLOYMENT_ARCHITECTURE.md) | System topology, container network isolation, resource limits, and security perimeter. |
+| [DEPLOYMENT_RUNBOOK.md](docs/DEPLOYMENT_RUNBOOK.md) | Production setup, TLS/Nginx reverse proxy, rolling updates, and disaster recovery. |
+| [USER_GUIDES.md](docs/USER_GUIDES.md) | Step-by-step operating manuals for Farmers, Fleet Operators, Plant Managers, Analysts, and Admins. |
+| [API.md](docs/API.md) | OpenAPI REST API route catalog covering all 21 router groups. |
+| [CONFIGURATION.md](docs/CONFIGURATION.md) | Centralized configuration registry catalog (85+ parameters with provenance metadata). |
+| [SECURITY_THREAT_MODEL.md](docs/SECURITY_THREAT_MODEL.md) | STRIDE threat model, mitigation strategies, and attack surface analysis. |
+| [PRIVACY_GOVERNANCE.md](docs/PRIVACY_GOVERNANCE.md) | DPDP Act 2023 compliance, purpose-bound consent, and DSR handling. |
+| [OPERATIONAL_HANDOVER.md](docs/OPERATIONAL_HANDOVER.md) | Production SLA, incident response escalation, monitoring metrics, and maintenance schedules. |
+| [RELEASE_NOTES_v2.5.0.md](docs/RELEASE_NOTES_v2.5.0.md) | Certified release notes for v2.5.0 closing Phases 0 through 17. |
+| [THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md) | Open-source licensing attributions and citations (NASA FIRMS, OSM, PostGIS). |
+
+---
+
+## Non-Negotiable Architectural Principles
+
+1. **Zero Hardcoding**: All agricultural, economic, geographic, logistical, and technical parameters reside in the centralized `ConfigManager` registry with literature citations and bounds.
+2. **Zero Fake Results**: Every test result, benchmark, and empirical validation reported is generated through real code execution against standard datasets.
+3. **Zero Fake Deployment**: Multi-stage container builds, non-root user execution, and secure compose files are tested and functional.
+4. **Preserve Existing Functionality**: All features from Phase 0 to Phase 14 remain fully operational and verified.
+5. **Scientific Correctness**: Formulations strictly adhere to NASA remote sensing standards, PAU agronomy, NRIDA road networks, DCF capital budgeting, and IPCC AR6 LCA guidelines.
+6. **Security by Default**: Non-root container execution, fail-closed production settings, salted PBKDF2 hashing, immutable audit logs, and purpose-bound consent filtering.
+7. **Clean Professional Typography**: No decorative emojis across all production user interfaces and documentation.
+
+---
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+All NASA satellite data products are subject to the NASA Open Data Policy.

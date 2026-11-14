@@ -9,7 +9,7 @@ import os
 from datetime import datetime, date
 from typing import Dict, Any, Optional, List, Union
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from backend.core.exceptions.base import ConfigurationError
 
 # Load environment variables from .env file if present
@@ -52,6 +52,26 @@ class AppSettings(BaseModel):
     )
     default_aoi_country: str = Field(default_factory=lambda: os.getenv("DEFAULT_AOI_COUNTRY", "IND"))
     log_level: str = Field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))
+
+    @model_validator(mode="after")
+    def validate_production_environment(self) -> "AppSettings":
+        """Enforces fail-closed configuration in production environments."""
+        env = (self.app_env or "development").strip().lower()
+        if env in ("production", "prod"):
+            # Enforce enterprise PostgreSQL/PostGIS database in production
+            if not self.database_url or self.database_url.startswith("sqlite"):
+                raise ConfigurationError(
+                    message="Production environment requires an enterprise PostgreSQL/PostGIS database. SQLite is forbidden in production.",
+                    parameter="DATABASE_URL"
+                )
+            # Enforce explicit external JWT secret key in production
+            jwt_secret = os.getenv("JWT_SECRET_KEY")
+            if not jwt_secret or jwt_secret == "stubble2power-secure-production-jwt-secret-key-2026-v230":
+                raise ConfigurationError(
+                    message="Production environment requires an explicit and non-default JWT_SECRET_KEY injected via secrets management.",
+                    parameter="JWT_SECRET_KEY"
+                )
+        return self
 
 
 # ============================================================================

@@ -8,7 +8,7 @@ from datetime import datetime, date
 from typing import Optional, List
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, Date, DateTime,
-    ForeignKey, Text, Index, UniqueConstraint, JSON
+    ForeignKey, Text, Index, UniqueConstraint, JSON, event
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from backend.models.database import Base
@@ -893,3 +893,28 @@ class SecurityEvent(Base):
     client_ip: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     details_json: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+# ============================================================================
+# AUDIT LOG & SECURITY EVENT IMMUTABILITY EVENT LISTENERS
+# Enforces append-only write guarantees at the ORM layer (ISO 27001 / SOC 2)
+# ============================================================================
+
+@event.listens_for(AuditLog, "before_update")
+def _audit_log_prevent_update(mapper, connection, target):
+    raise RuntimeError("Security Violation: AuditLog records are strictly immutable and cannot be updated.")
+
+
+@event.listens_for(AuditLog, "before_delete")
+def _audit_log_prevent_delete(mapper, connection, target):
+    raise RuntimeError("Security Violation: AuditLog records are strictly immutable and cannot be deleted.")
+
+
+@event.listens_for(SecurityEvent, "before_update")
+def _security_event_prevent_update(mapper, connection, target):
+    raise RuntimeError("Security Violation: SecurityEvent records are strictly immutable and cannot be updated.")
+
+
+@event.listens_for(SecurityEvent, "before_delete")
+def _security_event_prevent_delete(mapper, connection, target):
+    raise RuntimeError("Security Violation: SecurityEvent records are strictly immutable and cannot be deleted.")
