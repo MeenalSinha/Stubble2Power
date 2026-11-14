@@ -148,3 +148,34 @@ def test_lca_system_boundary_summary():
     assert any("Coal Displacement" in p for p in boundary.project_pathways)
     assert "AR6" in boundary.gwp_version
     assert "CEA" in boundary.grid_emission_factor_source
+
+
+def test_custom_scenario_and_negative_contribution_margin(db_session):
+    econ_svc = FinancialEngineService(db_session)
+    # Extremely low product prices leading to negative contribution margin
+    payload = FinancialScenarioCreate(
+        scenario_name="Stress Test High Cost",
+        biomass_processed_tons=100.0,
+        briquette_price_per_ton=500.0,
+        biochar_price_per_ton=500.0,
+        farmer_procurement_price_per_ton=3000.0,
+        diesel_price_per_liter=120.0
+    )
+    result = econ_svc.evaluate_scenario(payload)
+    assert result.scenario_name == "Stress Test High Cost"
+    assert result.gross_profit_inr < 0.0
+    # Negative contribution margin should result in 0.0 break even (unachievable)
+    assert result.break_even_tons == 0.0
+    assert result.payback_period_years == 0.0
+    assert result.roi_pct == 0.0
+
+
+def test_lca_modeled_transport_fuel_annotation(db_session):
+    lca_svc = LifeCycleAssessmentService(db_session)
+    # When transport fuel is not provided, it is estimated and flagged in evidence
+    payload = EnvironmentalAssessmentCreate(
+        biomass_diverted_tons=200.0
+    )
+    result = lca_svc.conduct_lca(payload)
+    assert result.evidence_json.get("is_transport_fuel_modeled_estimate") is True
+    assert "carbon_credit_category" in result.evidence_json

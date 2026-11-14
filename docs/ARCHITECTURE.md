@@ -91,10 +91,21 @@ The platform unites two previously isolated intelligence domains:
 - `routing/`: Implements NRIDA rural road network tortuosity modeling (1.35x) and multi-stop vehicle routing (Phase 11).
 - `economics/financial_engine.py`: Comprehensive capital budgeting, break-even, multi-year DCF (NPV/IRR), sensitivity tornado modeling, and separated physical revenues (Phase 12).
 - `environmental/lca_engine.py`: Cradle-to-grave Life Cycle Assessment using IPCC AR6 GWP, CEA India coal displacement, biochar 100-year carbon permanence, and carbon-credit eligibility separation (Phase 12).
+- `auth/`: Authentication, salted PBKDF2 password hashing, HMAC-SHA256 JWT sessions, and tenant isolation (Phase 13 & 14).
+- `privacy/`: Digital Personal Data Protection (DPDP) Act 2023 compliance, purpose-bound consents, statutory DSRs, and 2-decimal location obfuscation (Phase 13 & 14).
+- `audit/`: Append-only audit trails, security event monitoring, and statutory retention sweeps (Phase 14).
+- `user_experience/`: Personalization preferences, in-app notifications, and auditable dossier generation (Phase 13).
+
+### 3.3 Security & Identity Architecture (`backend/core/security/`)
+- `password.py`: Salted PBKDF2-SHA256 hashing with 100,000 iterations via passlib.
+- `auth.py`: HMAC-SHA256 JWT issuance, standardized epoch timestamps (`time.time()`), and token hashing for session tracking.
+- `rbac.py`: 7 standardized platform roles and 32 granular permissions with server-side dependency enforcement.
 
 ---
 
 ## 4. Security & Configuration Guarantees
-- Secrets (NASA `MAP_KEY`, database credentials) are read exclusively from environment variables or `.env` and are never hardcoded.
+- Secrets (NASA `MAP_KEY`, JWT secret, database credentials) are read exclusively from environment variables or `.env` and are never hardcoded.
 - Input validation via Pydantic schemas prevents malformed coordinates, negative tonnages, or out-of-range dates.
 - SQL injection protection is enforced through SQLAlchemy ORM parameter binding.
+- Zero-trust multi-tenancy enforces strict cross-tenant data access denials.
+- Geospatial privacy filter obfuscates farm parcel coordinates to 2 decimal places (~1.1 km) for public visitors under the DPDP Act 2023.

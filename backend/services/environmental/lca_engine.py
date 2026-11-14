@@ -52,14 +52,20 @@ class LifeCycleAssessmentService:
                 select(DeploymentPlan).where(DeploymentPlan.id == payload.deployment_plan_id)
             ).first()
 
+        default_biomass = float(config_manager.get("environmental.default_biomass_volume_tons"))
+        transport_rate_l_per_km = float(config_manager.get("environmental.transport_fuel_consumption_liters_per_km"))
+        default_briquette_f = float(config_manager.get("environmental.default_briquette_fraction"))
+        default_biochar_f = float(config_manager.get("environmental.default_biochar_fraction"))
+
         if payload.biomass_diverted_tons is not None:
             biomass_tons = max(0.1, float(payload.biomass_diverted_tons))
         elif deployment_plan:
             biomass_tons = max(0.1, deployment_plan.total_biomass_assigned_tons)
         else:
-            biomass_tons = 500.0
+            biomass_tons = default_biomass
 
         # Transport and Processing Fuel (Liters)
+        is_modeled_transport_fuel = False
         if payload.transport_fuel_liters is not None:
             transport_diesel_l = float(payload.transport_fuel_liters)
         elif deployment_plan:
@@ -67,10 +73,12 @@ class LifeCycleAssessmentService:
             routes = self.db.scalars(select(RoutePlan).where(RoutePlan.deployment_plan_id == deployment_plan.id)).all()
             transport_diesel_l = sum(r.fuel_consumed_liters for r in routes)
             if transport_diesel_l <= 0:
-                transport_diesel_l = deployment_plan.total_route_distance_km * 0.38
+                transport_diesel_l = deployment_plan.total_route_distance_km * transport_rate_l_per_km
+                is_modeled_transport_fuel = True
         else:
-            # Rural tractor transport ~ 0.38 L/km * 35 km avg roundtrip
-            transport_diesel_l = (biomass_tons / 5.0) * 12.0  # ~12 L per 5t load
+            # Modeled transport benchmark ~ 12 L per 5t load (35km roundtrip at 0.35 L/km)
+            transport_diesel_l = (biomass_tons / 5.0) * 12.0
+            is_modeled_transport_fuel = True
 
         if payload.processing_fuel_liters is not None:
             proc_diesel_l = float(payload.processing_fuel_liters)
@@ -78,8 +86,8 @@ class LifeCycleAssessmentService:
             proc_rate = float(config_manager.get("refinery.mobile.fuel_consumption_liters_per_ton"))
             proc_diesel_l = biomass_tons * proc_rate
 
-        briquette_frac = payload.briquette_fraction_produced or 0.70
-        biochar_frac = payload.biochar_fraction_produced or 0.15
+        briquette_frac = payload.briquette_fraction_produced if payload.briquette_fraction_produced is not None else default_briquette_f
+        biochar_frac = payload.biochar_fraction_produced if payload.biochar_fraction_produced is not None else default_biochar_f
 
         # 2. Baseline Emissions (Open Burning)
         co2_burn_tons = round((biomass_tons * self.burn_co2_kg) / 1000.0, 2)
@@ -113,7 +121,7 @@ class LifeCycleAssessmentService:
         net_avoided_co2e = round(
             baseline_total_co2e - project_total_emissions + avoided_coal_co2e_tons + biochar_co2e_stored_tons, 2
         )
-        net_benefit_ratio = round(net_avoided_co2e / max(0.01, baseline_total_co2e), 2)
+        net_benefit_ratio = round(net_avoided_co2e / baseline_total_co2e, 2) if baseline_total_co2e > 0 else 0.0
 
         # 6. Carbon Credit Eligibility Separation
         # Verra / Gold Standard / Puro.earth carbon credit eligibility:
@@ -148,7 +156,9 @@ class LifeCycleAssessmentService:
                 "biochar_produced_tons": round(biochar_tons, 2),
                 "transport_diesel_liters": round(transport_diesel_l, 1),
                 "processing_diesel_liters": round(proc_diesel_l, 1),
-                "pm25_avoided_tons": pm25_burn_tons
+                "pm25_avoided_tons": pm25_burn_tons,
+                "is_transport_fuel_modeled_estimate": is_modeled_transport_fuel,
+                "carbon_credit_category": "Model-derived theoretical additionality; subject to formal Verra VM0044/Puro.earth MRV certification"
             }
         )
         self.db.add(assessment)

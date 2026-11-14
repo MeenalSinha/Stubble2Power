@@ -1,5 +1,42 @@
 # Stubble2Power - Engineering Changelog
 
+## [2.4.0] - 2026-11-14
+
+### Phase 13 & 14 Master Release: Enterprise Multi-User Experience, Security Architecture, RBAC & DPDP Privacy Governance
+
+#### Phase 10–12 Comprehensive Audit & Hardening
+- **Configuration Registry Completeness**: Added 26+ parameters to `ConfigManager` covering baseline yields, RPR ratios, retention fractions, transit speeds, default CAPEX/OPEX, and security tokens.
+- **Biomass Estimation Normalization**: Replaced silent paddy fallback with crop-specific dictionary lookup and transparent date scheduling fallback notes.
+- **Routing Optimization**: Validated genuine 2-Opt local search TSP edge-swap optimization with NRIDA PMGSY empirical rural road network tortuosity factors.
+- **Financial Simulation Safeguards**: Added robust non-positive contribution margin handling (`break_even_tons = 0.0`) and non-positive profit protections (`payback_years = 0.0`, `roi_pct = 0.0`).
+- **LCA Carbon Credit Separation**: Integrated modeled transport diesel fuel consumption and explicitly separated biogenic burning CO2 from high-integrity additionality (Verra VM0044/Puro.earth).
+
+#### Phase 13: Complete User Experience & Multi-User Platform
+- **Role-Oriented Workspaces**: Implemented 7 distinct persona workspaces (`Public Visitor`, `Farmer`, `Field Operator`, `Agricultural Analyst`, `Environmental Analyst`, `Organization Manager`, `System Administrator`).
+- **Preserved Technical Engine Explorer**: Seamlessly retained all 12 deep technical engines from Phases 0–12 for authorized analysts and administrators.
+- **Centralized Multilingual Localization Framework**: Engineered `frontend/streamlit_app/localization/i18n.py` providing verified UI strings in English (`en`), Hindi (`hi`), and Punjabi (`pa`).
+- **Strict Zero-Emoji Professional UX**: Completely eliminated decorative emojis across all UI headers, navigation bars, buttons, and badges in compliance with Rules 7 & 9, replacing them with standardized text badges (`[OK]`, `[ALERT]`, `[WARN]`, `[VERIFIED]`).
+- **WCAG 2.2 AA Accessibility**: Verified 10.4:1 contrast ratios on primary text (`#1e462d` on `#ffffff`), visible keyboard focus indicators, color-independent status indicators, and screen-reader data table fallbacks.
+- **Personalization Services**: Created `UserPreference`, `Notification`, and `SavedReport` entities and REST APIs under `/api/user/`.
+
+#### Phase 14: Security, Privacy & Governance
+- **Cryptographic Identity Architecture**: Implemented salted PBKDF2-SHA256 password hashing (100,000 rounds) via `passlib` and HMAC-SHA256 JWT access and refresh tokens with standardized UNIX epoch timestamps (`time.time()`).
+- **Active Session Governance**: Implemented `UserSession` tracking SHA-256 token hashes for instant session invalidation and logout.
+- **Server-Side RBAC & IDOR Prevention**: Implemented 32 granular permissions with FastAPI dependencies (`require_permission`, `require_role`) and object-level ownership verification (`verify_resource_ownership`).
+- **Multi-Tenant Organization Isolation**: Enforced row-level tenant partitioning on `organization_id` with cross-tenant denial rules (`verify_organization_access`).
+- **DPDP Act 2023 Statutory Privacy Compliance**:
+  - Purpose-bound consent lifecycle (`ConsentRecord`) supporting instant granting and withdrawal across `BIOMASS_AGGREGATION`, `SATELLITE_FIRE_CORRELATION`, `LOGISTICS_DISPATCH`, and `DIRECT_PAYMENT`.
+  - Data Subject Request management (`DataSubjectRequest`) supporting `ACCESS`, `CORRECTION`, `ERASURE`, and `EXPORT`.
+  - Geospatial location privacy filter obfuscating farm parcel coordinates to 2 decimal places ($\approx 1.1\text{ km}$ resolution) on public interfaces while preserving exact coordinates for owners and dispatchers.
+  - Statutory data retention sweeps (`DataRetentionPolicy`) enforcing 730-day audit log retention and 30-day session purges.
+- **Immutable Audit Trail & Monitoring**: Implemented append-only `AuditLog` and `SecurityEvent` models and services.
+- **Comprehensive Security Documentation**: Authored `docs/SECURITY_THREAT_MODEL.md` (STRIDE analysis), `docs/INCIDENT_RESPONSE.md`, `docs/IDENTITY_AND_AUTHENTICATION.md`, `docs/AUTHORIZATION_MODEL.md`, `docs/ORGANIZATION_ISOLATION.md`, `docs/DATA_CLASSIFICATION.md`, `docs/PRIVACY_GOVERNANCE.md`, `docs/UX_DESIGN_SYSTEM.md`, `docs/USER_ROLES_AND_WORKFLOWS.md`, `docs/ACCESSIBILITY.md`, and `docs/SECURITY_TESTING.md`.
+
+#### Automated Quality Verification
+- Total automated test suite expanded to **101 tests passed in 10.34s** (100% pass rate).
+
+---
+
 ## [2.3.0] - 2026-11-14
 
 ### Phase 10, 11 & 12 Master Release: Full Biomass Supply Chain, Fleet Logistics, Techno-Economics & LCA Environmental Intelligence

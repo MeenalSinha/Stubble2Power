@@ -424,6 +424,195 @@ def seed_database():
             except Exception as e:
                 logger.warning(f"Deployment auto-plan during seed skipped: {e}")
 
+        # ====================================================================
+        # 11. Seed Phase 13 & 14: Organizations, Identities, RBAC, Governance
+        # ====================================================================
+        from backend.models.entities import (
+            Organization, User, OrganizationMembership, UserPreference,
+            Notification, ConsentRecord, DataRetentionPolicy, AuditLog
+        )
+        from backend.core.security.password import hash_password
+
+        # Seed Organizations
+        coop = db.query(Organization).filter(Organization.code == "PB-BIO-COOP").first()
+        if not coop:
+            coop = Organization(
+                name="Punjab Bio-Energy Cooperative",
+                code="PB-BIO-COOP",
+                org_type="AGRICULTURAL_COOP",
+                country="IND",
+                domain="punjabbioenergy.coop",
+                contact_email="operations@punjabbioenergy.coop",
+                is_active=True
+            )
+            society = Organization(
+                name="Malwa Agricultural Producers Society",
+                code="MAPS-MALWA",
+                org_type="PRODUCER_COMPANY",
+                country="IND",
+                domain="malwaproducers.org",
+                contact_email="contact@malwaproducers.org",
+                is_active=True
+            )
+            db.add_all([coop, society])
+            db.commit()
+            db.refresh(coop)
+            logger.info("Phase 14 tenant organizations seeded.")
+
+        # Seed Users
+        if not db.query(User).filter(User.username == "admin").first():
+            farmer1 = db.query(Farmer).first()
+            users_to_seed = [
+                User(
+                    username="admin",
+                    email="admin@stubble2power.gov.in",
+                    password_hash=hash_password("Admin@123"),
+                    full_name="Dr. Arvinder Singh (System Admin)",
+                    role="ADMIN",
+                    role_name="SYSTEM_ADMINISTRATOR",
+                    organization_id=coop.id if coop else None,
+                    is_active=True,
+                    is_verified=True
+                ),
+                User(
+                    username="gurpreet_singh",
+                    email="gurpreet@farmers.punjab.in",
+                    password_hash=hash_password("Farmer@123"),
+                    full_name="Sardar Gurpreet Singh",
+                    role="FARMER",
+                    role_name="FARMER",
+                    organization_id=coop.id if coop else None,
+                    farmer_id=farmer1.id if farmer1 else None,
+                    phone="+91-9876543210",
+                    is_active=True,
+                    is_verified=True
+                ),
+                User(
+                    username="operator_ramesh",
+                    email="ramesh@logistics.punjabbioenergy.coop",
+                    password_hash=hash_password("Operator@123"),
+                    full_name="Ramesh Kumar (Logistics Crew)",
+                    role="OPERATOR",
+                    role_name="FIELD_OPERATOR",
+                    organization_id=coop.id if coop else None,
+                    phone="+91-9812345678",
+                    is_active=True,
+                    is_verified=True
+                ),
+                User(
+                    username="analyst_priya",
+                    email="priya.sharma@agriresearch.org",
+                    password_hash=hash_password("Analyst@123"),
+                    full_name="Dr. Priya Sharma (Agri Scientist)",
+                    role="RESEARCHER",
+                    role_name="AGRICULTURAL_ANALYST",
+                    organization_id=coop.id if coop else None,
+                    is_active=True,
+                    is_verified=True
+                ),
+                User(
+                    username="analyst_vikram",
+                    email="vikram.earthobs@isro-alumni.in",
+                    password_hash=hash_password("Analyst@123"),
+                    full_name="Vikramaditya Rao (Remote Sensing)",
+                    role="RESEARCHER",
+                    role_name="ENVIRONMENTAL_ANALYST",
+                    organization_id=coop.id if coop else None,
+                    is_active=True,
+                    is_verified=True
+                ),
+                User(
+                    username="manager_harpreet",
+                    email="harpreet.singh@punjabbioenergy.coop",
+                    password_hash=hash_password("Manager@123"),
+                    full_name="Harpreet Singh Dhillon (Coop GM)",
+                    role="MANAGER",
+                    role_name="ORGANIZATION_MANAGER",
+                    organization_id=coop.id if coop else None,
+                    phone="+91-9988776655",
+                    is_active=True,
+                    is_verified=True
+                )
+            ]
+            db.add_all(users_to_seed)
+            db.commit()
+
+            # Seed Preferences & Notifications
+            for u in users_to_seed:
+                db.refresh(u)
+                pref = UserPreference(
+                    user_id=u.id,
+                    preferred_language="pa" if u.role_name == "FARMER" else "en",
+                    theme="light",
+                    default_aoi="Punjab Central",
+                    dashboard_layout="STANDARD"
+                )
+                db.add(pref)
+
+                notif = Notification(
+                    user_id=u.id,
+                    title="Welcome to Stubble2Power",
+                    message=f"Your account has been provisioned as {u.role_name}. System operational.",
+                    category="SYSTEM",
+                    priority="NORMAL"
+                )
+                db.add(notif)
+            db.commit()
+            logger.info("Phase 13 & 14 users, preferences, and notifications seeded.")
+
+        # Seed Consent Records
+        if not db.query(ConsentRecord).first():
+            farmers = db.query(Farmer).limit(5).all()
+            for f in farmers:
+                db.add(ConsentRecord(
+                    farmer_id=f.id,
+                    consent_purpose="BIOMASS_AGGREGATION",
+                    consent_version="v1.1",
+                    is_granted=True,
+                    notes="Farmer agreed to straw collection and baling service."
+                ))
+                db.add(ConsentRecord(
+                    farmer_id=f.id,
+                    consent_purpose="SATELLITE_FIRE_CORRELATION",
+                    consent_version="v1.1",
+                    is_granted=True,
+                    notes="Authorized fire hotspot verification and parcel ground-truthing."
+                ))
+            db.commit()
+            logger.info("Phase 14 purpose-bound consents seeded.")
+
+        # Seed Data Retention Policies
+        if not db.query(DataRetentionPolicy).first():
+            policies = [
+                DataRetentionPolicy(
+                    data_category="AUDIT_LOGS",
+                    retention_period_days=365,
+                    legal_basis="DPDP Act 2023 / Statutory Compliance",
+                    action_on_expiry="ARCHIVE"
+                ),
+                DataRetentionPolicy(
+                    data_category="USER_SESSIONS",
+                    retention_period_days=30,
+                    legal_basis="NIST SP 800-63B Session Governance",
+                    action_on_expiry="DELETE"
+                ),
+                DataRetentionPolicy(
+                    data_category="INACTIVE_USERS",
+                    retention_period_days=730,
+                    legal_basis="Right to Erasure / Data Minimization",
+                    action_on_expiry="ANONYMIZE"
+                ),
+                DataRetentionPolicy(
+                    data_category="FARM_COORDINATES",
+                    retention_period_days=1825,
+                    legal_basis="Contractual Agricultural Fulfillment",
+                    action_on_expiry="ARCHIVE"
+                )
+            ]
+            db.add_all(policies)
+            db.commit()
+            logger.info("Phase 14 data retention policies seeded.")
+
     finally:
         db.close()
 

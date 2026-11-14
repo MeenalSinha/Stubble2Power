@@ -17,7 +17,7 @@ class RoadNetworkService:
         self.geo_svc = GeospatialService()
         self.tortuosity = float(config_manager.get("refinery.transport.road_tortuosity_factor"))
         self.fuel_rate = float(config_manager.get("refinery.transport.fuel_consumption_liters_per_km"))
-        self.avg_rural_speed_kmh = 35.0  # Average tractor-trailer transit speed on rural link roads
+        self.avg_rural_speed_kmh = float(config_manager.get("refinery.transport.average_speed_kmh"))
 
     def calculate_road_route(
         self,
@@ -41,9 +41,19 @@ class RoadNetworkService:
             "tortuosity_factor": self.tortuosity,
             "travel_duration_hours": travel_duration_hours,
             "fuel_consumed_liters": fuel_consumed_liters,
-            "routing_provider": "NRIDA Rural Road Network Model (Calibrated PMGSY Tortuosity Factor)",
+            "routing_provider": "Estimated via Geodesic with NRIDA PMGSY Tortuosity Factor",
+            "is_simulated_approximation": True,
             "speed_kmh": self.avg_rural_speed_kmh
         }
+
+    def _calculate_tour_distance(self, depot_coords: Tuple[float, float], tour: List[Dict[str, Any]]) -> float:
+        if not tour:
+            return 0.0
+        d = self.geo_svc.haversine_distance(depot_coords[0], depot_coords[1], tour[0]["latitude"], tour[0]["longitude"]) * self.tortuosity
+        for k in range(len(tour) - 1):
+            d += self.geo_svc.haversine_distance(tour[k]["latitude"], tour[k]["longitude"], tour[k+1]["latitude"], tour[k+1]["longitude"]) * self.tortuosity
+        d += self.geo_svc.haversine_distance(tour[-1]["latitude"], tour[-1]["longitude"], depot_coords[0], depot_coords[1]) * self.tortuosity
+        return d
 
     def solve_multi_stop_route(
         self,
@@ -51,7 +61,8 @@ class RoadNetworkService:
         stops: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Sequences stops using nearest-neighbor heuristic starting and ending at the depot.
+        Sequences stops using nearest-neighbor initialization followed by 2-Opt local search
+        edge-swapping optimization starting and ending at the depot.
         Returns total road distance, fuel consumed, and sequenced stops.
         """
         if not stops:
@@ -59,18 +70,60 @@ class RoadNetworkService:
                 "total_distance_km": 0.0,
                 "total_duration_hours": 0.0,
                 "total_fuel_liters": 0.0,
-                "sequenced_stops": []
+                "sequenced_stops": [],
+                "is_simulated_approximation": True
             }
 
+        # Step 1: Initial Nearest-Neighbor Construction
         unvisited = list(stops)
         curr_lat, curr_lon = depot_coords
+        ordered_stops: List[Dict[str, Any]] = []
+
+        while unvisited:
+            best_idx = 0
+            best_dist = 999999.0
+            for i, st in enumerate(unvisited):
+                d = self.geo_svc.haversine_distance(curr_lat, curr_lon, st["latitude"], st["longitude"])
+                if d < best_dist:
+                    best_dist = d
+                    best_idx = i
+
+            next_stop = unvisited.pop(best_idx)
+            ordered_stops.append(next_stop)
+            curr_lat = next_stop["latitude"]
+            curr_lon = next_stop["longitude"]
+
+        # Step 2: 2-Opt Local Search Optimization
+        improved = True
+        iterations = 0
+        max_iterations = 50
+        best_distance = self._calculate_tour_distance(depot_coords, ordered_stops)
+
+        while improved and iterations < max_iterations:
+            improved = False
+            iterations += 1
+            n = len(ordered_stops)
+            for i in range(n - 1):
+                for j in range(i + 1, n):
+                    # Test candidate reversed subroute between i and j
+                    new_tour = ordered_stops[:i] + ordered_stops[i:j+1][::-1] + ordered_stops[j+1:]
+                    new_dist = self._calculate_tour_distance(depot_coords, new_tour)
+                    if new_dist < best_distance - 0.01:
+                        best_distance = new_dist
+                        ordered_stops = new_tour
+                        improved = True
+                        break
+                if improved:
+                    break
+
+        # Step 3: Materialize Sequenced Legs with Detailed Metrics
         sequenced: List[Dict[str, Any]] = []
         total_dist = 0.0
         total_dur = 0.0
         total_fuel = 0.0
         seq = 1
 
-        # Add initial depot stop
+        curr_lat, curr_lon = depot_coords
         sequenced.append({
             "sequence": seq,
             "stop_name": "Depot Departure",
@@ -81,33 +134,23 @@ class RoadNetworkService:
             "distance_from_prev_km": 0.0
         })
 
-        while unvisited:
-            # Find nearest unvisited stop
-            best_idx = 0
-            best_dist = 999999.0
-            for i, st in enumerate(unvisited):
-                d = self.geo_svc.haversine_distance(curr_lat, curr_lon, st["latitude"], st["longitude"])
-                if d < best_dist:
-                    best_dist = d
-                    best_idx = i
-
-            next_stop = unvisited.pop(best_idx)
-            leg = self.calculate_road_route(curr_lat, curr_lon, next_stop["latitude"], next_stop["longitude"])
+        for stop in ordered_stops:
+            leg = self.calculate_road_route(curr_lat, curr_lon, stop["latitude"], stop["longitude"])
             total_dist += leg["road_distance_km"]
             total_dur += leg["travel_duration_hours"]
             total_fuel += leg["fuel_consumed_liters"]
 
-            curr_lat = next_stop["latitude"]
-            curr_lon = next_stop["longitude"]
+            curr_lat = stop["latitude"]
+            curr_lon = stop["longitude"]
             seq += 1
 
             sequenced.append({
                 "sequence": seq,
-                "stop_name": next_stop.get("farm_name", f"Farm #{next_stop.get('farm_id')}"),
+                "stop_name": stop.get("farm_name", f"Farm #{stop.get('farm_id')}"),
                 "latitude": curr_lat,
                 "longitude": curr_lon,
                 "action": "FARM_COLLECTION",
-                "payload_tons": next_stop.get("biomass_tons", 0.0),
+                "payload_tons": stop.get("biomass_tons", 0.0),
                 "distance_from_prev_km": leg["road_distance_km"]
             })
 
@@ -133,5 +176,8 @@ class RoadNetworkService:
             "total_distance_km": round(total_dist, 2),
             "total_duration_hours": round(total_dur, 2),
             "total_fuel_liters": round(total_fuel, 2),
-            "sequenced_stops": sequenced
+            "sequenced_stops": sequenced,
+            "is_simulated_approximation": True,
+            "optimization_method": "Nearest-Neighbor + 2-Opt Local Search",
+            "iterations_executed": iterations
         }

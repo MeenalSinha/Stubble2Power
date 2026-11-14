@@ -250,8 +250,32 @@ Cradle-to-grave life cycle assessments.
 - `carbon_credit_eligible_tons` (FLOAT)
 - `methodology_provenance` (VARCHAR(255))
 
+### 3.17 `users` & `organizations` (Phases 13 & 14)
+Multi-tenant identity and tenant cooperative definitions.
+- `organizations`: `code`, `name`, `domain`, `contact_email`, `is_active`.
+- `users`: `username`, `email`, `password_hash` (PBKDF2-SHA256), `full_name`, `role_name`, `organization_id`, `farmer_id`, `phone`, `is_active`, `is_verified`, `mfa_enabled`.
+- `user_sessions`: `session_token_hash` (SHA-256), `user_id`, `is_revoked`, `ip_address`, `expires_at`.
+- `organization_memberships`: `user_id`, `organization_id`, `role_name`, `is_active`.
+
+### 3.18 `user_preferences`, `notifications` & `saved_reports` (Phase 13)
+User experience, notifications, and auditable report persistence.
+- `user_preferences`: `user_id`, `preferred_language` (`en`, `hi`, `pa`), `theme`, `default_aoi`, `dashboard_layout`.
+- `notifications`: `user_id`, `title`, `message`, `category`, `read_status`, `priority` (`LOW`, `NORMAL`, `HIGH`, `CRITICAL`).
+- `saved_reports`: `user_id`, `organization_id`, `report_type`, `title`, `file_format`, `parameters_json`, `summary_data_json`.
+
+### 3.19 `consent_records` & `data_subject_requests` (Phase 14)
+DPDP Act 2023 statutory purpose-bound consents and data subject rights.
+- `consent_records`: `farmer_id`, `user_id`, `consent_purpose`, `consent_version`, `is_granted`, `consent_timestamp`, `withdrawn_at`.
+- `data_subject_requests`: `user_id`, `request_type` (`ACCESS`, `CORRECTION`, `ERASURE`, `EXPORT`), `status`, `details_json`, `requested_at`, `completed_at`.
+
+### 3.20 `audit_logs`, `security_events` & `data_retention_policies` (Phase 14)
+Immutable audit trails, intrusion monitoring, and statutory retention sweeps.
+- `audit_logs`: `actor_user_id`, `actor_username`, `organization_id`, `action`, `resource_type`, `resource_id`, `client_ip`, `status_code`, `details_json`.
+- `security_events`: `event_type`, `severity`, `user_id`, `client_ip`, `details_json`.
+- `data_retention_policies`: `data_category`, `retention_period_days`, `legal_basis`, `action_on_expiry` (`DELETE`, `ANONYMIZE`, `ARCHIVE`), `is_active`.
+
 ---
 
 ## 4. Migrations & Seed Management
 - Alembic configuration resides in `alembic.ini` and `database/migrations/`.
-- Seed data for administrative regions, benchmark farmers, and satellite fire observations is executed via `python database/seeds/seed_data.py`.
+- Seed data for administrative regions, benchmark farmers, tenant organizations, benchmark user profiles, and satellite fire observations is executed via `python -m database.seeds.seed_data`.

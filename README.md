@@ -1,4 +1,4 @@
-# 🌾 Stubble2Power
+# Stubble2Power
 
 **Satellite Intelligence. Sustainable Agriculture. Clean Energy.**
 
@@ -7,17 +7,20 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-PostGIS-336791.svg)](https://postgis.net/)
 [![NASA Space Apps](https://img.shields.io/badge/NASA_Space_Apps-Challenge_09-0B3D91.svg)](https://www.spaceappschallenge.org/)
+[![Security: PBKDF2--SHA256](https://img.shields.io/badge/Security-PBKDF2--SHA256-green.svg)](docs/SECURITY_THREAT_MODEL.md)
+[![Compliance: DPDP Act 2023](https://img.shields.io/badge/Compliance-DPDP_Act_2023-blue.svg)](docs/PRIVACY_GOVERNANCE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## 🎯 Executive Overview
+## Executive Overview
 
-**Stubble2Power** is an enterprise-grade Earth Observation and Agricultural Waste Logistics platform. It addresses the annual crop residue burning crisis in Northern India by bridging satellite active fire intelligence with decentralized mobile bio-refineries.
+**Stubble2Power** is an enterprise-grade Earth Observation, Agricultural Waste Logistics, and Clean Energy platform. It addresses the annual crop residue burning crisis in Northern India by bridging satellite active fire intelligence with decentralized mobile bio-refineries.
 
-The platform unites two previously isolated intelligence systems:
-1. **NASA Satellite Fire Intelligence**: Harmonizes NASA FIRMS MODIS (Terra & Aqua) and VIIRS (NOAA-20, Suomi-NPP, NOAA-21) active fire observations into a coherent spatial and temporal burning activity calendar.
-2. **Agricultural Waste Management Intelligence**: Connects farm coordinates with on-site mobile bio-refinery routing, unit economics modeling, direct farmer payouts, and carbon offset calculations.
+The platform unites three core pillars:
+1. **NASA Satellite Fire Intelligence**: Harmonizes NASA FIRMS MODIS (Terra & Aqua) and VIIRS (NOAA-20, Suomi-NPP, NOAA-21) active fire observations into a coherent spatial and temporal burning activity calendar with statistical anomaly detection and agricultural context classification.
+2. **Agricultural Waste Management Intelligence**: Connects farm parcel coordinates with on-site mobile bio-refinery routing (2-opt TSP road routing), crop-specific residue estimation, techno-economic DCF modeling, and cradle-to-grave LCA carbon accounting (Verra VM0044/Puro.earth additionality).
+3. **Enterprise Identity, Governance & Privacy Platform (Phases 13 & 14)**: Features dedicated role-oriented workspaces (7 standard roles), multi-tenant cooperative isolation, salted PBKDF2-SHA256 authentication, HMAC-SHA256 JWT sessions, fine-grained server-side RBAC, purpose-bound DPDP Act 2023 consent tracking, statutory data subject requests, 2-decimal geospatial location obfuscation (~1.1 km blur for public access), immutable audit logs, and multilingual localization (English, Hindi, Punjabi).
 
 ### Selected NASA Space Apps Challenge
 - **Challenge 09: Harmonization of MODIS and VIIRS Hot Spots**
@@ -89,10 +92,18 @@ Stubble2Power/
 
 ### System B: Agricultural Waste Management
 - **Persistent Farmer Registry**: Database-backed farm acreage, stubble estimates, harvest dates, and WGS84 coordinates.
-- **AI Geodesic Clustering**: Groups farm locations using great-circle Haversine distance to establish optimal deployment centers for mobile units.
-- **Techno-Economic Modeling**: Simulates briquette production (60-75% yield), biochar (15-22% yield), direct farmer payments (₹1,200 - ₹1,800/ton), operating margins, and breakeven tonnages across Conservative, Base Case, and Optimistic scenarios.
-- **Logistics Comparison**: Proves ~70% cost reduction of decentralized on-site processing vs centralized straw haulage.
-- **Ecological Impact**: Calculates avoided CO₂, coal replacement, and EPA equivalents (seedling trees, passenger cars, homes powered).
+- **AI Geodesic Clustering & 2-Opt TSP Routing**: Groups farm locations and solves vehicle routing using 2-Opt edge-swaps with NRIDA PMGSY empirical rural road tortuosity factors.
+- **Techno-Economic DCF Modeling**: Simulates briquette production, biochar, direct farmer payments (₹1,800/ton), DCF NPV, IRR, and breakeven tonnages across dynamic scenarios.
+- **Cradle-to-Grave Life Cycle Assessment (LCA)**: Quantifies net emissions, displacement of fossil coal, biochar stable soil sequestration, and Verra VM0044/Puro.earth additionality.
+
+### System C: Multi-User Platform, Security & Governance (Phases 13 & 14)
+- **Role-Oriented Workspaces**: 7 distinct persona workspaces (`Public Visitor`, `Farmer`, `Field Operator`, `Agricultural Analyst`, `Environmental Analyst`, `Organization Manager`, `System Administrator`) plus `Technical Engine Explorer`.
+- **Identity & Session Architecture**: Salted PBKDF2-SHA256 password hashing (100k iterations) and HMAC-SHA256 JWT access & refresh tokens with active session tracking (`UserSession`).
+- **Server-Side RBAC & IDOR Prevention**: 32 granular permissions enforced via FastAPI dependencies with object-level ownership checks (`verify_resource_ownership`).
+- **Multi-Tenant Organization Isolation**: Row-level tenant partitioning across cooperatives (`PB-BIO-COOP`, `MAPS-MALWA`) with strict cross-tenant denial rules.
+- **DPDP Act 2023 Statutory Privacy Compliance**: Purpose-bound consent records (`ConsentRecord`), Data Subject Requests (`DataSubjectRequest`), automated retention sweeps (`DataRetentionPolicy`), and 2-decimal geospatial location obfuscation (~1.1 km blur for public visitors).
+- **Multilingual Framework**: Centralized localization supporting English (`en`), Hindi (`hi`), and Punjabi (`pa`).
+- **Zero-Emoji Professional UX**: Modern agricultural glassmorphism conforming to WCAG 2.2 AA accessibility standards.
 
 ---
 

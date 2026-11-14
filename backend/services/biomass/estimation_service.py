@@ -11,7 +11,7 @@ from sqlalchemy import select, and_
 
 from backend.models.entities import FarmCrop, HarvestRecord, BiomassEstimate, BiomassInventoryTransaction
 from backend.core.config.settings import config_manager
-from backend.core.exceptions.base import NotFoundError
+from backend.core.exceptions.base import NotFoundError, ValidationError
 from backend.core.logging.logger import get_logger
 
 logger = get_logger("stubble2power.biomass.estimation")
@@ -20,15 +20,29 @@ logger = get_logger("stubble2power.biomass.estimation")
 class BiomassEstimationService:
     def __init__(self, db: Session):
         self.db = db
-        # Configurable scientific parameters
-        self.rpr_paddy = float(config_manager.get("biomass.paddy.residue_to_product_ratio"))
-        self.rpr_wheat = float(config_manager.get("biomass.wheat.residue_to_product_ratio"))
-        self.rpr_cotton = float(config_manager.get("biomass.cotton.residue_to_product_ratio"))
-        self.paddy_collectable_frac = float(config_manager.get("biomass.paddy.sustainable_collection_fraction"))
-        self.wheat_collectable_frac = float(config_manager.get("biomass.wheat.sustainable_collection_fraction"))
+        # Configurable scientific parameters from ConfigManager
+        self.rpr_table: Dict[str, float] = config_manager.get("biomass.crop_rpr_table")
+        self.baseline_yields: Dict[str, float] = config_manager.get("biomass.crop_baseline_yields_tons_per_acre")
+        self.retained_fractions: Dict[str, float] = config_manager.get("biomass.crop_retained_fractions")
+        self.competing_fractions: Dict[str, float] = config_manager.get("biomass.crop_competing_fractions")
+        self.confidence_scores: Dict[str, float] = config_manager.get("biomass.confidence_by_source")
+        self.collection_window_days: int = int(config_manager.get("biomass.collection_window_days"))
         self.handling_loss_frac = float(config_manager.get("biomass.collection_handling_loss_fraction"))
         self.default_moisture = float(config_manager.get("biomass.standard_moisture_content_pct"))
-        self.default_paddy_yield = float(config_manager.get("biomass.paddy.default_grain_yield_tons_per_acre"))
+
+    def _normalize_crop_key(self, crop_type: str) -> str:
+        ct = crop_type.upper()
+        if "PADDY" in ct or "RICE" in ct:
+            return "PADDY_RICE"
+        if "WHEAT" in ct:
+            return "WHEAT"
+        if "COTTON" in ct:
+            return "COTTON"
+        if "MAIZE" in ct or "CORN" in ct:
+            return "MAIZE"
+        if "SUGARCANE" in ct:
+            return "SUGARCANE"
+        return ct
 
     def estimate_crop_biomass(
         self,
@@ -47,6 +61,8 @@ class BiomassEstimationService:
         if not crop:
             raise NotFoundError(message=f"Farm crop with id {farm_crop_id} not found.", entity="FarmCrop")
 
+        crop_key = self._normalize_crop_key(crop.crop_type)
+
         # 1. Check for attached measured harvest record
         harvest = self.db.scalars(
             select(HarvestRecord).where(HarvestRecord.farm_crop_id == farm_crop_id).order_by(HarvestRecord.id.desc())
@@ -56,41 +72,45 @@ class BiomassEstimationService:
         if actual_grain_yield_tons is not None:
             grain_production = actual_grain_yield_tons
             source = "MEASURED"
-            conf = 0.98
+            conf = self.confidence_scores.get("MEASURED_ACTUAL", 0.98)
         elif harvest:
             grain_production = harvest.actual_grain_yield_tons
             source = "MEASURED" if harvest.is_measured else "FARMER_REPORTED"
-            conf = 0.95 if harvest.is_measured else 0.88
+            conf = (
+                self.confidence_scores.get("MEASURED_HARVEST", 0.95)
+                if harvest.is_measured
+                else self.confidence_scores.get("FARMER_REPORTED_HARVEST", 0.88)
+            )
         elif crop.actual_yield_tons_per_acre:
             grain_production = crop.actual_yield_tons_per_acre * crop.cultivated_acres
             source = "FARMER_REPORTED"
-            conf = 0.85
+            conf = self.confidence_scores.get("FARMER_REPORTED_CROP", 0.85)
         else:
-            # Fallback to crop expected yield or regional statistics
-            grain_production = (crop.expected_yield_tons_per_acre or self.default_paddy_yield) * crop.cultivated_acres
+            # Fallback to crop expected yield or regional statistics for that specific crop
+            crop_baseline = crop.expected_yield_tons_per_acre or self.baseline_yields.get(crop_key)
+            if crop_baseline is None:
+                raise ValidationError(
+                    message=f"Cannot estimate biomass: No yield or regional baseline found for crop '{crop.crop_type}'.",
+                    field="crop_type"
+                )
+            grain_production = crop_baseline * crop.cultivated_acres
             source = "OFFICIAL_STATISTICS"
-            conf = 0.78
+            conf = self.confidence_scores.get("REGIONAL_BASELINE", 0.78)
 
         # 2. Select crop-specific RPR and sustainable retention/competing factors
-        crop_type = crop.crop_type.upper()
-        if "PADDY" in crop_type or "RICE" in crop_type:
-            rpr = self.rpr_paddy
-            # 25% retained for soil organic carbon, 0% cattle fodder (silica content high)
-            retained_frac = 0.25 if retained_override is None else retained_override
-            competing_frac = 0.00 if competing_override is None else competing_override
-        elif "WHEAT" in crop_type:
-            rpr = self.rpr_wheat
-            # Wheat straw is prized for dairy cattle feed (bhusa), typically 60% priority domestic use
-            retained_frac = 0.10 if retained_override is None else retained_override
-            competing_frac = 0.50 if competing_override is None else competing_override
-        elif "COTTON" in crop_type:
-            rpr = self.rpr_cotton
-            retained_frac = 0.15 if retained_override is None else retained_override
-            competing_frac = 0.10 if competing_override is None else competing_override
+        if crop_key in self.rpr_table:
+            rpr = self.rpr_table[crop_key]
         else:
-            rpr = 1.40
-            retained_frac = 0.20 if retained_override is None else retained_override
-            competing_frac = 0.10 if competing_override is None else competing_override
+            raise ValidationError(
+                message=f"Unrecognized crop type '{crop.crop_type}'. No validated Residue-to-Product Ratio found.",
+                field="crop_type"
+            )
+
+        default_retained = self.retained_fractions.get(crop_key, 0.20)
+        default_competing = self.competing_fractions.get(crop_key, 0.10)
+
+        retained_frac = default_retained if retained_override is None else retained_override
+        competing_frac = default_competing if competing_override is None else competing_override
 
         # 3. Mathematical Residue Quantities
         gross_residue = grain_production * rpr
@@ -104,16 +124,29 @@ class BiomassEstimationService:
         moisture = moisture_pct if moisture_pct is not None else (harvest.grain_moisture_pct if harvest else self.default_moisture)
         dry_matter = net_usable * (1.0 - (moisture / 100.0))
 
-        # Availability window
-        base_date = harvest.harvest_date if harvest else (crop.actual_harvest_date or crop.expected_harvest_date or date.today())
+        # Availability window: Require an actual or expected harvest date or transparent fallback
+        base_date = harvest.harvest_date if harvest else (crop.actual_harvest_date or crop.expected_harvest_date)
+        inferred_harvest_date = False
+        if not base_date:
+            if config_manager.get("biomass.allow_current_date_fallback"):
+                base_date = date.today()
+                inferred_harvest_date = True
+            else:
+                raise ValidationError(
+                    message=f"Cannot schedule biomass availability window: Crop '{crop.crop_type}' has no harvest date or expected harvest date.",
+                    field="expected_harvest_date"
+                )
+
         start_date = base_date + timedelta(days=1)
-        end_date = start_date + timedelta(days=25)  # 25-day field collection turnaround window
+        end_date = start_date + timedelta(days=self.collection_window_days)
 
         notes = (
-            f"Calculated using {crop_type} RPR of {rpr:.2f} based on {grain_production:.1f}t grain. "
+            f"Calculated using {crop.crop_type} RPR of {rpr:.2f} based on {grain_production:.1f}t grain. "
             f"Retained {retained_frac*100:.0f}% for soil conservation, {competing_frac*100:.0f}% for competing fodder. "
             f"Net usable after {self.handling_loss_frac*100:.0f}% mechanical collection losses."
         )
+        if inferred_harvest_date:
+            notes += f" [Note: Harvest date was not specified; collection window estimated based on current evaluation date {base_date}.]"
 
         estimate = BiomassEstimate(
             farm_crop_id=farm_crop_id,

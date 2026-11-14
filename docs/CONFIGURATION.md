@@ -90,3 +90,22 @@ Each configuration entry maintains:
 | `environmental.coal_displacement_ratio_briquette` | 0.82 | kg/kg | [0.6, 1.1] | CEA / NITI Aayog Co-firing Thermal Replacement |
 | `environmental.coal_emission_factor_kg_co2_per_ton` | 2120.0 | kg/ton | [1800.0, 2500.0] | CEA CO2 Baseline Database for Indian Power Sector v19.0 |
 | `environmental.biochar_stable_carbon_fraction` | 0.72 | fraction | [0.40, 0.90] | IBI / Lehmann et al. (2021) Soil Carbon Permanence |
+| `security.jwt_algorithm` | HS256 | algorithm | ['HS256', 'RS256'] | IETF RFC 7519 JSON Web Token Standard |
+| `security.jwt_access_token_expire_minutes` | 60 | minutes | [5, 1440] | OWASP Session Management Cheat Sheet |
+| `security.jwt_refresh_token_expire_days` | 7 | days | [1, 30] | Zero-Trust Mobile Client Reauthorization Guidelines |
+| `security.api_rate_limit_per_minute` | 120 | req/min | [10, 1000] | NGINX / Cloudflare API Rate Limiting Standards |
+| `privacy.location_obfuscation_decimal_places` | 2 | decimals | [1, 4] | Digital Personal Data Protection Act 2023 (~1.1 km resolution) |
+| `privacy.retention_audit_logs_days` | 730 | days | [180, 2555] | Companies Act 2013 & IT Act Statutory Audit Retention |
+| `privacy.retention_user_sessions_days` | 30 | days | [1, 90] | Zero-Trust Session Lifecycle Standards |
+| `biomass.allow_current_date_fallback` | true | boolean | [true, false] | Real-Time Agricultural Harvest Scheduling Fallback Standard |
+| `routing.rural_average_speed_kmh` | 35.0 | km/h | [15.0, 60.0] | MoRTH / PMGSY Rural Commercial Vehicle Transit Benchmark |
+| `economics.default_capex_inr` | 7500000.0 | INR | [1000000.0, 50000000.0] | MNRE Decentralized Bio-Refinery Equipment Quotations |
+| `economics.default_seasonal_capacity_tons` | 3000.0 | tons | [500.0, 20000.0] | Manufacturer Pyrolysis/Densification Capacity Standard |
+| `economics.default_transport_cost_per_ton_km` | 12.0 | INR/t-km | [3.0, 50.0] | All India Motor Transport Congress Agricultural Rate |
+| `economics.default_labor_maintenance_annual_inr` | 600000.0 | INR/yr | [100000.0, 3000000.0] | Punjab Minimum Wages & Scheduled Maintenance Schedules |
+| `economics.default_annual_overhead_inr` | 300000.0 | INR/yr | [50000.0, 2000000.0] | Cooperative Administrative Overhead Benchmarks |
+| `economics.multi_season_capacity_multiplier` | 1.8 | multiplier | [1.0, 2.5] | Dual Harvest Season Utilization (Kharif + Rabi) |
+| `lca.default_biomass_diverted_tons` | 5000.0 | tons | [10.0, 100000.0] | Baseline Pilot Scale Assessment Reference |
+| `lca.briquette_fraction` | 0.70 | fraction | [0.30, 0.90] | MNRE Agricultural Residue Briquette Standards |
+| `lca.biochar_fraction` | 0.20 | fraction | [0.05, 0.40] | International Biochar Initiative Pyrolysis Standards |
+| `lca.transport_diesel_fuel_liters_per_ton_km` | 0.15 | L/t-km | [0.05, 0.50] | MoRTH / Petroleum Conservation Research Association |

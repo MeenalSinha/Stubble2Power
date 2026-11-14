@@ -22,26 +22,105 @@ class Organization(Base):
     __tablename__ = "organizations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True, default="ORG-MAIN")
     name: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
     org_type: Mapped[str] = mapped_column(String(50), default="AGRICULTURAL_COOP")
     country: Mapped[str] = mapped_column(String(50), default="IND")
+    domain: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    contact_email: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     users: Mapped[List["User"]] = relationship("User", back_populates="organization")
+    memberships: Mapped[List["OrganizationMembership"]] = relationship("OrganizationMembership", back_populates="organization", cascade="all, delete-orphan")
 
 
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     username: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     email: Mapped[str] = mapped_column(String(150), unique=True, index=True, nullable=False)
-    role: Mapped[str] = mapped_column(String(50), default="OPERATOR")  # ADMIN, OPERATOR, RESEARCHER
+    password_hash: Mapped[str] = mapped_column(String(255), default="")
+    full_name: Mapped[str] = mapped_column(String(150), default="")
+    role: Mapped[str] = mapped_column(String(50), default="OPERATOR")  # Legacy role
+    role_name: Mapped[str] = mapped_column(String(50), default="OPERATOR", index=True)
+    farmer_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("farmers.id"), nullable=True, index=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=True)
+    mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     organization: Mapped[Optional[Organization]] = relationship("Organization", back_populates="users")
+    farmer: Mapped[Optional["Farmer"]] = relationship("Farmer", foreign_keys=[farmer_id])
+    preferences: Mapped[Optional["UserPreference"]] = relationship("UserPreference", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    sessions: Mapped[List["UserSession"]] = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    notifications: Mapped[List["Notification"]] = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    is_revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped[User] = relationship("User", back_populates="sessions")
+
+
+class OrganizationMembership(Base):
+    __tablename__ = "organization_memberships"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), index=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    org_role: Mapped[str] = mapped_column(String(50), default="MEMBER")  # OWNER, MANAGER, MEMBER, OPERATOR
+    joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    organization: Mapped[Organization] = relationship("Organization", back_populates="memberships")
+    user: Mapped[User] = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "user_id", name="uq_org_user_membership"),
+    )
+
+
+class Role(Base):
+    __tablename__ = "roles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    description: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_system_role: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class Permission(Base):
+    __tablename__ = "permissions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    category: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # FIRE, FARM, BIOMASS, DEPLOYMENT, FINANCE, LCA, ADMIN, PRIVACY
+    description: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    role_name: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
+    permission_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("role_name", "permission_name", name="uq_role_permission"),
+    )
 
 
 # ============================================================================
@@ -52,6 +131,7 @@ class Farmer(Base):
     __tablename__ = "farmers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
     village: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
     district: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
@@ -442,6 +522,7 @@ class Farm(Base):
     __tablename__ = "farms"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     farmer_id: Mapped[int] = mapped_column(Integer, ForeignKey("farmers.id"), index=True, nullable=False)
     farm_name: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
     total_acres: Mapped[float] = mapped_column(Float, nullable=False)
@@ -548,6 +629,7 @@ class MobileBioRefinery(Base):
     __tablename__ = "mobile_bio_refineries"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     unit_code: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     equipment_type: Mapped[str] = mapped_column(String(50), default="TRAILER_MOUNTED_DENSIFIER")
@@ -570,6 +652,7 @@ class DeploymentPlan(Base):
     __tablename__ = "deployment_plans"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     plan_code: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     region: Mapped[str] = mapped_column(String(100), default="Punjab")
@@ -633,6 +716,7 @@ class FinancialScenario(Base):
     __tablename__ = "financial_scenarios"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     deployment_plan_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("deployment_plans.id"), nullable=True, index=True)
     scenario_name: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # Conservative, Base Case, Optimistic, Custom
     briquette_price_per_ton: Mapped[float] = mapped_column(Float, default=5000.0)
@@ -663,6 +747,7 @@ class EnvironmentalAssessment(Base):
     __tablename__ = "environmental_assessments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     deployment_plan_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("deployment_plans.id"), nullable=True, index=True)
     biomass_diverted_tons: Mapped[float] = mapped_column(Float, default=0.0)
     baseline_burning_co2_tons: Mapped[float] = mapped_column(Float, default=0.0)
@@ -682,3 +767,129 @@ class EnvironmentalAssessment(Base):
     methodology_provenance: Mapped[str] = mapped_column(String(255), default="IPCC 2006 / AR6 WG1 / CEA CO2 Baseline v19.0")
     evidence_json: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# ============================================================================
+# PHASE 13 & 14: USER EXPERIENCE, GOVERNANCE, PRIVACY & SECURITY ENTITIES
+# ============================================================================
+
+class UserPreference(Base):
+    __tablename__ = "user_preferences"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), unique=True, index=True, nullable=False)
+    preferred_language: Mapped[str] = mapped_column(String(10), default="en")  # en, hi, pa
+    theme: Mapped[str] = mapped_column(String(20), default="light")  # light, dark
+    default_aoi: Mapped[str] = mapped_column(String(100), default="Punjab Central")
+    dashboard_layout: Mapped[str] = mapped_column(String(50), default="STANDARD")
+    notification_channels: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user: Mapped[User] = relationship("User", back_populates="preferences")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String(50), index=True, default="SYSTEM")  # SYSTEM, HARVEST, COLLECTION, DEPLOYMENT, SECURITY, REPORT
+    read_status: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    priority: Mapped[str] = mapped_column(String(20), default="NORMAL")  # LOW, NORMAL, HIGH, CRITICAL
+    action_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    user: Mapped[User] = relationship("User", back_populates="notifications")
+
+
+class SavedReport(Base):
+    __tablename__ = "saved_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    report_type: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # FARMER_DIRECTORY, BIOMASS_INVENTORY, DEPLOYMENT_DISPATCH, FINANCIAL_PROJECTION, LCA_IMPACT, FIRE_INTELLIGENCE
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    parameters_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    file_format: Mapped[str] = mapped_column(String(20), default="CSV")  # CSV, JSON, SUMMARY
+    summary_data_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped[User] = relationship("User")
+
+
+class ConsentRecord(Base):
+    __tablename__ = "consent_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    farmer_id: Mapped[int] = mapped_column(Integer, ForeignKey("farmers.id"), index=True, nullable=False)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    consent_purpose: Mapped[str] = mapped_column(String(60), index=True, nullable=False)  # BIOMASS_AGGREGATION, SATELLITE_FIRE_CORRELATION, LOGISTICS_DISPATCH, DIRECT_PAYMENT
+    consent_version: Mapped[str] = mapped_column(String(20), default="v1.0")
+    is_granted: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    consent_timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    farmer: Mapped[Farmer] = relationship("Farmer")
+
+
+class DataSubjectRequest(Base):
+    __tablename__ = "data_subject_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    request_type: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # ACCESS, CORRECTION, ERASURE, EXPORT
+    status: Mapped[str] = mapped_column(String(50), default="SUBMITTED", index=True)  # SUBMITTED, IN_REVIEW, COMPLETED, REJECTED
+    details_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    requested_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    resolved_by_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    user: Mapped[User] = relationship("User", foreign_keys=[user_id])
+
+
+class DataRetentionPolicy(Base):
+    __tablename__ = "data_retention_policies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    data_category: Mapped[str] = mapped_column(String(60), unique=True, index=True, nullable=False)  # AUDIT_LOGS, USER_SESSIONS, INACTIVE_USERS, FARM_COORDINATES
+    retention_period_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    legal_basis: Mapped[str] = mapped_column(String(150), nullable=False)
+    action_on_expiry: Mapped[str] = mapped_column(String(50), default="DELETE")  # DELETE, ANONYMIZE, ARCHIVE
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    actor_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    actor_username: Mapped[str] = mapped_column(String(100), default="anonymous", index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    action: Mapped[str] = mapped_column(String(100), index=True, nullable=False)  # AUTH_LOGIN, DATA_EXPORT, DELETE_RECORD, etc.
+    resource_type: Mapped[str] = mapped_column(String(60), index=True, nullable=False)
+    resource_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    client_ip: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    status_code: Mapped[int] = mapped_column(Integer, default=200)
+    details_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class SecurityEvent(Base):
+    __tablename__ = "security_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(60), index=True, nullable=False)  # LOGIN_FAILURE, UNAUTHORIZED_ACCESS, RATE_LIMIT_EXCEEDED, SUSPICIOUS_EXPORT
+    severity: Mapped[str] = mapped_column(String(20), index=True, default="LOW")  # LOW, MEDIUM, HIGH, CRITICAL
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    client_ip: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    details_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

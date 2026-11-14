@@ -246,3 +246,70 @@ Lists completed life cycle assessments.
 
 ### `GET /api/environmental/system-boundary`
 Returns official LCA system boundary, IPCC AR6 GWP metrics, and CEA India emissions factor provenance.
+
+---
+
+## 15. Authentication & Identity Endpoints (`/api/auth/`)
+
+### `POST /api/auth/register`
+Registers a new user account with PBKDF2-SHA256 password hashing.
+
+### `POST /api/auth/login`
+Authenticates credentials and issues HMAC-SHA256 JWT access and refresh tokens.
+
+### `POST /api/auth/refresh`
+Reissues a new access token using a valid refresh token.
+
+### `GET /api/auth/me`
+Retrieves authenticated user profile, active role, and tenant organization.
+
+### `POST /api/auth/logout`
+Revokes active session tokens in `UserSession`.
+
+---
+
+## 16. Multi-Tenant Organizations Endpoints (`/api/organizations/`)
+
+### `GET /api/organizations/`
+Lists tenant organizations with active status and domain info (Admin only).
+
+### `POST /api/organizations/`
+Registers a new tenant organization (e.g. cooperative society or private aggregator).
+
+### `GET /api/organizations/{org_id}/members`
+Retrieves affiliated members of a specific tenant organization.
+
+---
+
+## 17. User Experience & Preferences Endpoints (`/api/user/`)
+
+### `GET /api/user/preferences` & `PUT /api/user/preferences`
+Retrieves or updates user UI preferences (preferred language `en`/`hi`/`pa`, theme, default AOI).
+
+### `GET /api/user/notifications`
+Retrieves user in-app notifications with read status and priority filters.
+
+### `PATCH /api/user/notifications/{notification_id}/read`
+Marks a specific notification as read.
+
+### `POST /api/user/reports/save` & `GET /api/user/reports`
+Persists or lists generated analytical dossiers.
+
+---
+
+## 18. Privacy Governance & DPDP Act 2023 Endpoints (`/api/privacy/`)
+
+### `POST /api/privacy/consent`
+Records a purpose-bound statutory consent (`BIOMASS_AGGREGATION`, `LOGISTICS_DISPATCH`, etc.).
+
+### `POST /api/privacy/consent/withdraw`
+Withdraws statutory consent for a specified purpose with real-time effect.
+
+### `POST /api/privacy/dsr`
+Submits a statutory Data Subject Request (`ACCESS`, `CORRECTION`, `ERASURE`, `EXPORT`).
+
+### `GET /api/privacy/public/satellite-observations`
+Returns NASA satellite fire observations with 2-decimal geospatial location obfuscation (~1.1 km blur) for public access.
+
+### `GET /api/privacy/audit-logs`
+Retrieves immutable system audit records (Admin only).

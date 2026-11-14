@@ -33,11 +33,15 @@ class FinancialEngineService:
         Adheres to literature standards (PAU, MNRE, RBI IREDA) via ConfigManager.
         Strictly excludes speculative carbon credits from physical operating cash revenue.
         """
-        scenario_key = payload.scenario_name.lower().replace(" ", "_")
-        if scenario_key not in ["conservative", "base_case", "optimistic"]:
-            scenario_key = "base_case"
+        raw_key = payload.scenario_name.lower().replace(" ", "_")
+        is_preset = raw_key in ["conservative", "base_case", "optimistic"]
+        scenario_key = raw_key if is_preset else "base_case"
 
-        # 1. Resolve Biomass and Operational Scale
+        # 1. Resolve Biomass and Operational Scale from Configuration or Inputs
+        default_biomass = float(config_manager.get("economics.default_biomass_volume_tons"))
+        capacity_per_unit = float(config_manager.get("economics.seasonal_processing_capacity_tons"))
+        default_transport_per_ton = float(config_manager.get("economics.default_transport_cost_per_ton_inr"))
+
         deployment_plan = None
         if payload.deployment_plan_id:
             deployment_plan = self.db.scalars(
@@ -46,16 +50,16 @@ class FinancialEngineService:
 
         if payload.biomass_processed_tons is not None:
             biomass_tons = max(1.0, float(payload.biomass_processed_tons))
-            units_count = max(1, int(biomass_tons / 250.0))
-            transport_cost = biomass_tons * 350.0
+            units_count = max(1, int(biomass_tons / capacity_per_unit))
+            transport_cost = biomass_tons * default_transport_per_ton
         elif deployment_plan:
             biomass_tons = max(1.0, deployment_plan.total_biomass_assigned_tons)
             units_count = max(1, deployment_plan.total_units_deployed)
             transport_cost = deployment_plan.estimated_transport_cost_inr
         else:
-            biomass_tons = 500.0  # Nominal baseline cluster volume
-            units_count = 2
-            transport_cost = biomass_tons * 350.0
+            biomass_tons = default_biomass
+            units_count = max(1, int(biomass_tons / capacity_per_unit))
+            transport_cost = biomass_tons * default_transport_per_ton
 
         # 2. Retrieve Financial Parameters
         briquette_price = (
@@ -81,7 +85,7 @@ class FinancialEngineService:
         capex_per_unit = (
             payload.processing_capex_per_unit
             if payload.processing_capex_per_unit is not None
-            else 2500000.0  # 25 Lakhs per mobile densifier
+            else float(config_manager.get("economics.default_capex_per_unit_inr"))
         )
         wacc = (
             payload.wacc_discount_rate_pct
@@ -94,7 +98,9 @@ class FinancialEngineService:
         briquette_yield = float(config_manager.get(f"scenario.{scenario_key}.briquette_yield"))
         biochar_yield = float(config_manager.get(f"scenario.{scenario_key}.biochar_yield"))
         diesel_per_ton = float(config_manager.get("refinery.mobile.fuel_consumption_liters_per_ton"))
-        labor_maintenance_per_ton = 450.0  # Field crew & consumable dies
+        labor_maintenance_per_ton = float(config_manager.get("economics.labor_maintenance_cost_per_ton_inr"))
+        overhead_frac = float(config_manager.get("economics.annual_fixed_overhead_fraction"))
+        season_multiplier = float(config_manager.get("economics.seasons_per_year_multiplier"))
 
         # 3. Production & Revenue
         briquette_tons = biomass_tons * briquette_yield
@@ -118,23 +124,25 @@ class FinancialEngineService:
         # Fixed Costs and Break-even
         total_capex = units_count * capex_per_unit
         annual_depreciation = total_capex / max(1.0, depreciation_years)
-        annual_fixed_overhead = total_capex * 0.05  # 5% annual insurance and depot overhead
+        annual_fixed_overhead = total_capex * overhead_frac
         total_fixed_cost = annual_depreciation + annual_fixed_overhead
 
         rev_per_ton = total_revenue / biomass_tons
         var_cost_per_ton = total_opex / biomass_tons
-        contribution_margin_per_ton = max(0.01, rev_per_ton - var_cost_per_ton)
-        break_even_tons = round(total_fixed_cost / contribution_margin_per_ton, 1)
+        contribution_margin_per_ton = rev_per_ton - var_cost_per_ton
+        if contribution_margin_per_ton > 0:
+            break_even_tons = round(total_fixed_cost / contribution_margin_per_ton, 1)
+        else:
+            break_even_tons = 0.0  # Unit economics negative; break-even unachievable under given prices
 
         # 6. Capital Budgeting (Payback, ROI, NPV, IRR)
-        # Annual operating campaign = 2 seasons (Kharif Paddy + Rabi Wheat) ~ 2.2x single campaign volume
-        annual_net_operating_profit = max(0.0, gross_profit * 2.0 - total_fixed_cost)
+        annual_net_operating_profit = max(0.0, gross_profit * season_multiplier - total_fixed_cost)
         roi_pct = round((annual_net_operating_profit / total_capex * 100.0), 1) if total_capex > 0 else 0.0
-        payback_years = round(total_capex / annual_net_operating_profit, 2) if annual_net_operating_profit > 0 else 99.0
+        payback_years = round(total_capex / annual_net_operating_profit, 2) if annual_net_operating_profit > 0 else 0.0
 
         # 7-Year DCF for NPV
         discount_rate = wacc / 100.0
-        annual_cash_flow = annual_net_operating_profit + annual_depreciation  # Operating cash flow
+        annual_cash_flow = annual_net_operating_profit + annual_depreciation
         pv_cash_flows = sum(annual_cash_flow / ((1.0 + discount_rate) ** t) for t in range(1, int(depreciation_years) + 1))
         npv = round(pv_cash_flows - total_capex, 2)
 

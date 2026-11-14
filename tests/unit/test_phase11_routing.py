@@ -170,6 +170,9 @@ def test_multi_stop_route_sequencing():
     assert seq[1]["action"] == "FARM_COLLECTION"
     assert seq[2]["action"] == "FARM_COLLECTION"
     assert seq[3]["action"] == "DEPOT_END"
+    assert result["is_simulated_approximation"] is True
+    assert result["optimization_method"] == "Nearest-Neighbor + 2-Opt Local Search"
+    assert "iterations_executed" in result
 
 
 def test_deployment_planner_capacity_and_routing(db_session):

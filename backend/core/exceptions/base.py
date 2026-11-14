@@ -76,3 +76,26 @@ class DatabaseError(Stubble2PowerException):
     def __init__(self, message: str, operation: Optional[str] = None):
         details = {"operation": operation} if operation else {}
         super().__init__(message=message, code="DATABASE_ERROR", details=details)
+
+
+class AuthenticationError(Stubble2PowerException):
+    """Raised when authentication credentials are missing, invalid, or expired."""
+    def __init__(self, message: str = "Authentication failed.", details: Optional[Dict[str, Any]] = None):
+        super().__init__(message=message, code="AUTHENTICATION_FAILED", details=details)
+
+
+class AuthorizationError(Stubble2PowerException):
+    """Raised when an authenticated principal lacks required permission or violates tenant boundary."""
+    def __init__(self, message: str = "Permission denied.", role: Optional[str] = None, required_permission: Optional[str] = None):
+        details = {}
+        if role:
+            details["role"] = role
+        if required_permission:
+            details["required_permission"] = required_permission
+        super().__init__(message=message, code="PERMISSION_DENIED", details=details)
+
+
+class ConflictError(Stubble2PowerException):
+    """Raised when a resource state conflicts with the requested action (e.g. duplicate key)."""
+    def __init__(self, message: str, entity: str = "Resource", identifier: Any = None):
+        super().__init__(message=message, code="CONFLICT", details={"entity": entity, "identifier": str(identifier) if identifier else ""})

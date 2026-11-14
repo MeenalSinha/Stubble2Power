@@ -26,6 +26,10 @@ from backend.api.routes import (
     deployments,
     advanced_economics,
     environmental_lca,
+    auth,
+    organizations,
+    user_experience,
+    privacy_governance,
 )
 from backend.core.config.settings import app_settings
 from backend.core.logging.logger import get_logger
@@ -81,6 +85,10 @@ app.include_router(mobile_units.router, prefix="/api")
 app.include_router(deployments.router, prefix="/api")
 app.include_router(advanced_economics.router, prefix="/api")
 app.include_router(environmental_lca.router, prefix="/api")
+app.include_router(auth.router)
+app.include_router(organizations.router)
+app.include_router(user_experience.router)
+app.include_router(privacy_governance.router)
 
 
 @app.get("/")
