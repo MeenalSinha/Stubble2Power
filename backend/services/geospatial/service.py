@@ -4,7 +4,7 @@ Provides geodesic Haversine distance, coordinate validation, and spatial grid ge
 """
 
 import math
-from typing import Tuple, List, Dict, Any, Optional
+from typing import Tuple, List
 from backend.core.exceptions.base import ValidationError
 
 

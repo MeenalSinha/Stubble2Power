@@ -2,9 +2,9 @@
 Pydantic Schemas for Life Cycle Assessment (LCA) and Net Environmental Accounting.
 """
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class EnvironmentalAssessmentCreate(BaseModel):

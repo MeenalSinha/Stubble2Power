@@ -3,7 +3,7 @@ Unit Economics and Logistics Simulation Service.
 Eliminates magic numbers and connects directly to configuration architecture.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Optional
 from backend.core.config.settings import config_manager
 from backend.schemas.economics import (
     EconomicsCalculationResult,

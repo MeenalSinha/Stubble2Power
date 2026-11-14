@@ -6,10 +6,10 @@ as versioned, typed, and sourced configuration entries with full metadata.
 """
 
 import os
-from datetime import datetime, date
-from typing import Dict, Any, Optional, List, Union
+from datetime import datetime
+from typing import Dict, Any, Optional, Union
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
 from backend.core.exceptions.base import ConfigurationError
 
 # Load environment variables from .env file if present

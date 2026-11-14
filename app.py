@@ -27,7 +27,6 @@ from frontend.streamlit_app.components.env_analyst_workspace import render_env_a
 from frontend.streamlit_app.components.org_manager_workspace import render_org_manager_workspace
 from frontend.streamlit_app.components.admin_workspace import render_admin_workspace
 from frontend.streamlit_app.components.technical_explorer import render_technical_engine_explorer
-from frontend.streamlit_app.localization.i18n import t
 
 # Ensure database schema is initialized
 init_db()

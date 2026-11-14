@@ -4,10 +4,8 @@ Integrates parametric Z-Score, robust Median Absolute Deviation (MAD),
 Exponentially Weighted Moving Average (EWMA), and spatial cluster analysis.
 """
 
-from datetime import date, datetime, timedelta
-from typing import List, Dict, Any, Optional
-import numpy as np
-import pandas as pd
+from datetime import date
+from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_
 
@@ -21,7 +19,6 @@ from backend.services.anomaly.explanation_service import AnomalyExplanationServi
 from backend.services.geospatial.service import GeospatialService
 from backend.core.config.settings import config_manager
 from backend.core.logging.logger import get_logger
-from backend.schemas.anomaly import AnomalyDetectRequest, AnomalyResponse, AnomalySummaryResponse
 
 logger = get_logger("stubble2power.anomaly.detector")
 

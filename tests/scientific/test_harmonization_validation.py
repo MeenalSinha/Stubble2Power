@@ -11,13 +11,12 @@ References:
 """
 
 import math
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session
 
 from backend.models.entities import NormalizedSatelliteObservation
 from backend.services.harmonization.engine import HarmonizationEngine
-from backend.services.geospatial.service import GeospatialService
 from backend.core.config.settings import config_manager
 
 

@@ -4,7 +4,7 @@ Manages trailer-mounted mobile densifier registrations, operational specificatio
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 
 from backend.models.database import get_db

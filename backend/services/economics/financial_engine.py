@@ -4,8 +4,7 @@ Implements capital budgeting (CAPEX/OPEX), break-even analysis, multi-year DCF (
 sensitivity tornado modeling, and scenario evaluations without hardcoded magic numbers.
 """
 
-from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
@@ -17,7 +16,7 @@ from backend.schemas.advanced_economics import (
     FinancialComparisonSummary
 )
 from backend.core.config.settings import config_manager
-from backend.core.exceptions.base import NotFoundError, ValidationError
+from backend.core.exceptions.base import NotFoundError
 from backend.core.logging.logger import get_logger
 
 logger = get_logger("stubble2power.economics.financial_engine")

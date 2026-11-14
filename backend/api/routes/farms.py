@@ -4,7 +4,7 @@ Manages spatial farm boundaries, crop seasons, cultivation records, and harvest 
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.models.database import get_db

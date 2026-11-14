@@ -5,7 +5,7 @@ quarantines anomalies with explicit reasons, and generates verifiable quality re
 """
 
 import hashlib
-from datetime import datetime, date, time
+from datetime import datetime, date
 from typing import Dict, Any, List, Optional, Tuple
 from backend.schemas.satellite import NormalizedObservationSchema, QualityControlSummary
 from backend.services.geospatial.service import GeospatialService

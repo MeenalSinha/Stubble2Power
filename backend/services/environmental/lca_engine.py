@@ -4,19 +4,17 @@ Implements IPCC AR6 WG1 GWP100 metrics, CEA India CO2 baseline coal displacement
 and biochar soil carbon permanence with strict separation of biogenic and fossil carbon.
 """
 
-from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from backend.models.entities import EnvironmentalAssessment, DeploymentPlan, RoutePlan
 from backend.schemas.environmental_lca import (
     EnvironmentalAssessmentCreate,
-    EnvironmentalAssessmentResponse,
     SystemBoundarySummary
 )
 from backend.core.config.settings import config_manager
-from backend.core.exceptions.base import NotFoundError, ValidationError
+from backend.core.exceptions.base import NotFoundError
 from backend.core.logging.logger import get_logger
 
 logger = get_logger("stubble2power.environmental.lca")

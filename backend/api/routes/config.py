@@ -3,7 +3,6 @@ Configuration Management API Endpoints.
 Provides visibility and runtime modification for versioned configuration parameters.
 """
 
-from typing import Dict, Any
 from fastapi import APIRouter, HTTPException
 from backend.core.config.settings import config_manager
 from backend.core.exceptions.base import ConfigurationError

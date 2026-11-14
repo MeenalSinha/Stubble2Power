@@ -5,7 +5,6 @@ to ensure production readiness under heavy computational loads.
 """
 
 import time
-import pytest
 from sqlalchemy.orm import Session
 
 from backend.services.geospatial.service import GeospatialService

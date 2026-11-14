@@ -3,7 +3,7 @@ Pydantic Schemas for Phase 14 Privacy, Governance, and Audit Logging.
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 

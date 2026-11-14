@@ -2,7 +2,7 @@
 NASA FIRMS Integration API Endpoints.
 """
 
-from typing import Optional, List
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from backend.models.database import get_db

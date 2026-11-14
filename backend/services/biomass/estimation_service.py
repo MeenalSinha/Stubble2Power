@@ -4,10 +4,10 @@ Configurable mathematical residue estimation accounting for crop-specific Residu
 in-situ soil retention, competing fodder demand, mechanical handling losses, and moisture adjustments.
 """
 
-from datetime import date, datetime, timedelta
-from typing import List, Dict, Any, Optional
+from datetime import date, timedelta
+from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import select, and_
+from sqlalchemy import select
 
 from backend.models.entities import FarmCrop, HarvestRecord, BiomassEstimate, BiomassInventoryTransaction
 from backend.core.config.settings import config_manager

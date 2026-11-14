@@ -3,7 +3,7 @@ Identity & Authentication API Routes.
 Provides user registration, login, profile inspection, and session logout.
 """
 
-from typing import List, Dict, Any
+from typing import List
 from fastapi import APIRouter, Depends, status, Request
 from sqlalchemy.orm import Session
 

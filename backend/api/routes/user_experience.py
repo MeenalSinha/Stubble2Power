@@ -3,7 +3,7 @@ User Experience API Routes.
 Manages user preferences, real-time in-app notifications, and business report generation.
 """
 
-from typing import List, Optional
+from typing import List
 from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 

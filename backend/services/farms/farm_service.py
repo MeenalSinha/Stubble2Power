@@ -4,8 +4,7 @@ Handles multi-farm management per farmer, spatial boundary validation,
 crop cycles, and harvest records with data privacy safeguards.
 """
 
-from datetime import date, datetime
-from typing import List, Dict, Any, Optional
+from typing import List, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_
 

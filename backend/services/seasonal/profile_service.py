@@ -4,16 +4,14 @@ Generates empirical burning activity profiles, determines onset, peak, and decay
 and computes seasonal cumulative distributions from harmonized satellite observations.
 """
 
-from datetime import date, datetime, timedelta
-from typing import List, Dict, Any, Optional
+from datetime import date, timedelta
+from typing import List, Dict, Optional
 import numpy as np
-import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_
 
-from backend.models.entities import SeasonalProfile, HarmonizedObservation, DailyActivityAggregate
+from backend.models.entities import SeasonalProfile, HarmonizedObservation
 from backend.core.logging.logger import get_logger
-from backend.schemas.seasonal import SeasonalProfileCreate, SeasonalProfileResponse
 
 logger = get_logger("stubble2power.seasonal.profile")
 

@@ -3,7 +3,7 @@ Pydantic Schemas for Farm, Land, and Cultivation Management.
 """
 
 from datetime import date, datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 

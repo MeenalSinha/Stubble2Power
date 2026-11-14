@@ -3,7 +3,7 @@ Pydantic schemas for Farmer and Farm entity management.
 """
 
 from datetime import date, datetime
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 

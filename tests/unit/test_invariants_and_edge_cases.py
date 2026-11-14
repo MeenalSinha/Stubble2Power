@@ -12,9 +12,7 @@ Invariants Verified:
 6. Strict JWT cryptographic verification and token tampering rejection
 """
 
-import math
 import pytest
-from datetime import date, datetime
 from sqlalchemy.orm import Session
 
 from backend.services.geospatial.service import GeospatialService
@@ -23,7 +21,7 @@ from backend.services.economics.financial_engine import FinancialEngineService
 from backend.services.environmental.lca_engine import LifeCycleAssessmentService
 from backend.services.privacy.privacy_service import PrivacyService
 from backend.core.security.auth import (
-    create_access_token, decode_token, compute_token_hash
+    create_access_token, decode_token
 )
 from backend.core.exceptions.base import AuthenticationError
 from backend.schemas.advanced_economics import FinancialScenarioCreate

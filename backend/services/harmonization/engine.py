@@ -12,13 +12,12 @@ Scientific Methodology:
 
 import math
 import uuid
-from datetime import date, datetime
-from typing import List, Dict, Any, Optional, Tuple
+from datetime import date
+from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
 import numpy as np
 from sqlalchemy.orm import Session
 
-from backend.schemas.satellite import NormalizedObservationSchema
 from backend.schemas.harmonization import (
     HarmonizedObservationSchema,
     HarmonizationRunResponse

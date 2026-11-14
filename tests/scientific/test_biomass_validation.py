@@ -10,13 +10,11 @@ References:
 - Pathak et al. (2010), "Crop residues: Energy potentials and emissions in India", ICAR
 """
 
-import pytest
 from datetime import date
 from sqlalchemy.orm import Session
 
-from backend.models.entities import Farmer, Farm, FarmCrop, HarvestRecord, BiomassEstimate
+from backend.models.entities import Farmer, Farm, FarmCrop
 from backend.services.biomass.estimation_service import BiomassEstimationService
-from backend.core.config.settings import config_manager
 
 
 def test_crop_rpr_agronomic_reference_values(db_session: Session):

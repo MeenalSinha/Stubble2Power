@@ -10,7 +10,6 @@ References:
 - Punjab State Electricity Regulatory Commission (PSERC), "Biomass Tariff Determination Orders"
 """
 
-import math
 import pytest
 from sqlalchemy.orm import Session
 

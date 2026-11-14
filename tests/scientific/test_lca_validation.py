@@ -11,13 +11,11 @@ References:
 - Puro.earth Biochar Methodology (2022), "Pyrogenic Carbon Capture and Storage (CORCs)"
 """
 
-import math
 import pytest
 from sqlalchemy.orm import Session
 
 from backend.schemas.environmental_lca import EnvironmentalAssessmentCreate
 from backend.services.environmental.lca_engine import LifeCycleAssessmentService
-from backend.core.config.settings import config_manager
 
 
 def test_ipcc_ar6_gwp100_multipliers(db_session: Session):

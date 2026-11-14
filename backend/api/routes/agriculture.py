@@ -4,7 +4,7 @@ Agricultural Fire Context Intelligence API Endpoints.
 
 from typing import List, Optional
 from datetime import date
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 

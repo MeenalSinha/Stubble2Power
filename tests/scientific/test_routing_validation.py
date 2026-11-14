@@ -10,8 +10,6 @@ References:
 - Ministry of Road Transport and Highways (MoRTH), "Heavy Commercial Vehicle Fleet Consumption Indices"
 """
 
-import math
-import pytest
 from backend.services.routing.road_network_service import RoadNetworkService
 from backend.services.geospatial.service import GeospatialService
 from backend.core.config.settings import config_manager

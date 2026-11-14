@@ -5,14 +5,14 @@ tenant boundary isolation, audit logging, and geospatial privacy blurring.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.models.entities import Base, User, Organization, Farmer
+from backend.models.entities import Base, User, Organization
 from backend.core.security.password import hash_password, verify_password
-from backend.core.security.auth import create_access_token, decode_token, compute_token_hash
-from backend.core.security.rbac import has_permission, assert_permission, PERMISSIONS_MATRIX
+from backend.core.security.auth import create_access_token, decode_token
+from backend.core.security.rbac import has_permission, assert_permission
 from backend.services.audit.audit_service import AuditService
 from backend.services.privacy.privacy_service import PrivacyService
 from backend.api.dependencies.auth import verify_organization_access, verify_resource_ownership

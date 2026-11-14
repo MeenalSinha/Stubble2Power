@@ -2,8 +2,7 @@
 Repository for Farmer and Farm entity data access.
 """
 
-from typing import List, Optional, Dict, Any
-from datetime import date
+from typing import List, Optional
 import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_

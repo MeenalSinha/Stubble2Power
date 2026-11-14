@@ -2,7 +2,7 @@
 Historical Burning Activity Calendar API Endpoints.
 """
 
-from typing import List, Optional
+from typing import List
 from datetime import date
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session

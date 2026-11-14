@@ -2,13 +2,11 @@
 Repository for NASA satellite raw and normalized observations, products, and ingestion jobs.
 """
 
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any
 from datetime import date, datetime
-import pandas as pd
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, func, and_
 from backend.models.entities import (
-    SatelliteProduct,
     IngestionJob,
     RawSatelliteObservation,
     NormalizedSatelliteObservation

@@ -3,7 +3,7 @@ Privacy, Consent & Audit Governance API Routes.
 Enforces purpose-bound consent logging, subject rights requests, and security audit querying.
 """
 
-from typing import List, Optional
+from typing import List
 from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 
@@ -16,7 +16,7 @@ from backend.schemas.privacy import (
 )
 from backend.services.privacy.privacy_service import PrivacyService
 from backend.services.audit.audit_service import AuditService
-from backend.api.dependencies.auth import get_current_user, require_role, require_permission
+from backend.api.dependencies.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/api/privacy", tags=["Privacy, Consent & Audit Governance"])
 

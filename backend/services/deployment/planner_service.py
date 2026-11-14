@@ -5,19 +5,17 @@ and multi-objective deployment scenarios.
 """
 
 import uuid
-from datetime import date, datetime, timedelta
-from typing import List, Dict, Any, Optional, Tuple
+from datetime import datetime
+from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, func
 
 from backend.models.entities import (
-    MobileBioRefinery,
     Farm,
     FarmCrop,
     Farmer,
     ConsentRecord,
     BiomassEstimate,
-    BiomassInventoryTransaction,
     DeploymentPlan,
     DeploymentAssignment,
     RoutePlan

@@ -4,8 +4,8 @@ Provides endpoints for calculating avoided open-field burning emissions, coal di
 biochar 100-year stable carbon storage, and carbon-credit eligibility.
 """
 
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.models.database import get_db

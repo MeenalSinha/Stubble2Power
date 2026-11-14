@@ -4,7 +4,7 @@ Verifies system resilience against network partitions, external API outages,
 database rollbacks, transient errors, and invalid inputs.
 """
 
-from datetime import date, datetime
+from datetime import date
 from unittest.mock import MagicMock, patch
 import pytest
 import requests
@@ -13,8 +13,8 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.services.nasa.client import NASAClient
 from backend.services.nasa.ingestion_service import IngestionService
-from backend.core.exceptions.base import NASAAPIError, ConfigurationError, ValidationError
-from backend.models.entities import Farmer, User, Organization
+from backend.core.exceptions.base import NASAAPIError
+from backend.models.entities import Farmer, Organization
 
 
 def test_nasa_client_http_503_recovery():

@@ -7,7 +7,6 @@ import logging
 import os
 import re
 import sys
-from typing import Any, Dict
 
 
 class SensitiveDataFilter(logging.Filter):

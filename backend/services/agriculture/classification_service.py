@@ -8,8 +8,8 @@ Phase 9 context classification does NOT depend on Phase 8 statistical anomaly sc
 Unusual fire activity does not equal agricultural fire activity.
 """
 
-from datetime import date, datetime
-from typing import List, Dict, Any, Optional
+from datetime import date
+from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_
 
@@ -22,7 +22,6 @@ from backend.services.agriculture.land_use_service import LandUseService
 from backend.core.config.settings import config_manager
 from backend.core.logging.logger import get_logger
 from backend.schemas.agriculture import (
-    AgriculturalClassificationRequest,
     AgriculturalContextAssessmentResponse,
     AgriculturalContextSummary
 )

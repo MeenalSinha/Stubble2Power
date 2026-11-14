@@ -4,7 +4,7 @@ Enforces cryptographically signed JWT validation, RBAC, tenant isolation, and ob
 """
 
 from typing import Optional, List, Callable
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -12,8 +12,8 @@ from sqlalchemy import select
 from backend.models.database import get_db
 from backend.models.entities import User
 from backend.core.security.auth import decode_token
-from backend.core.security.rbac import has_permission, assert_permission
-from backend.core.exceptions.base import AuthenticationError, AuthorizationError
+from backend.core.security.rbac import has_permission
+from backend.core.exceptions.base import AuthenticationError
 from backend.core.logging.logger import get_logger
 
 logger = get_logger("stubble2power.security.dependencies")

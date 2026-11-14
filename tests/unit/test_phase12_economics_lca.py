@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.models.entities import Base, FinancialScenario, EnvironmentalAssessment, DeploymentPlan
+from backend.models.entities import Base
 from backend.services.economics.financial_engine import FinancialEngineService
 from backend.services.environmental.lca_engine import LifeCycleAssessmentService
 from backend.schemas.advanced_economics import FinancialScenarioCreate

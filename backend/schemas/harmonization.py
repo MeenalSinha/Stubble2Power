@@ -3,7 +3,7 @@ Pydantic schemas for Scientific MODIS-VIIRS Harmonization.
 """
 
 from datetime import datetime, date
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
 
 

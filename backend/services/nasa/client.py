@@ -8,7 +8,6 @@ import io
 import time
 import requests
 import pandas as pd
-from datetime import date, datetime
 from typing import List, Dict, Any, Optional
 from backend.core.config.settings import app_settings
 from backend.core.exceptions.base import NASAAPIError, ConfigurationError

@@ -3,8 +3,8 @@ Pydantic schemas for the Historical Burning Activity Calendar.
 """
 
 from datetime import date
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from typing import Optional, List
+from pydantic import BaseModel
 
 
 class DailyCalendarEntry(BaseModel):

@@ -3,13 +3,12 @@ Pytest Central Configuration & Test Fixtures.
 Provides shared in-memory database sessions and test harnesses.
 """
 
-from datetime import date
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from backend.models.database import Base
-from backend.models.entities import Farmer, AreaOfInterest
+from backend.models.entities import AreaOfInterest
 
 
 @pytest.fixture

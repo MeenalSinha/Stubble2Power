@@ -6,13 +6,12 @@ and handoff to the Quality Control service.
 
 import uuid
 from datetime import date, datetime
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from backend.services.nasa.client import NASAClient
 from backend.services.fire.quality_service import QualityControlService
 from backend.repositories.satellite_repository import SatelliteRepository
-from backend.schemas.satellite import IngestionJobResponse, QualityControlSummary
-from backend.core.exceptions.base import NASAAPIError, ConfigurationError
+from backend.schemas.satellite import IngestionJobResponse
 from backend.core.logging.logger import get_logger
 
 logger = get_logger("stubble2power.nasa.ingestion")

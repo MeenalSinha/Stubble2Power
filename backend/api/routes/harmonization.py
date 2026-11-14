@@ -2,9 +2,9 @@
 Scientific MODIS-VIIRS Harmonization API Endpoints.
 """
 
-from typing import Optional, List
+from typing import Optional
 from datetime import date
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from backend.models.database import get_db
 from backend.services.harmonization.engine import HarmonizationEngine

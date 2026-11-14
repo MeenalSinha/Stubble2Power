@@ -7,7 +7,6 @@ from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.models.database import Base
-from backend.models.entities import Farmer
 from backend.services.farmers.service import FarmerService
 from backend.schemas.farmer import FarmerCreate
 

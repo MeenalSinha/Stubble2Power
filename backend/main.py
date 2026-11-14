@@ -69,6 +69,7 @@ app.add_middleware(
 
 # Route Registrations
 app.include_router(health.router, prefix="/api")
+app.include_router(health.router, prefix="/api/v1")
 app.include_router(config.router, prefix="/api")
 app.include_router(farmers.router, prefix="/api")
 app.include_router(clustering.router, prefix="/api")

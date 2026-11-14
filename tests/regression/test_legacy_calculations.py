@@ -4,7 +4,6 @@ Ensures mathematical formulas match legacy app.py behavior exactly.
 """
 
 import pytest
-import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 

@@ -3,7 +3,7 @@ Pydantic Schemas for Identity, Authentication, and RBAC.
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from pydantic import BaseModel, Field
 
 class UserLoginRequest(BaseModel):

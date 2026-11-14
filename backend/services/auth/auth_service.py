@@ -4,17 +4,17 @@ Provides cryptographic registration, login, JWT token issuance, session tracking
 """
 
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import select, or_, and_
+from sqlalchemy import select, or_
 
 from backend.models.entities import User, UserSession, Organization, OrganizationMembership, UserPreference
 from backend.schemas.auth import (
     UserRegisterRequest, UserLoginRequest, TokenResponse,
-    OrganizationCreate, OrganizationResponse
+    OrganizationCreate
 )
 from backend.core.security.password import hash_password, verify_password
-from backend.core.security.auth import create_access_token, create_refresh_token, compute_token_hash
+from backend.core.security.auth import create_access_token, compute_token_hash
 from backend.core.config.settings import config_manager
 from backend.core.exceptions.base import AuthenticationError, ConflictError, NotFoundError, ValidationError
 from backend.core.logging.logger import get_logger

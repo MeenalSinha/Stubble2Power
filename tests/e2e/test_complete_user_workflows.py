@@ -13,22 +13,17 @@ Workflows Covered:
 7. DPDP Consent Grant -> Dispatch Planning -> Consent Withdrawal -> Exclusion from Dispatch -> DSR Request
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 import pytest
 from sqlalchemy.orm import Session
 
 from backend.models.entities import (
-    Farmer, Farm, FarmCrop, HarvestRecord, BiomassEstimate,
-    MobileBioRefinery, DeploymentPlan, DeploymentAssignment,
-    Organization, User, ConsentRecord, DataSubjectRequest,
-    NormalizedSatelliteObservation, HarmonizationRun, AreaOfInterest,
-    IngestionJob
+    Farmer, Farm, FarmCrop, HarvestRecord, Organization, NormalizedSatelliteObservation, IngestionJob
 )
 from backend.services.harmonization.engine import HarmonizationEngine
 from backend.services.anomaly.detector import StatisticalAnomalyDetector
 from backend.services.agriculture.classification_service import AgriculturalClassificationService
 from backend.services.biomass.estimation_service import BiomassEstimationService
-from backend.services.biomass.inventory_service import BiomassInventoryService
 from backend.services.deployment.refinery_service import MobileRefineryService
 from backend.services.deployment.planner_service import DeploymentPlannerService
 from backend.services.economics.financial_engine import FinancialEngineService

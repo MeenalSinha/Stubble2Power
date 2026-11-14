@@ -13,7 +13,7 @@ from fastapi import HTTPException
 
 from backend.models.database import Base
 from backend.models.entities import Organization, User, Farmer
-from backend.schemas.auth import UserRegisterRequest, UserLoginRequest, OrganizationCreate
+from backend.schemas.auth import UserRegisterRequest, UserLoginRequest
 from backend.schemas.user_experience import UserPreferenceUpdate, SavedReportCreate
 from backend.schemas.privacy import ConsentCreate, DataSubjectRequestCreate
 from backend.api.routes import auth, organizations, user_experience, privacy_governance

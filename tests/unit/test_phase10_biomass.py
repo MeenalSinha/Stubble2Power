@@ -5,17 +5,17 @@ mathematical residue calculations, and inventory lifecycle / double-allocation g
 """
 
 import pytest
-from datetime import date, timedelta
+from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.models.entities import Base, Farmer, Farm, FarmCrop, HarvestRecord, BiomassEstimate, BiomassInventoryTransaction
+from backend.models.entities import Base, Farmer
 from backend.services.farms.farm_service import FarmService
 from backend.services.biomass.estimation_service import BiomassEstimationService
 from backend.services.biomass.inventory_service import BiomassInventoryService
 from backend.schemas.farm import FarmCreate, FarmCropCreate, HarvestRecordCreate
 from backend.schemas.biomass import BiomassInventoryTransactionCreate
-from backend.core.exceptions.base import ValidationError, NotFoundError
+from backend.core.exceptions.base import ValidationError
 
 
 @pytest.fixture

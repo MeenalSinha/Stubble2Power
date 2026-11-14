@@ -3,7 +3,7 @@ Pydantic Schemas for Agricultural Biomass Estimation, Quality, and Inventory Tra
 """
 
 from datetime import date, datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict
 from pydantic import BaseModel, Field
 
 

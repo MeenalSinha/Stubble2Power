@@ -3,7 +3,7 @@ Environmental and Social Impact Service.
 Transforms agricultural residue prevention into standardized climate and emissions metrics.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Optional
 from backend.core.config.settings import config_manager
 from backend.schemas.environmental import EnvironmentalImpactResult
 

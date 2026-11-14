@@ -14,7 +14,6 @@ from backend.services.seasonal.baseline_service import HistoricalBaselineService
 from backend.services.seasonal.profile_service import SeasonalProfileService
 from backend.services.anomaly.detector import StatisticalAnomalyDetector
 from backend.services.anomaly.explanation_service import AnomalyExplanationService
-from backend.core.config.settings import config_manager
 
 
 @pytest.fixture

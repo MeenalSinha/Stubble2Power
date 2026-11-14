@@ -5,19 +5,18 @@ multi-stop vehicle routing, and capacity-constrained deployment planning.
 """
 
 import pytest
-from datetime import date, timedelta
+from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from backend.models.entities import (
-    Base, Farmer, Farm, FarmCrop, BiomassEstimate,
-    MobileBioRefinery, DeploymentPlan, DeploymentAssignment, RoutePlan
+    Base, Farmer, Farm, FarmCrop, BiomassEstimate
 )
 from backend.services.deployment.refinery_service import MobileRefineryService
 from backend.services.routing.road_network_service import RoadNetworkService
 from backend.services.deployment.planner_service import DeploymentPlannerService
 from backend.schemas.deployment import MobileRefineryCreate, DeploymentPlanCreate
-from backend.core.exceptions.base import ValidationError, NotFoundError
+from backend.core.exceptions.base import ValidationError
 
 
 @pytest.fixture

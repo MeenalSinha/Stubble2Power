@@ -9,8 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, desc
 
 from backend.models.entities import (
-    UserPreference, Notification, SavedReport, User,
-    Farmer, Farm, FarmCrop, BiomassEstimate, DeploymentPlan, FinancialScenario, EnvironmentalAssessment
+    UserPreference, Notification, SavedReport, Farmer, BiomassEstimate, DeploymentPlan, FinancialScenario, EnvironmentalAssessment
 )
 from backend.schemas.user_experience import UserPreferenceUpdate
 from backend.core.exceptions.base import NotFoundError

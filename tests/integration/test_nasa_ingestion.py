@@ -3,14 +3,13 @@ Integration tests for NASA FIRMS client and ingestion workflow.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
-from datetime import date
+from unittest.mock import MagicMock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.models.database import Base
 from backend.services.nasa.client import NASAClient
 from backend.services.nasa.ingestion_service import IngestionService
-from backend.core.exceptions.base import ConfigurationError, NASAAPIError
+from backend.core.exceptions.base import ConfigurationError
 
 
 @pytest.fixture

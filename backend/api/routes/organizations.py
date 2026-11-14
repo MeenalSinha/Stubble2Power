@@ -4,7 +4,7 @@ Enforces organizational boundary creation, member association, and tenant isolat
 """
 
 from typing import List
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from backend.models.database import get_db

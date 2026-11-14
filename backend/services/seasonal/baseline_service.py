@@ -4,17 +4,15 @@ Computes multi-year statistical normals, rolling medians, MAD, standard deviatio
 and data sufficiency checks for regional satellite fire activity.
 """
 
-from datetime import date, datetime, timedelta
 from typing import List, Dict, Any, Optional
 import numpy as np
 import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, func
 
-from backend.models.entities import HistoricalBaseline, HarmonizedObservation, DailyActivityAggregate
+from backend.models.entities import HistoricalBaseline
 from backend.core.config.settings import config_manager
 from backend.core.logging.logger import get_logger
-from backend.schemas.seasonal import BaselineComputeRequest, BaselineEntry
 
 logger = get_logger("stubble2power.seasonal.baseline")
 

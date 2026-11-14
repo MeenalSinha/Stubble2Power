@@ -4,10 +4,10 @@ Manages authoritative agricultural schedules (sowing, harvest, peak residue burn
 from official sources (ICAR, PAU, Ministry of Agriculture & Farmers Welfare).
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import select, and_
+from sqlalchemy import select
 
 from backend.models.entities import CropCalendar
 from backend.core.config.settings import config_manager

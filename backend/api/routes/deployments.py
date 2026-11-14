@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.models.database import get_db
 from backend.services.deployment.planner_service import DeploymentPlannerService
-from backend.models.entities import DeploymentPlan, RoutePlan
+from backend.models.entities import DeploymentPlan
 from backend.schemas.deployment import (
     DeploymentPlanCreate,
     DeploymentPlanResponse,

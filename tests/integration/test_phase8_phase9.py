@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.models.database import Base
 from backend.models.entities import HarmonizationRun, HarmonizedObservation
-from backend.api.routes.seasonal import get_seasonal_profiles, generate_seasonal_profile, get_historical_baselines
+from backend.api.routes.seasonal import get_seasonal_profiles, generate_seasonal_profile
 from backend.api.routes.anomalies import get_anomalies, detect_anomalies
 from backend.api.routes.agriculture import get_crop_calendars, classify_fire_activity, get_agricultural_summary
 from backend.schemas.seasonal import SeasonalProfileCreate

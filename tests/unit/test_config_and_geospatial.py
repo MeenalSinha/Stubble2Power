@@ -3,7 +3,7 @@ Unit tests for configuration architecture and geospatial calculations.
 """
 
 import pytest
-from backend.core.config.settings import ConfigManager, ConfigMetadata, DEFAULT_CONFIG_REGISTRY
+from backend.core.config.settings import ConfigManager
 from backend.core.exceptions.base import ConfigurationError, ValidationError
 from backend.services.geospatial.service import GeospatialService
 

@@ -4,7 +4,7 @@ Generates human-readable, scientifically grounded diagnostic explanations
 for detected fire activity anomalies.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from datetime import date
 
 

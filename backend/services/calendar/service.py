@@ -4,10 +4,9 @@ Dynamically aggregates harmonized daily, weekly, monthly, and seasonal satellite
 Distinguishes real zero burning from lack of satellite overpass coverage.
 """
 
-from datetime import date, datetime, timedelta
-from typing import List, Dict, Any, Optional
+from datetime import date, timedelta
+from typing import List, Dict, Optional
 import calendar
-import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_
 

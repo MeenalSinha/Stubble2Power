@@ -4,7 +4,7 @@ Associates coordinates with authoritative land use categories (ESA WorldCover / 
 measures distance to agricultural cropland, and handles spatial classification uncertainty.
 """
 
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 

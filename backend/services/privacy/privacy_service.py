@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, desc
 
-from backend.models.entities import ConsentRecord, DataSubjectRequest, DataRetentionPolicy, Farmer, User
+from backend.models.entities import ConsentRecord, DataSubjectRequest, Farmer
 from backend.core.config.settings import config_manager
 from backend.core.exceptions.base import NotFoundError, ValidationError
 from backend.core.logging.logger import get_logger

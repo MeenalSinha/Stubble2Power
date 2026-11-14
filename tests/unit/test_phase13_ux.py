@@ -5,11 +5,11 @@ and purpose-bound consent workflows.
 """
 
 import pytest
-from datetime import date, datetime
+from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.models.entities import Base, User, Farmer, Farm, BiomassEstimate
+from backend.models.entities import Base, User, Farmer
 from backend.services.user_experience.user_experience_service import UserExperienceService
 from backend.services.privacy.privacy_service import PrivacyService
 from backend.schemas.user_experience import UserPreferenceUpdate

@@ -6,10 +6,10 @@ Enforces validation, coordinates persistence, and manages import/export operatio
 from typing import List, Dict, Any, Optional
 import io
 import pandas as pd
-from datetime import date, datetime
+from datetime import date
 from sqlalchemy.orm import Session
 from backend.repositories.farmer_repository import FarmerRepository
-from backend.schemas.farmer import FarmerCreate, FarmerUpdate, FarmerResponse
+from backend.schemas.farmer import FarmerCreate, FarmerResponse
 from backend.services.geospatial.service import GeospatialService
 from backend.core.exceptions.base import ValidationError
 

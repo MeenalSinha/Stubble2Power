@@ -2,10 +2,10 @@
 Repository for Harmonization Runs and Harmonized Observation grids.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from datetime import date
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, and_
 from backend.models.entities import HarmonizationRun, HarmonizedObservation
 from backend.schemas.harmonization import HarmonizedObservationSchema
 

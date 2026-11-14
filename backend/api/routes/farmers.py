@@ -3,7 +3,7 @@ Farmer Management API Endpoints.
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from backend.models.database import get_db
 from backend.services.farmers.service import FarmerService
