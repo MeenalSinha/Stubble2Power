@@ -1,6 +1,32 @@
 # Stubble2Power - Engineering Changelog
 
-## [2.1.0] - 2026-11-14
+## [2.2.0] - 2026-11-14
+
+### Phase 8 & Phase 9 Implementation: Advanced Fire Intelligence & Agricultural Context
+
+#### Phase 8: Seasonal Intelligence & Anomaly Detection
+- **Multi-Year Historical Baselines**: Implemented `HistoricalBaselineService` computing multi-year parametric normals ($\mu, \sigma$) and robust non-parametric metrics ($\text{Median}, \text{MAD}, \text{P75}, \text{P90}$) with standard 365-day leap-year alignment.
+- **Empirical Seasonal Profiles**: Implemented `SeasonalProfileService` deriving season onset dates (10% cumulative activity), peak dates, decay dates (90% cumulative), duration, and empirical fire activity distribution curves.
+- **Data Sufficiency Engine**: Protocol enforcing minimum observation history ($N \ge 3$ periods) and satellite overpass coverage ($\ge 60\%$) before certifying baseline confidence.
+- **Multi-Method Statistical Anomaly Detector**: Implemented `StatisticalAnomalyDetector` combining parametric Z-score ($Z \ge 2.5$), robust Median Absolute Deviation ($\text{MAD} \ge 3.0$), EWMA momentum tracking ($\alpha = 0.3$), and spatial clustering ($r = 25\text{ km}$).
+- **Diagnostic Explainability**: Implemented `AnomalyExplanationService` generating evidence-based structured JSON diagnostics explaining exact observed values, expected normals, percentage surges, and observational confidence.
+- **Database Entities & Persistence**: Added `HistoricalBaseline`, `SeasonalProfile`, and `FireActivityAnomaly` ORM models.
+- **REST API Endpoints**: Mounted `/api/seasonal/profiles`, `/api/seasonal/profiles/generate`, `/api/seasonal/baselines`, `/api/seasonal/baselines/compute`, `/api/anomalies`, `/api/anomalies/detect`, and `/api/anomalies/{anomaly_id}`.
+- **Interactive UI Dashboard**: Built dedicated Streamlit module `📈 Seasonal & Anomaly Intelligence` with profile curve visualizers, historical normals tables, severity pie breakdowns, and diagnostic evidence inspection.
+
+#### Phase 9: Agricultural Fire Context Intelligence
+- **Architectural Boundary Enforcement**: Strictly isolated context classification from Phase 8 statistical anomalies (unusual fire $\ne$ agricultural fire).
+- **Authoritative Crop Calendars**: Seeded official Punjab Agricultural University (PAU) and ICAR crop calendars (Kharif Paddy, Rabi Wheat, Kharif Cotton, Sugarcane) with sowing, harvest, and peak residue burn schedules.
+- **Land Use Land Cover (LULC) Integration**: Implemented `LandUseService` georeferencing ESA WorldCover and NRSC Bhuvan zones (Central Agri Basin, Western Agri Basin, Majha Basin, Shivalik Forest Reserve, Harike Wetland, Ludhiana Focal Point Industrial Zone).
+- **Bayesian Context Classification**: Implemented `AgriculturalClassificationService` classifying observations into `LIKELY_AGRICULTURAL_CONTEXT`, `POSSIBLE_AGRICULTURAL_CONTEXT`, `OTHER_LAND_USE_CONTEXT`, and `UNKNOWN_OR_INSUFFICIENT_EVIDENCE`.
+- **Physical Thermal Envelope Verification**: Enforced empirical combustion physics constraint ($\text{FRP} \le 250\text{ MW}$) to differentiate crop field stubble burning from intensive forest crown fires or industrial flares.
+- **Database Entities & Persistence**: Added `CropCalendar`, `LandUseRecord`, and `AgriculturalContextAssessment` ORM models.
+- **REST API Endpoints**: Mounted `/api/agriculture/calendars`, `/api/agriculture/assessments`, `/api/agriculture/classify`, and `/api/agriculture/summary`.
+- **Interactive UI Dashboard**: Built dedicated Streamlit module `🌱 Agricultural Fire Context Intelligence` with Folium classification map, crop calendar directory, live harvest window tester, and attribution evidence explorer.
+
+#### Test Suite & Verification
+- Expanded automated test suite to 57 passing tests (100% pass rate).
+- Full Docker Compose stack verified with PostGIS, FastAPI backend, and Streamlit frontend.
 
 ### Comprehensive Quality Assurance & Scientific Audit Fixes
 

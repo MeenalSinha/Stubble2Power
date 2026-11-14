@@ -268,3 +268,160 @@ class ConfigParameter(Base):
     effective_date: Mapped[str] = mapped_column(String(50), nullable=False)
     version: Mapped[str] = mapped_column(String(50), default="1.0.0")
     last_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ============================================================================
+# PHASE 8: HISTORICAL BASELINES, SEASONAL PROFILES & ANOMALIES
+# ============================================================================
+
+class HistoricalBaseline(Base):
+    __tablename__ = "historical_baselines"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    region_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    grid_id: Mapped[Optional[str]] = mapped_column(String(50), index=True, nullable=True)
+    analysis_period: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g., "OCT_NOV_MULTIYEAR"
+    metric_type: Mapped[str] = mapped_column(String(50), nullable=False)  # harmonized_frp_mw, activity_index, detections
+    day_of_year: Mapped[Optional[int]] = mapped_column(Integer, index=True, nullable=True)
+    mean_val: Mapped[float] = mapped_column(Float, default=0.0)
+    median_val: Mapped[float] = mapped_column(Float, default=0.0)
+    std_val: Mapped[float] = mapped_column(Float, default=0.0)
+    mad_val: Mapped[float] = mapped_column(Float, default=0.0)  # Median Absolute Deviation * 1.4826
+    p75_val: Mapped[float] = mapped_column(Float, default=0.0)
+    p90_val: Mapped[float] = mapped_column(Float, default=0.0)
+    min_val: Mapped[float] = mapped_column(Float, default=0.0)
+    max_val: Mapped[float] = mapped_column(Float, default=0.0)
+    sample_count: Mapped[int] = mapped_column(Integer, default=0)
+    data_coverage_ratio: Mapped[float] = mapped_column(Float, default=1.0)
+    data_sufficiency_status: Mapped[str] = mapped_column(String(50), default="SUFFICIENT")  # SUFFICIENT, LIMITED_HISTORY, INSUFFICIENT_COVERAGE
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_baseline_reg_metric", "region_id", "metric_type", "day_of_year"),
+    )
+
+
+class SeasonalProfile(Base):
+    __tablename__ = "seasonal_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    region_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    year: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
+    season_name: Mapped[str] = mapped_column(String(100), nullable=False)  # Kharif_PostHarvest, Rabi_PostHarvest, Annual
+    onset_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    peak_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    decay_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    total_activity: Mapped[float] = mapped_column(Float, default=0.0)
+    peak_activity: Mapped[float] = mapped_column(Float, default=0.0)
+    duration_days: Mapped[int] = mapped_column(Integer, default=0)
+    profile_curve_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("region_id", "year", "season_name", name="uq_seasonal_profile"),
+    )
+
+
+class FireActivityAnomaly(Base):
+    __tablename__ = "fire_activity_anomalies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    observation_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
+    grid_id: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
+    region_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    observed_activity: Mapped[float] = mapped_column(Float, nullable=False)
+    baseline_metric: Mapped[str] = mapped_column(String(50), default="harmonized_frp_mw")
+    baseline_value: Mapped[float] = mapped_column(Float, default=0.0)
+    z_score: Mapped[float] = mapped_column(Float, default=0.0)
+    mad_score: Mapped[float] = mapped_column(Float, default=0.0)
+    ewma_score: Mapped[float] = mapped_column(Float, default=0.0)
+    anomaly_type: Mapped[str] = mapped_column(String(50), nullable=False)  # SPIKE, PROLONGED_ELEVATION, UNSEASONAL_TIMING, SPATIAL_CLUSTER, EARLY_ONSET, LATE_SURGE
+    severity_level: Mapped[str] = mapped_column(String(20), default="MODERATE")  # LOW, MODERATE, HIGH, CRITICAL
+    data_sufficiency_flag: Mapped[str] = mapped_column(String(50), default="SUFFICIENT")  # SUFFICIENT, UNCERTAIN_LIMITED_BASELINE
+    explanation_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    centroid_lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    centroid_lon: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_anomaly_date_severity", "observation_date", "severity_level"),
+        Index("idx_anomaly_region_type", "region_id", "anomaly_type"),
+    )
+
+
+# ============================================================================
+# PHASE 9: AGRICULTURAL REFERENCE & FIRE CONTEXT INTELLIGENCE
+# ============================================================================
+
+class CropCalendar(Base):
+    __tablename__ = "crop_calendars"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    crop_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)  # Paddy / Rice (Kharif), Wheat (Rabi)
+    state_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)  # Punjab, Haryana, National
+    district_name: Mapped[str] = mapped_column(String(100), default="ALL")
+    season_name: Mapped[str] = mapped_column(String(50), nullable=False)  # Kharif, Rabi, Zaid
+    sowing_start_month_day: Mapped[str] = mapped_column(String(10), nullable=False)  # "06-15"
+    sowing_end_month_day: Mapped[str] = mapped_column(String(10), nullable=False)    # "07-15"
+    harvest_start_month_day: Mapped[str] = mapped_column(String(10), nullable=False) # "10-01"
+    harvest_end_month_day: Mapped[str] = mapped_column(String(10), nullable=False)   # "11-30"
+    peak_burn_start_month_day: Mapped[str] = mapped_column(String(10), nullable=False) # "10-15"
+    peak_burn_end_month_day: Mapped[str] = mapped_column(String(10), nullable=False)   # "11-20"
+    stubble_burning_susceptibility: Mapped[str] = mapped_column(String(20), default="HIGH")  # HIGH, MEDIUM, LOW
+    official_source: Mapped[str] = mapped_column(String(200), nullable=False)
+    citation: Mapped[str] = mapped_column(String(255), nullable=False)
+    version: Mapped[str] = mapped_column(String(50), default="1.0.0")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_crop_cal_state_crop", "state_name", "crop_name"),
+    )
+
+
+class LandUseRecord(Base):
+    __tablename__ = "land_use_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    zone_name: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
+    state_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    district_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    land_use_class: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # CROPLAND, FOREST, URBAN_INDUSTRIAL, WETLAND_WATER, BARREN_SCRUB
+    min_lat: Mapped[float] = mapped_column(Float, nullable=False)
+    min_lon: Mapped[float] = mapped_column(Float, nullable=False)
+    max_lat: Mapped[float] = mapped_column(Float, nullable=False)
+    max_lon: Mapped[float] = mapped_column(Float, nullable=False)
+    source: Mapped[str] = mapped_column(String(200), default="ESA WorldCover 10m / NRSC Bhuvan")
+    confidence: Mapped[float] = mapped_column(Float, default=0.90)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_lulc_spatial", "min_lat", "max_lat", "min_lon", "max_lon"),
+    )
+
+
+class AgriculturalContextAssessment(Base):
+    __tablename__ = "agricultural_context_assessments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    harmonized_observation_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("harmonized_observations.id"), nullable=True, index=True
+    )
+    observation_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
+    latitude: Mapped[float] = mapped_column(Float, index=True, nullable=False)
+    longitude: Mapped[float] = mapped_column(Float, index=True, nullable=False)
+    grid_id: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
+    land_use_class: Mapped[str] = mapped_column(String(50), nullable=False)
+    land_use_confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    matched_crop: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    harvest_window_status: Mapped[str] = mapped_column(String(50), default="OFF_SEASON")  # IN_PEAK_HARVEST_WINDOW, IN_EXTENDED_HARVEST_WINDOW, OFF_SEASON, UNKNOWN
+    context_classification: Mapped[str] = mapped_column(String(60), index=True, nullable=False)  # LIKELY_AGRICULTURAL_CONTEXT, POSSIBLE_AGRICULTURAL_CONTEXT, OTHER_LAND_USE_CONTEXT, UNKNOWN_OR_INSUFFICIENT_EVIDENCE
+    confidence_score: Mapped[float] = mapped_column(Float, default=0.0)  # 0.0 to 1.0
+    distance_to_cropland_km: Mapped[float] = mapped_column(Float, default=0.0)
+    stubble_risk_index: Mapped[float] = mapped_column(Float, default=0.0)
+    evidence_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_agri_ctx_date_class", "observation_date", "context_classification"),
+    )

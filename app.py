@@ -18,7 +18,10 @@ from streamlit_folium import folium_static
 
 # Backend Service Integrations
 from backend.models.database import SessionLocal, init_db, check_db_health
-from backend.models.entities import Farmer, NormalizedSatelliteObservation, HarmonizedObservation, HarmonizationRun
+from backend.models.entities import (
+    Farmer, NormalizedSatelliteObservation, HarmonizedObservation, HarmonizationRun,
+    HistoricalBaseline, SeasonalProfile, FireActivityAnomaly, CropCalendar, AgriculturalContextAssessment
+)
 from backend.services.farmers.service import FarmerService
 from backend.services.clustering.service import ClusteringService
 from backend.services.economics.service import EconomicsService
@@ -28,6 +31,12 @@ from backend.services.nasa.client import NASAClient
 from backend.services.nasa.ingestion_service import IngestionService
 from backend.services.harmonization.engine import HarmonizationEngine
 from backend.services.calendar.service import CalendarAggregationService
+from backend.services.seasonal.profile_service import SeasonalProfileService
+from backend.services.seasonal.baseline_service import HistoricalBaselineService
+from backend.services.anomaly.detector import StatisticalAnomalyDetector
+from backend.services.agriculture.crop_calendar_service import CropCalendarService
+from backend.services.agriculture.land_use_service import LandUseService
+from backend.services.agriculture.classification_service import AgriculturalClassificationService
 from backend.repositories.satellite_repository import SatelliteRepository
 from backend.repositories.harmonization_repository import HarmonizationRepository
 from backend.core.config.settings import config_manager, app_settings
@@ -103,6 +112,8 @@ def main():
                 "🌾 Agricultural Waste & Bio-Refineries",
                 "🛰️ NASA Fire Intelligence & Harmonization",
                 "📅 Burning Activity Calendar",
+                "📈 Seasonal & Anomaly Intelligence",
+                "🌱 Agricultural Fire Context Intelligence",
                 "🌍 Geospatial Intelligence Map",
                 "⚙️ Configuration Registry"
             ],
@@ -938,6 +949,364 @@ def main():
         legend_c1.info("🔴 **MODIS** = 1km pixels | 🟠 **VIIRS** = 375m pixels")
         legend_c2.warning("🟨/🟧/🟥 **Rectangles** = Harmonized Activity Cells (0-100 index)")
         legend_c3.success("🟢 **Circles** = Farmers | 🚛 **Trucks** = Mobile Deployment Centers")
+
+    # ========================================================================
+    # MODULE: SEASONAL INTELLIGENCE & ANOMALY DETECTION (PHASE 8)
+    # ========================================================================
+    elif nav_mode == "📈 Seasonal & Anomaly Intelligence":
+        st.markdown("### 📈 Seasonal Intelligence & Statistical Anomaly Detection")
+        st.caption("Empirical burning profiles, multi-year statistical normals, and explainable multi-method fire anomaly detection.")
+
+        seasonal_svc = SeasonalProfileService(db)
+        baseline_svc = HistoricalBaselineService(db)
+        anomaly_detector = StatisticalAnomalyDetector(db)
+
+        # Overview Metrics Bar
+        existing_profiles = seasonal_svc.get_profiles(region_id="Punjab")
+        existing_anomalies = anomaly_detector.get_anomalies(region_id="Punjab")
+        baselines = baseline_svc.get_all_baselines(region_id="Punjab")
+
+        crit_count = sum(1 for a in existing_anomalies if a.severity_level == "CRITICAL")
+        high_count = sum(1 for a in existing_anomalies if a.severity_level == "HIGH")
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Seasonal Profiles", len(existing_profiles))
+        m2.metric("Historical Normals", len(baselines))
+        m3.metric("Total Anomalies", len(existing_anomalies))
+        m4.metric("Critical / High Surges", f"{crit_count + high_count}", delta=f"{crit_count} Critical" if crit_count else None)
+
+        s_tab1, s_tab2 = st.tabs(["📊 Seasonal Profiles & Historical Normals", "🚨 Multi-Method Anomaly Detection"])
+
+        with s_tab1:
+            st.markdown("#### 🌾 Seasonal Profile Generation & Burning Cycle Curves")
+            st.caption("Derives empirical onset (10% cumulative), peak, and decay dates from harmonized satellite observations.")
+
+            col_p1, col_p2, col_p3 = st.columns([1, 1, 1])
+            with col_p1:
+                prof_region = st.selectbox("Region", ["Punjab", "Haryana", "National"], index=0, key="prof_reg")
+                prof_year = st.number_input("Profile Year", min_value=2020, max_value=2030, value=2025, key="prof_yr")
+            with col_p2:
+                prof_season = st.selectbox("Season Designation", ["Kharif_PostHarvest", "Rabi_PostHarvest", "Annual"], index=0, key="prof_season")
+                prof_start = st.date_input("Season Start Date", date(2025, 10, 1), key="prof_sd")
+            with col_p3:
+                prof_end = st.date_input("Season End Date", date(2025, 11, 30), key="prof_ed")
+                gen_btn = st.button("⚡ Generate Empirical Profile", use_container_width=True, type="primary")
+
+            if gen_btn:
+                with st.spinner("Extracting seasonal curves and onset/decay dynamics..."):
+                    new_prof = seasonal_svc.generate_profile(
+                        region_id=prof_region,
+                        year=int(prof_year),
+                        season_name=prof_season,
+                        date_start=prof_start,
+                        date_end=prof_end
+                    )
+                    st.success(f"Seasonal profile generated for {prof_season} {prof_year} ({prof_region})!")
+
+            # Display active profiles
+            profiles = seasonal_svc.get_profiles(region_id=prof_region)
+            if profiles:
+                active_p = profiles[0]
+                p_c1, p_c2, p_c3, p_c4 = st.columns(4)
+                p_c1.metric("Season Onset Date", active_p.onset_date.isoformat() if active_p.onset_date else "N/A")
+                p_c2.metric("Peak Activity Date", active_p.peak_date.isoformat() if active_p.peak_date else "N/A")
+                p_c3.metric("Season Decay Date", active_p.decay_date.isoformat() if active_p.decay_date else "N/A")
+                p_c4.metric("Active Duration", f"{active_p.duration_days} days")
+
+                curve_data = active_p.profile_curve_json
+                if curve_data and "dates" in curve_data:
+                    fig_curve = go.Figure()
+                    fig_curve.add_trace(go.Bar(
+                        x=curve_data["dates"],
+                        y=curve_data["daily_activity"],
+                        name="Daily Fire Activity",
+                        marker_color="rgba(240, 147, 43, 0.75)"
+                    ))
+                    fig_curve.add_trace(go.Scatter(
+                        x=curve_data["dates"],
+                        y=curve_data["cumulative_activity"],
+                        name="Cumulative Activity S-Curve",
+                        yaxis="y2",
+                        mode="lines",
+                        line=dict(color="#2d5f3f", width=3)
+                    ))
+                    # Add peak line
+                    if active_p.peak_date:
+                        fig_curve.add_vline(x=active_p.peak_date.isoformat(), line_dash="dash", line_color="red", annotation_text="Peak")
+                    if active_p.onset_date:
+                        fig_curve.add_vline(x=active_p.onset_date.isoformat(), line_dash="dot", line_color="green", annotation_text="Onset")
+
+                    fig_curve.update_layout(
+                        title=f"Empirical Fire Activity Distribution ({active_p.season_name} {active_p.year})",
+                        xaxis_title="Observation Date",
+                        yaxis=dict(title="Daily Activity / FRP (MW)"),
+                        yaxis2=dict(title="Cumulative Activity", overlaying="y", side="right"),
+                        legend=dict(x=0.01, y=0.99),
+                        height=420,
+                        margin=dict(l=40, r=40, t=50, b=40)
+                    )
+                    st.plotly_chart(fig_curve, use_container_width=True)
+
+            # Historical Normals Table
+            st.markdown("##### 📜 Multi-Year Historical Normals & Data Sufficiency")
+            if baselines:
+                b_df = pd.DataFrame([{
+                    "Day of Year": b.day_of_year,
+                    "Mean FRP (MW)": b.mean_val,
+                    "Median FRP (MW)": b.median_val,
+                    "Std Dev (σ)": b.std_val,
+                    "MAD (Robust)": b.mad_val,
+                    "75th %ile": b.p75_val,
+                    "90th %ile": b.p90_val,
+                    "Sample Count": b.sample_count,
+                    "Sufficiency": b.data_sufficiency_status
+                } for b in baselines[:50]])
+                st.dataframe(b_df, use_container_width=True, height=280)
+            else:
+                st.info("No historical baselines persisted yet. Click 'Compute Baselines' or run harmonization to populate.")
+
+        with s_tab2:
+            st.markdown("#### 🚨 Multi-Method Anomaly Detection & Diagnostics")
+            st.caption("Combines parametric Z-Score, robust Median Absolute Deviation (MAD), EWMA tracking, and spatial clustering.")
+
+            anom_c1, anom_c2, anom_c3, anom_c4 = st.columns(4)
+            with anom_c1:
+                det_start = st.date_input("Start Date", date(2025, 10, 20), key="det_sd")
+            with anom_c2:
+                det_end = st.date_input("End Date", date(2025, 11, 20), key="det_ed")
+            with anom_c3:
+                z_slider = st.slider("Z-Score Multiplier", min_value=1.5, max_value=4.5, value=2.5, step=0.1)
+            with anom_c4:
+                mad_slider = st.slider("MAD Multiplier", min_value=1.5, max_value=5.0, value=3.0, step=0.1)
+
+            run_anom_btn = st.button("🔍 Execute Statistical Anomaly Detection", type="primary", use_container_width=True)
+            if run_anom_btn:
+                with st.spinner("Executing multi-method anomaly tests across fire observations..."):
+                    detected = anomaly_detector.detect_anomalies(
+                        date_start=det_start,
+                        date_end=det_end,
+                        region_id=prof_region,
+                        zscore_threshold=z_slider,
+                        mad_threshold=mad_slider
+                    )
+                    st.success(f"Detected {len(detected)} statistically anomalous fire activity events!")
+
+            all_anoms = anomaly_detector.get_anomalies(region_id=prof_region)
+            if all_anoms:
+                # Severity distribution chart
+                sev_counts = pd.Series([a.severity_level for a in all_anoms]).value_counts()
+                fig_sev = px.pie(
+                    names=sev_counts.index,
+                    values=sev_counts.values,
+                    title="Anomaly Severity Breakdown",
+                    color=sev_counts.index,
+                    color_discrete_map={
+                        "CRITICAL": "#eb4d4b",
+                        "HIGH": "#f0932b",
+                        "MODERATE": "#f9ca24",
+                        "LOW": "#6ab04c"
+                    },
+                    hole=0.4
+                )
+                fig_sev.update_layout(height=280, margin=dict(l=20, r=20, t=40, b=20))
+                st.plotly_chart(fig_sev, use_container_width=True)
+
+                st.markdown("##### 🔍 Detected Anomalies & Scientific Explainability")
+                anom_table = pd.DataFrame([{
+                    "ID": a.id,
+                    "Date": a.observation_date.isoformat(),
+                    "Grid ID": a.grid_id,
+                    "Observed Activity": a.observed_activity,
+                    "Baseline Value": a.baseline_value,
+                    "Z-Score": f"{a.z_score:+.2f}σ",
+                    "MAD Score": f"{a.mad_score:+.2f}",
+                    "Anomaly Type": a.anomaly_type,
+                    "Severity": a.severity_level,
+                    "Sufficiency Flag": a.data_sufficiency_flag
+                } for a in all_anoms[:100]])
+                st.dataframe(anom_table, use_container_width=True, height=300)
+
+                # Diagnostic deep dive expander for individual anomalies
+                selected_anom_id = st.selectbox("Inspect Anomaly Diagnostic Evidence", [a.id for a in all_anoms], format_func=lambda x: f"Anomaly #{x}")
+                sel_anom = next((a for a in all_anoms if a.id == selected_anom_id), None)
+                if sel_anom and sel_anom.explanation_json:
+                    exp = sel_anom.explanation_json
+                    st.info(f"**Diagnostic Summary:** {exp.get('summary')}")
+                    e_c1, e_c2, e_c3 = st.columns(3)
+                    e_c1.metric("Observed FRP", f"{exp.get('metric_observed')} MW")
+                    e_c2.metric("Baseline Norm", f"{exp.get('baseline_expected')} MW")
+                    e_c3.metric("Statistical Deviation", f"+{exp.get('deviation_percent')}%")
+
+                    st.markdown(f"- **Statistical Evidence:** {exp.get('statistical_evidence')}")
+                    st.markdown(f"- **Spatial Context:** {exp.get('spatial_context')}")
+                    st.markdown(f"- **Data Sufficiency Assessment:** {exp.get('data_sufficiency_reason')}")
+            else:
+                st.info("No anomalies detected in database for selected filters.")
+
+    # ========================================================================
+    # MODULE: AGRICULTURAL FIRE CONTEXT INTELLIGENCE (PHASE 9)
+    # ========================================================================
+    elif nav_mode == "🌱 Agricultural Fire Context Intelligence":
+        st.markdown("### 🌱 Agricultural Fire Context Intelligence")
+        st.caption(
+            "Evidence-based attribution distinguishing agricultural residue burning from other land-use fire activity "
+            "using authoritative crop calendars and Land Use Land Cover (LULC) geospatial models."
+        )
+
+        crop_svc = CropCalendarService(db)
+        land_use_svc = LandUseService(db)
+        agri_class_svc = AgriculturalClassificationService(db)
+
+        # High-level Summary
+        summary = agri_class_svc.get_summary()
+        sum_c1, sum_c2, sum_c3, sum_c4, sum_c5 = st.columns(5)
+        sum_c1.metric("Total Fire Points Assessed", summary.total_assessed)
+        sum_c2.metric("Likely Agricultural", summary.likely_agricultural_count, delta=f"{summary.percent_likely_agricultural}%")
+        sum_c3.metric("Possible Agricultural", summary.possible_agricultural_count)
+        sum_c4.metric("Other Land Use Context", summary.other_land_use_count)
+        sum_c5.metric("Unknown / Insufficient", summary.unknown_count)
+
+        agri_tab1, agri_tab2, agri_tab3 = st.tabs([
+            "🗺️ Context Classification Map",
+            "📅 Crop Calendars & Harvest Windows",
+            "🔬 Diagnostic Attribution & Evidence"
+        ])
+
+        with agri_tab1:
+            st.markdown("#### 🗺️ Geospatial Fire Context Classification")
+            st.caption("Fires classified using multi-source Bayesian evidence synthesis (Cropland + Harvest Window + FRP Envelope).")
+
+            act_col1, act_col2, act_col3 = st.columns([1, 1, 1])
+            with act_col1:
+                class_start = st.date_input("Evaluation Start Date", date(2025, 10, 20), key="ac_sd")
+            with act_col2:
+                class_end = st.date_input("Evaluation End Date", date(2025, 11, 20), key="ac_ed")
+            with act_col3:
+                classify_btn = st.button("⚡ Run Context Classification Engine", type="primary", use_container_width=True)
+
+            if classify_btn:
+                with st.spinner("Classifying harmonized satellite fire points against crop calendars and LULC..."):
+                    new_assessments = agri_class_svc.classify_harmonized_records(
+                        date_start=class_start,
+                        date_end=class_end,
+                        state_name="Punjab"
+                    )
+                    st.success(f"Classified {len(new_assessments)} observations!")
+
+            # Filter controls for map
+            assessments = agri_class_svc.classify_harmonized_records(
+                date_start=class_start,
+                date_end=class_end,
+                persist=False
+            ) if not summary.assessments else summary.assessments
+
+            f_c1, f_c2 = st.columns(2)
+            with f_c1:
+                cat_filter = st.multiselect(
+                    "Filter Categories",
+                    ["LIKELY_AGRICULTURAL_CONTEXT", "POSSIBLE_AGRICULTURAL_CONTEXT", "OTHER_LAND_USE_CONTEXT", "UNKNOWN_OR_INSUFFICIENT_EVIDENCE"],
+                    default=["LIKELY_AGRICULTURAL_CONTEXT", "POSSIBLE_AGRICULTURAL_CONTEXT", "OTHER_LAND_USE_CONTEXT"]
+                )
+            with f_c2:
+                min_conf = st.slider("Minimum Confidence Threshold", 0.0, 1.0, 0.4, 0.05)
+
+            filtered_ass = [a for a in assessments if a.context_classification in cat_filter and a.confidence_score >= min_conf]
+
+            # Build Folium Context Map
+            context_map = folium.Map(location=[30.9, 75.5], zoom_start=8, tiles="CartoDB positron")
+            color_map = {
+                "LIKELY_AGRICULTURAL_CONTEXT": "#e67e22",     # Amber/Orange
+                "POSSIBLE_AGRICULTURAL_CONTEXT": "#f1c40f",   # Yellow
+                "OTHER_LAND_USE_CONTEXT": "#2980b9",          # Blue
+                "UNKNOWN_OR_INSUFFICIENT_EVIDENCE": "#95a5a6" # Grey
+            }
+
+            for item in filtered_ass:
+                lat = item.latitude
+                lon = item.longitude
+                color = color_map.get(item.context_classification, "#95a5a6")
+                folium.CircleMarker(
+                    location=[lat, lon],
+                    radius=6,
+                    color=color,
+                    fill=True,
+                    fill_color=color,
+                    fill_opacity=0.8,
+                    popup=(
+                        f"<b>Classification: {item.context_classification}</b><br>"
+                        f"Crop: {item.matched_crop or 'N/A'}<br>"
+                        f"Confidence: {item.confidence_score*100:.1f}%<br>"
+                        f"Harvest Status: {item.harvest_window_status}<br>"
+                        f"Land Use: {item.land_use_class}"
+                    )
+                ).add_to(context_map)
+
+            folium_static(context_map, width=1300, height=520)
+
+            legend_col1, legend_col2, legend_col3, legend_col4 = st.columns(4)
+            legend_col1.markdown("🟧 **Likely Agricultural** (Cropland + Harvest Window)")
+            legend_col2.markdown("🟨 **Possible Agricultural** (Near Cropland / Extended)")
+            legend_col3.markdown("🟦 **Other Land Use** (Forest / Industrial / Excessive FRP)")
+            legend_col4.markdown("⬜ **Unknown / Insufficient** (Low Confidence)")
+
+        with agri_tab2:
+            st.markdown("#### 📅 Authoritative Crop Calendars & Harvest Windows")
+            st.caption("Official agricultural schedules from Punjab Agricultural University (PAU) and ICAR.")
+
+            calendars = crop_svc.get_all_calendars(state_name="Punjab")
+            cal_df = pd.DataFrame([{
+                "Crop Designation": c.crop_name,
+                "Season": c.season_name,
+                "Sowing Window": f"{c.sowing_start_month_day} to {c.sowing_end_month_day}",
+                "Harvest Window": f"{c.harvest_start_month_day} to {c.harvest_end_month_day}",
+                "Peak Burn Window": f"{c.peak_burn_start_month_day} to {c.peak_burn_end_month_day}",
+                "Stubble Burning Risk": c.stubble_burning_susceptibility,
+                "Official Source": c.official_source,
+                "Citation": c.citation
+            } for c in calendars])
+            st.dataframe(cal_df, use_container_width=True, height=280)
+
+            # Interactive date checker
+            st.markdown("##### 🔎 Date Harvest Status Tester")
+            test_date = st.date_input("Select Date to Test Against Active Crop Schedules", date.today())
+            match_res = crop_svc.match_harvest_window(test_date, state_name="Punjab")
+            if match_res["status"] == "IN_PEAK_HARVEST_WINDOW":
+                st.error(f"🚨 **PEAK HARVEST RESIDUE BURN WINDOW**: Active for **{match_res['matched_crop']}** (Risk: {match_res['susceptibility']})")
+            elif match_res["status"] == "IN_EXTENDED_HARVEST_WINDOW":
+                st.warning(f"⚠️ **EXTENDED HARVEST WINDOW**: Active for **{match_res['matched_crop']}**")
+            else:
+                st.success("🟢 **OFF-SEASON**: Date falls outside active harvest burn windows.")
+
+        with agri_tab3:
+            st.markdown("#### 🔬 Diagnostic Attribution & Explainability Breakdown")
+            st.caption("Complete transparency into why each satellite fire observation was or was not attributed to agricultural burning.")
+
+            if filtered_ass:
+                ass_df = pd.DataFrame([{
+                    "ID": a.id,
+                    "Date": a.observation_date.isoformat(),
+                    "Coordinates": f"{a.latitude:.3f}, {a.longitude:.3f}",
+                    "Classification": a.context_classification,
+                    "Confidence": f"{a.confidence_score*100:.1f}%",
+                    "Matched Crop": a.matched_crop or "None",
+                    "Harvest Status": a.harvest_window_status,
+                    "Land Use": a.land_use_class,
+                    "Dist to Cropland": f"{a.distance_to_cropland_km:.1f} km",
+                    "Stubble Risk": f"{a.stubble_risk_index:.0f}/100"
+                } for a in filtered_ass])
+                st.dataframe(ass_df, use_container_width=True, height=300)
+
+                selected_ass_id = st.selectbox("Select Observation to Inspect Evidence", [a.id for a in filtered_ass], format_func=lambda x: f"Observation Assessment #{x}")
+                sel_item = next((a for a in filtered_ass if a.id == selected_ass_id), None)
+                if sel_item and sel_item.evidence_json:
+                    ev = sel_item.evidence_json
+                    st.markdown(f"**Classification Decision:** `{sel_item.context_classification}`")
+                    st.info(f"**Diagnostic Rationale:** {ev.get('classification_reason')}")
+                    st.markdown("**Evidence Synthesis Factors:**")
+                    for f in ev.get("evidence_factors", []):
+                        st.markdown(f"- {f}")
+            else:
+                st.info("No assessments found matching the selected filters.")
 
     # ========================================================================
     # MODULE 5: CONFIGURATION REGISTRY

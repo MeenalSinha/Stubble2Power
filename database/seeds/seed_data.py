@@ -206,6 +206,42 @@ def seed_database():
             )
             logger.info("Baseline harmonization executed successfully.")
 
+        # 5. Seed Official Crop Calendars & LULC Reference Zones
+        from backend.services.agriculture.crop_calendar_service import CropCalendarService
+        from backend.services.agriculture.land_use_service import LandUseService
+        from backend.services.seasonal.profile_service import SeasonalProfileService
+        from backend.services.anomaly.detector import StatisticalAnomalyDetector
+        from backend.services.agriculture.classification_service import AgriculturalClassificationService
+
+        crop_svc = CropCalendarService(db)
+        land_use_svc = LandUseService(db)
+
+        # 6. Generate Baseline Seasonal Profile & Detect Anomalies
+        seasonal_svc = SeasonalProfileService(db)
+        seasonal_svc.generate_profile(
+            region_id="Punjab",
+            year=2025,
+            season_name="Kharif_PostHarvest",
+            date_start=date(2025, 10, 25),
+            date_end=date(2025, 11, 3)
+        )
+
+        detector = StatisticalAnomalyDetector(db)
+        detector.detect_anomalies(
+            date_start=date(2025, 10, 25),
+            date_end=date(2025, 11, 3),
+            region_id="Punjab"
+        )
+
+        # 7. Classify Initial Harmonized Fire Observations
+        agri_class_svc = AgriculturalClassificationService(db)
+        agri_class_svc.classify_harmonized_records(
+            date_start=date(2025, 10, 25),
+            date_end=date(2025, 11, 3),
+            state_name="Punjab"
+        )
+        logger.info("Phase 8 & Phase 9 reference datasets, seasonal profiles, anomalies, and classifications seeded.")
+
     finally:
         db.close()
 

@@ -21,7 +21,10 @@ from backend.api.routes import (
     economics,
     nasa,
     harmonization,
-    calendar
+    calendar,
+    seasonal,
+    anomalies,
+    agriculture
 )
 
 
@@ -195,3 +198,30 @@ class TestAPIRouteHandlers:
         annual = calendar.get_annual_summary(year=2025, db=db_session)
         assert annual.year == 2025
         assert annual.burning_season_start == date(2025, 10, 1)
+
+    def test_seasonal_routes(self, db_session):
+        # 1. List seasonal profiles
+        profiles = seasonal.get_seasonal_profiles(region_id="Punjab", db=db_session)
+        assert isinstance(profiles, list)
+
+        # 2. List baselines
+        baselines = seasonal.get_historical_baselines(region_id="Punjab", db=db_session)
+        assert isinstance(baselines, list)
+
+    def test_anomalies_routes(self, db_session):
+        # 1. List anomalies
+        anom_list = anomalies.get_anomalies(region_id="Punjab", db=db_session)
+        assert isinstance(anom_list, list)
+
+    def test_agriculture_routes(self, db_session):
+        # 1. List crop calendars
+        calendars = agriculture.get_crop_calendars(state_name="Punjab", db=db_session)
+        assert len(calendars) >= 4
+
+        # 2. List assessments
+        assessments = agriculture.get_assessments(db=db_session)
+        assert isinstance(assessments, list)
+
+        # 3. Get summary
+        summary = agriculture.get_agricultural_summary(db=db_session)
+        assert summary.total_assessed >= 0

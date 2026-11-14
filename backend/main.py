@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.models.database import init_db
-from backend.api.routes import health, config, farmers, clustering, economics, nasa, harmonization, calendar
+from backend.api.routes import health, config, farmers, clustering, economics, nasa, harmonization, calendar, seasonal, anomalies, agriculture
 from backend.core.config.settings import app_settings
 from backend.core.logging.logger import get_logger
 
@@ -54,6 +54,9 @@ app.include_router(economics.router, prefix="/api")
 app.include_router(nasa.router, prefix="/api")
 app.include_router(harmonization.router, prefix="/api")
 app.include_router(calendar.router, prefix="/api")
+app.include_router(seasonal.router, prefix="/api")
+app.include_router(anomalies.router, prefix="/api")
+app.include_router(agriculture.router, prefix="/api")
 
 
 @app.get("/")

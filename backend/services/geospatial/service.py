@@ -30,6 +30,11 @@ class GeospatialService:
         return GeospatialService.EARTH_RADIUS_KM * c
 
     @staticmethod
+    def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """Alias for haversine_distance."""
+        return GeospatialService.haversine_distance(lat1, lon1, lat2, lon2)
+
+    @staticmethod
     def validate_coordinates(lat: float, lon: float) -> None:
         """Validates that latitude and longitude fall within legal WGS84 ranges."""
         if not (-90.0 <= lat <= 90.0):
