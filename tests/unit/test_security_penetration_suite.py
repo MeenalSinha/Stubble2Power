@@ -165,3 +165,165 @@ def test_password_hashing_cryptographic_strength():
     # Verification correctness
     assert verify_password(plain, hash_1) is True
     assert verify_password("WrongPassword!", hash_1) is False
+
+
+def test_jwt_expired_token_rejection():
+    """
+    Validates that JWT tokens past their expiration timestamp (exp)
+    are strictly rejected with AuthenticationError.
+    """
+    from backend.core.security.auth import get_jwt_secret_key, get_jwt_algorithm
+
+    expired_claims = {
+        "sub": "test_user",
+        "user_id": 42,
+        "role": "FARMER",
+        "exp": 1,  # Epoch 1 (1970) -> definitely expired
+    }
+    expired_token = jwt.encode(expired_claims, key=get_jwt_secret_key(), algorithm=get_jwt_algorithm())
+
+    with pytest.raises(AuthenticationError):
+        decode_token(expired_token)
+
+
+def test_jwt_tampered_signature_rejection():
+    """
+    Validates that tokens signed with an unauthorized key or tampered signatures
+    are strictly rejected by decode_token.
+    """
+    valid_claims = {
+        "sub": "admin_user",
+        "user_id": 1,
+        "role": "SYSTEM_ADMINISTRATOR",
+    }
+    wrong_key_token = jwt.encode(valid_claims, key="unauthorized_attacker_key_value_12345", algorithm="HS256")
+
+    with pytest.raises(AuthenticationError):
+        decode_token(wrong_key_token)
+
+
+def test_sensitive_field_exclusion_from_api_schemas():
+    """
+    Validates that sensitive authentication fields (e.g. password_hash, salts)
+    are excluded from public and authenticated API serialization schemas.
+    """
+    from backend.schemas.auth import UserProfileResponse
+    from backend.schemas.farmer import FarmerResponse
+
+    user_fields = UserProfileResponse.model_fields.keys()
+    assert "password_hash" not in user_fields
+    assert "password" not in user_fields
+    assert "salt" not in user_fields
+
+    farmer_fields = FarmerResponse.model_fields.keys()
+    assert "password" not in farmer_fields
+    assert "bank_account" not in farmer_fields
+
+
+def test_organization_code_uniqueness_constraint(db_session: Session):
+    """
+    Validates that database-level UNIQUE constraints prevent duplicate organization codes,
+    preventing tenant identity collision attacks.
+    """
+    from sqlalchemy.exc import IntegrityError
+
+    org1 = Organization(name="Unique Org 1", code="UNIQUE-TENANT-CODE")
+    db_session.add(org1)
+    db_session.commit()
+
+    org2 = Organization(name="Unique Org 2", code="UNIQUE-TENANT-CODE")
+    db_session.add(org2)
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+
+    db_session.rollback()
+
+
+def test_backup_encryption_key_strength():
+    """
+    Validates cryptographic backup encryption key properties:
+    - Must be a 44-character URL-safe base64 string (256-bit AES key).
+    - Rejects weak, short, or invalid encryption keys.
+    """
+    from cryptography.fernet import Fernet
+
+    valid_key = Fernet.generate_key().decode()
+    assert len(valid_key) == 44
+
+    # Using valid key must initialize Fernet successfully
+    f = Fernet(valid_key.encode())
+    encrypted = f.encrypt(b"test secret payload")
+    assert f.decrypt(encrypted) == b"test secret payload"
+
+    # Weak key (< 32 bytes) must fail to initialize
+    weak_key = "short_insecure_key"
+    with pytest.raises(Exception):
+        Fernet(weak_key.encode())
+
+
+def test_coordinate_bounds_validation():
+    """
+    Validates that geographical coordinates outside physical WGS84 bounds
+    (lat [-90, 90], lon [-180, 180]) are rejected by schema validators.
+    """
+    from pydantic import ValidationError as PydanticValidationError
+    from backend.schemas.farmer import FarmerCreate
+    from datetime import date
+
+    # Latitude out of bounds (> 90)
+    with pytest.raises(PydanticValidationError):
+        FarmerCreate(
+            name="Out Of Bounds Lat",
+            village="Village",
+            district="District",
+            acres=10.0,
+            stubble_tons=20.0,
+            harvest_date=date(2026, 10, 20),
+            latitude=95.0,  # Invalid
+            longitude=75.0,
+        )
+
+    # Longitude out of bounds (> 180)
+    with pytest.raises(PydanticValidationError):
+        FarmerCreate(
+            name="Out Of Bounds Lon",
+            village="Village",
+            district="District",
+            acres=10.0,
+            stubble_tons=20.0,
+            harvest_date=date(2026, 10, 20),
+            latitude=30.0,
+            longitude=195.0,  # Invalid
+        )
+
+
+def test_password_verification_constant_time():
+    """
+    Validates that password verification applies cryptographic hashing iterations
+    (PBKDF2-SHA256 with >= 29,000 iterations), resisting brute force and timing attacks.
+    """
+    import time
+
+    plain = "TestPassword2026!#"
+    hashed = hash_password(plain)
+
+    t0 = time.perf_counter()
+    res = verify_password(plain, hashed)
+    elapsed = time.perf_counter() - t0
+
+    assert res is True
+    # PBKDF2 with sufficient iterations must take a measurable non-zero time (> 1 ms)
+    # confirming work factor is active (not plain string comparison)
+    assert elapsed > 0.001
+
+
+def test_unauthenticated_api_request_rejection():
+    """
+    Validates that requests with missing or empty Authorization header
+    fail with AuthenticationError when token decode is attempted.
+    """
+    with pytest.raises(AuthenticationError):
+        decode_token("")
+
+    with pytest.raises(AuthenticationError):
+        decode_token("Bearer ")

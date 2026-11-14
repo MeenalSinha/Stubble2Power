@@ -218,6 +218,14 @@ def run_post_restore_validation(database_url: str) -> Tuple[bool, dict]:
     from sqlalchemy.orm import Session
     from backend.models.entities import Farmer, Farm, AreaOfInterest, User, FarmCrop
 
+    # Normalize postgresql:// to postgresql+psycopg2:// if psycopg2 is present
+    if database_url.startswith("postgresql://"):
+        try:
+            import psycopg2  # noqa: F401
+            database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        except ImportError:
+            pass
+
     engine = create_engine(database_url)
     metrics = {}
 

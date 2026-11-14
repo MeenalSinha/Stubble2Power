@@ -147,8 +147,16 @@ def test_geospatial_location_privacy_blurring(db_session):
 
 def test_guaranteed_spatial_obfuscation_annulus(db_session):
     """
-    Validates that annular spatial obfuscation mathematically guarantees
-    a minimum displacement distance >= 1.0 km, mitigating cadastral re-identification.
+    Validates that annular spatial obfuscation mathematically guarantees a minimum
+    displacement distance >= 1.0 km and maximum <= 2.5 km, mitigating cadastral
+    re-identification for all locations.
+
+    Privacy model: probabilistic location privacy with guaranteed 1.0 km minimum
+    displacement. Population-level k-anonymity depends on local farm density:
+    k ≈ 6–16 at 1.0 km radius; k ≈ 39–98 at 2.5 km radius (Punjab intensive zones,
+    2–5 farms/km²). k is NOT guaranteed >= 80 uniformly.
+
+    Tolerances account for WGS84 metric tensor approximation at Punjab latitudes (~30°N).
     """
     from backend.services.geospatial.service import GeospatialService
 
@@ -156,14 +164,47 @@ def test_guaranteed_spatial_obfuscation_annulus(db_session):
     exact_lat = 30.705623
     exact_lon = 76.222289
 
+    # --- Test 1: 1000-iteration displacement bounds (unseeded = fresh random per call) ---
+    MIN_KM = 0.995   # 1.0 km with WGS84 metric tensor tolerance at 30°N
+    MAX_KM = 2.555   # 2.5 km with WGS84 metric tensor tolerance at 30°N
+
+    for _ in range(1000):
+        obf_lat, obf_lon, _r_km = priv_svc.apply_spatial_obfuscation(
+            exact_lat, exact_lon, min_radius_km=1.0, max_radius_km=2.5
+            # No seed → fresh random.Random() per call
+        )
+        actual_distance = GeospatialService.haversine_distance(exact_lat, exact_lon, obf_lat, obf_lon)
+        # Guaranteed displacement lower bound (1.0 km minimum)
+        assert actual_distance >= MIN_KM, (
+            f"Privacy invariant violated: displacement {actual_distance:.4f} km < {MIN_KM} km minimum"
+        )
+        # Guaranteed displacement upper bound (2.5 km maximum)
+        assert actual_distance <= MAX_KM, (
+            f"Privacy invariant violated: displacement {actual_distance:.4f} km > {MAX_KM} km maximum"
+        )
+
+    # --- Test 2: Deterministic seed path still satisfies bounds (for CI reproducibility) ---
     for seed in range(50):
-        obf_lat, obf_lon, expected_r = priv_svc.apply_spatial_obfuscation(
+        obf_lat, obf_lon, _r_km = priv_svc.apply_spatial_obfuscation(
             exact_lat, exact_lon, min_radius_km=1.0, max_radius_km=2.5, seed=seed
         )
         actual_distance = GeospatialService.haversine_distance(exact_lat, exact_lon, obf_lat, obf_lon)
-        # Mathematical invariant: actual distance must be at least 1.0 km and bounded by 2.5 km (+/- WGS84 margin)
-        assert actual_distance >= 0.99, f"Failed minimum privacy radius: {actual_distance} km"
-        assert actual_distance <= 2.55, f"Exceeded maximum privacy radius: {actual_distance} km"
+        assert actual_distance >= MIN_KM, f"Seeded obfuscation below minimum: {actual_distance:.4f} km (seed={seed})"
+        assert actual_distance <= MAX_KM, f"Seeded obfuscation above maximum: {actual_distance:.4f} km (seed={seed})"
+
+    # --- Test 3: Repeated-query independence (triangulation resistance) ---
+    # Two calls with identical input coordinates must return DIFFERENT displaced coordinates.
+    # This confirms that unseeded calls draw fresh OS entropy, preventing triangulation.
+    obf_lat_1, obf_lon_1, _ = priv_svc.apply_spatial_obfuscation(
+        exact_lat, exact_lon, min_radius_km=1.0, max_radius_km=2.5
+    )
+    obf_lat_2, obf_lon_2, _ = priv_svc.apply_spatial_obfuscation(
+        exact_lat, exact_lon, min_radius_km=1.0, max_radius_km=2.5
+    )
+    assert (obf_lat_1, obf_lon_1) != (obf_lat_2, obf_lon_2), (
+        "Repeated-query triangulation vulnerability: two unseed calls returned identical "
+        "displaced coordinates, indicating a fixed/shared RNG state."
+    )
 
 
 def test_audit_logging_and_security_events(db_session):
