@@ -51,7 +51,7 @@ class BiomassEstimationService:
         moisture_pct: Optional[float] = None,
         retained_override: Optional[float] = None,
         competing_override: Optional[float] = None,
-        persist: bool = True
+        persist: bool = True,
     ) -> BiomassEstimate:
         """
         Executes evidence-based crop residue calculation following estimation hierarchy:
@@ -91,7 +91,7 @@ class BiomassEstimationService:
             if crop_baseline is None:
                 raise ValidationError(
                     message=f"Cannot estimate biomass: No yield or regional baseline found for crop '{crop.crop_type}'.",
-                    field="crop_type"
+                    field="crop_type",
                 )
             grain_production = crop_baseline * crop.cultivated_acres
             source = "OFFICIAL_STATISTICS"
@@ -103,7 +103,7 @@ class BiomassEstimationService:
         else:
             raise ValidationError(
                 message=f"Unrecognized crop type '{crop.crop_type}'. No validated Residue-to-Product Ratio found.",
-                field="crop_type"
+                field="crop_type",
             )
 
         default_retained = self.retained_fractions.get(crop_key, 0.20)
@@ -121,7 +121,11 @@ class BiomassEstimationService:
         handling_loss = collectable_residue * self.handling_loss_frac
         net_usable = max(0.0, collectable_residue - handling_loss)
 
-        moisture = moisture_pct if moisture_pct is not None else (harvest.grain_moisture_pct if harvest else self.default_moisture)
+        moisture = (
+            moisture_pct
+            if moisture_pct is not None
+            else (harvest.grain_moisture_pct if harvest else self.default_moisture)
+        )
         dry_matter = net_usable * (1.0 - (moisture / 100.0))
 
         # Availability window: Require an actual or expected harvest date or transparent fallback
@@ -134,7 +138,7 @@ class BiomassEstimationService:
             else:
                 raise ValidationError(
                     message=f"Cannot schedule biomass availability window: Crop '{crop.crop_type}' has no harvest date or expected harvest date.",
-                    field="expected_harvest_date"
+                    field="expected_harvest_date",
                 )
 
         start_date = base_date + timedelta(days=1)
@@ -142,8 +146,8 @@ class BiomassEstimationService:
 
         notes = (
             f"Calculated using {crop.crop_type} RPR of {rpr:.2f} based on {grain_production:.1f}t grain. "
-            f"Retained {retained_frac*100:.0f}% for soil conservation, {competing_frac*100:.0f}% for competing fodder. "
-            f"Net usable after {self.handling_loss_frac*100:.0f}% mechanical collection losses."
+            f"Retained {retained_frac * 100:.0f}% for soil conservation, {competing_frac * 100:.0f}% for competing fodder. "
+            f"Net usable after {self.handling_loss_frac * 100:.0f}% mechanical collection losses."
         )
         if inferred_harvest_date:
             notes += f" [Note: Harvest date was not specified; collection window estimated based on current evaluation date {base_date}.]"
@@ -163,7 +167,7 @@ class BiomassEstimationService:
             confidence_score=round(conf, 2),
             availability_start_date=start_date,
             availability_end_date=end_date,
-            methodology_notes=notes
+            methodology_notes=notes,
         )
 
         if persist:
@@ -175,7 +179,7 @@ class BiomassEstimationService:
                 farm_id=crop.farm_id,
                 quantity_tons=round(net_usable, 2),
                 stage="ESTIMATED",
-                notes=f"Initial biomass estimation generated from {source}."
+                notes=f"Initial biomass estimation generated from {source}.",
             )
             self.db.add(tx)
             self.db.commit()

@@ -18,7 +18,7 @@ from backend.models.entities import (
     BiomassEstimate,
     DeploymentPlan,
     DeploymentAssignment,
-    RoutePlan
+    RoutePlan,
 )
 from backend.schemas.deployment import DeploymentPlanCreate
 from backend.services.routing.road_network_service import RoadNetworkService
@@ -39,11 +39,7 @@ class DeploymentPlannerService:
         self.inventory_svc = BiomassInventoryService(db)
         self.diesel_price = float(config_manager.get("economics.diesel_price_inr_per_liter"))
 
-    def plan_deployment(
-        self,
-        payload: DeploymentPlanCreate,
-        strategy: str = "BALANCED"
-    ) -> DeploymentPlan:
+    def plan_deployment(self, payload: DeploymentPlanCreate, strategy: str = "BALANCED") -> DeploymentPlan:
         """
         Generates an optimized multi-unit deployment plan respecting daily throughput,
         maximum radius constraints, and road tortuosity routing.
@@ -69,11 +65,12 @@ class DeploymentPlannerService:
         # Downstream DPDP Consent Enforcement: Fetch set of farmers who actively withdrew logistics/dispatch consent
         withdrawn_farmer_ids = set(
             self.db.scalars(
-                select(ConsentRecord.farmer_id)
-                .where(
+                select(ConsentRecord.farmer_id).where(
                     and_(
-                        ConsentRecord.consent_purpose.in_(["LOGISTICS_DISPATCH", "BIOMASS_AGGREGATION", "DATA_PROCESSING"]),
-                        ConsentRecord.is_granted == False
+                        ConsentRecord.consent_purpose.in_(
+                            ["LOGISTICS_DISPATCH", "BIOMASS_AGGREGATION", "DATA_PROCESSING"]
+                        ),
+                        ConsentRecord.is_granted.is_(False),
                     )
                 )
             ).all()
@@ -89,7 +86,7 @@ class DeploymentPlannerService:
                     BiomassEstimate.net_usable_biomass_tons > 0,
                     BiomassEstimate.availability_start_date <= payload.date_end,
                     BiomassEstimate.availability_end_date >= payload.date_start,
-                    Farmer.consent_given == True
+                    Farmer.consent_given.is_(True),
                 )
             )
         )
@@ -113,29 +110,33 @@ class DeploymentPlannerService:
                 continue
 
             # Check already allocated tonnage in active plans
-            allocated_tons = self.db.scalar(
-                select(func.coalesce(func.sum(DeploymentAssignment.assigned_biomass_tons), 0.0))
-                .where(
-                    and_(
-                        DeploymentAssignment.farm_id == farm.id,
-                        DeploymentAssignment.collection_status.in_(["SCHEDULED", "PICKED_UP", "PROCESSED"])
+            allocated_tons = (
+                self.db.scalar(
+                    select(func.coalesce(func.sum(DeploymentAssignment.assigned_biomass_tons), 0.0)).where(
+                        and_(
+                            DeploymentAssignment.farm_id == farm.id,
+                            DeploymentAssignment.collection_status.in_(["SCHEDULED", "PICKED_UP", "PROCESSED"]),
+                        )
                     )
                 )
-            ) or 0.0
+                or 0.0
+            )
 
             avail_tons = max(0.0, est.net_usable_biomass_tons - allocated_tons)
             if avail_tons > 0.1 and farm.id not in seen_farms:
                 seen_farms.add(farm.id)
-                candidate_farms.append({
-                    "farm_id": farm.id,
-                    "farm_name": farm.farm_name,
-                    "latitude": farm.latitude,
-                    "longitude": farm.longitude,
-                    "biomass_tons": avail_tons,
-                    "estimate_id": est.id,
-                    "district": farm.district,
-                    "crop_type": crop.crop_type
-                })
+                candidate_farms.append(
+                    {
+                        "farm_id": farm.id,
+                        "farm_name": farm.farm_name,
+                        "latitude": farm.latitude,
+                        "longitude": farm.longitude,
+                        "biomass_tons": avail_tons,
+                        "estimate_id": est.id,
+                        "district": farm.district,
+                        "crop_type": crop.crop_type,
+                    }
+                )
 
         if not candidate_farms:
             raise ValidationError(
@@ -158,9 +159,12 @@ class DeploymentPlannerService:
             # Sort by distance to nearest depot
             def min_depot_dist(f):
                 return min(
-                    self.road_svc.geo_svc.haversine_distance(f["latitude"], f["longitude"], u.home_latitude, u.home_longitude)
+                    self.road_svc.geo_svc.haversine_distance(
+                        f["latitude"], f["longitude"], u.home_latitude, u.home_longitude
+                    )
                     for u in units
                 )
+
             candidate_farms.sort(key=min_depot_dist)
         else:  # BALANCED
             candidate_farms.sort(key=lambda x: x["biomass_tons"], reverse=True)
@@ -177,17 +181,21 @@ class DeploymentPlannerService:
             compatible_units = []
             for u in units:
                 max_rad = payload.max_travel_radius_km or u.max_travel_radius_km
-                dist_to_depot = self.road_svc.geo_svc.haversine_distance(f_lat, f_lon, u.home_latitude, u.home_longitude)
+                dist_to_depot = self.road_svc.geo_svc.haversine_distance(
+                    f_lat, f_lon, u.home_latitude, u.home_longitude
+                )
                 if dist_to_depot <= max_rad and unit_remaining[u.id] >= 1.0:
                     compatible_units.append((dist_to_depot, u))
 
             if not compatible_units:
-                unserved_farms.append({
-                    "farm_id": farm["farm_id"],
-                    "farm_name": farm["farm_name"],
-                    "biomass_tons": f_tons,
-                    "reason": "OUT_OF_RANGE_OR_FLEET_AT_CAPACITY"
-                })
+                unserved_farms.append(
+                    {
+                        "farm_id": farm["farm_id"],
+                        "farm_name": farm["farm_name"],
+                        "biomass_tons": f_tons,
+                        "reason": "OUT_OF_RANGE_OR_FLEET_AT_CAPACITY",
+                    }
+                )
                 continue
 
             # Pick closest compatible unit with capacity
@@ -197,22 +205,26 @@ class DeploymentPlannerService:
             allocatable = min(f_tons, unit_remaining[chosen_unit.id])
             unit_remaining[chosen_unit.id] -= allocatable
 
-            assignments_per_unit[chosen_unit.id].append({
-                "farm_id": farm["farm_id"],
-                "farm_name": farm["farm_name"],
-                "latitude": f_lat,
-                "longitude": f_lon,
-                "assigned_biomass_tons": round(allocatable, 2),
-                "estimate_id": farm["estimate_id"]
-            })
-
-            if allocatable < f_tons:
-                unserved_farms.append({
+            assignments_per_unit[chosen_unit.id].append(
+                {
                     "farm_id": farm["farm_id"],
                     "farm_name": farm["farm_name"],
-                    "biomass_tons": round(f_tons - allocatable, 2),
-                    "reason": "PARTIALLY_SERVED_CAPACITY_LIMIT"
-                })
+                    "latitude": f_lat,
+                    "longitude": f_lon,
+                    "assigned_biomass_tons": round(allocatable, 2),
+                    "estimate_id": farm["estimate_id"],
+                }
+            )
+
+            if allocatable < f_tons:
+                unserved_farms.append(
+                    {
+                        "farm_id": farm["farm_id"],
+                        "farm_name": farm["farm_name"],
+                        "biomass_tons": round(f_tons - allocatable, 2),
+                        "reason": "PARTIALLY_SERVED_CAPACITY_LIMIT",
+                    }
+                )
 
         # 6. Build DeploymentPlan Record
         plan_code = f"DEP-{datetime.utcnow().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
@@ -228,8 +240,8 @@ class DeploymentPlannerService:
                 "strategy": strategy,
                 "operating_days": operating_days,
                 "unserved_details": unserved_farms,
-                "tortuosity_ratio": self.road_svc.tortuosity
-            }
+                "tortuosity_ratio": self.road_svc.tortuosity,
+            },
         )
         self.db.add(deployment_plan)
         self.db.flush()
@@ -256,7 +268,7 @@ class DeploymentPlannerService:
                     "farm_name": f["farm_name"],
                     "latitude": f["latitude"],
                     "longitude": f["longitude"],
-                    "biomass_tons": f["assigned_biomass_tons"]
+                    "biomass_tons": f["assigned_biomass_tons"],
                 }
                 for f in unit_assigned_farms
             ]
@@ -282,7 +294,7 @@ class DeploymentPlannerService:
                 estimated_duration_hours=route_result["total_duration_hours"],
                 fuel_consumed_liters=fuel_liters,
                 total_payload_tons=round(unit_assigned_tons, 2),
-                stops_json=route_result["sequenced_stops"]
+                stops_json=route_result["sequenced_stops"],
             )
             self.db.add(route_plan_rec)
 
@@ -294,7 +306,7 @@ class DeploymentPlannerService:
                     farm_id=f["farm_id"],
                     assigned_biomass_tons=f["assigned_biomass_tons"],
                     scheduled_date=curr_sched_date,
-                    collection_status="SCHEDULED"
+                    collection_status="SCHEDULED",
                 )
                 self.db.add(assignment)
 
@@ -305,7 +317,7 @@ class DeploymentPlannerService:
                     stage="ALLOCATED",
                     quantity_tons=f["assigned_biomass_tons"],
                     allocated_unit_id=unit.id,
-                    notes=f"Allocated under deployment plan {plan_code} for unit {unit.unit_code}"
+                    notes=f"Allocated under deployment plan {plan_code} for unit {unit.unit_code}",
                 )
 
         # Total fleet capacity across deployed units
@@ -351,4 +363,3 @@ class DeploymentPlannerService:
 
     # Alias for API compatibility across test suites
     generate_deployment_plan = plan_deployment
-

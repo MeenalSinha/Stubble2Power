@@ -46,7 +46,7 @@ def test_jwt_token_creation_and_decoding():
         role="ENVIRONMENTAL_ANALYST",
         organization_id=1,
         farmer_id=None,
-        expires_delta=timedelta(minutes=15)
+        expires_delta=timedelta(minutes=15),
     )
     assert token is not None
     payload = decode_token(token)
@@ -59,10 +59,7 @@ def test_jwt_token_creation_and_decoding():
 
 def test_expired_jwt_token_rejection():
     expired_token = create_access_token(
-        user_id=1,
-        username="expired_user",
-        role="PUBLIC_VISITOR",
-        expires_delta=timedelta(seconds=-10)
+        user_id=1, username="expired_user", role="PUBLIC_VISITOR", expires_delta=timedelta(seconds=-10)
     )
     with pytest.raises(AuthenticationError):
         decode_token(expired_token)
@@ -101,7 +98,9 @@ def test_tenant_organization_isolation(db_session):
     db_session.flush()
 
     user_alpha = User(username="user_a", email="a@alpha.com", role_name="ORGANIZATION_MANAGER", organization_id=org1.id)
-    admin_user = User(username="super_admin", email="admin@root.com", role_name="SYSTEM_ADMINISTRATOR", organization_id=None)
+    admin_user = User(
+        username="super_admin", email="admin@root.com", role_name="SYSTEM_ADMINISTRATOR", organization_id=None
+    )
 
     # User in Org Alpha should be permitted to access Org Alpha
     verify_organization_access(user_alpha, org1.id)
@@ -118,7 +117,6 @@ def test_tenant_organization_isolation(db_session):
 
 def test_object_level_ownership_enforcement():
     farmer_user = User(id=10, username="farmer_1", email="f1@punjab.in", role_name="FARMER", farmer_id=101)
-    other_farmer = User(id=11, username="farmer_2", email="f2@punjab.in", role_name="FARMER", farmer_id=102)
 
     # Farmer accessing own resource
     verify_resource_ownership(farmer_user, resource_farmer_id=101)
@@ -155,7 +153,7 @@ def test_audit_logging_and_security_events(db_session):
         resource_id="105",
         actor_username="test_user",
         status_code=200,
-        details={"parcel_acres": 25.0}
+        details={"parcel_acres": 25.0},
     )
     assert log.id is not None
     assert log.action == "TEST_ACTION"
@@ -164,7 +162,7 @@ def test_audit_logging_and_security_events(db_session):
         event_type="UNAUTHORIZED_ACCESS_ATTEMPT",
         severity="HIGH",
         client_ip="192.168.1.100",
-        details={"attempted_url": "/api/admin/audit-logs"}
+        details={"attempted_url": "/api/admin/audit-logs"},
     )
     assert sec_event.id is not None
     assert sec_event.severity == "HIGH"

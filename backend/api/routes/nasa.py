@@ -24,7 +24,7 @@ def get_nasa_status(db: Session = Depends(get_db)):
         "is_configured": client.is_configured(),
         "base_url": client.base_url,
         "supported_sources": list(client.VALID_SOURCES.keys()),
-        "stored_observations_summary": summary
+        "stored_observations_summary": summary,
     }
 
 
@@ -34,21 +34,16 @@ def ingest_country_data(
     source: str = Query("VIIRS_NOAA20_NRT"),
     day_range: int = Query(1, ge=1, le=10),
     date_str: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Triggers an ingestion job for a country from NASA FIRMS."""
     client = NASAClient()
     if not client.is_configured():
         raise HTTPException(
             status_code=400,
-            detail="NASA FIRMS MAP_KEY is not configured in environment. Please set NASA_FIRMS_MAP_KEY."
+            detail="NASA FIRMS MAP_KEY is not configured in environment. Please set NASA_FIRMS_MAP_KEY or FIRMS_MAP_KEY.",
         )
 
     svc = IngestionService(db, client)
-    job = svc.run_country_ingestion(
-        country_code=country_code,
-        source=source,
-        day_range=day_range,
-        date_str=date_str
-    )
+    job = svc.run_country_ingestion(country_code=country_code, source=source, day_range=day_range, date_str=date_str)
     return job

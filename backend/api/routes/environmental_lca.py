@@ -13,7 +13,7 @@ from backend.services.environmental.lca_engine import LifeCycleAssessmentService
 from backend.schemas.environmental_lca import (
     EnvironmentalAssessmentCreate,
     EnvironmentalAssessmentResponse,
-    SystemBoundarySummary
+    SystemBoundarySummary,
 )
 from backend.core.exceptions.base import ValidationError, NotFoundError
 

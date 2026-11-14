@@ -28,7 +28,7 @@ def list_farmers(
     district: Optional[str] = None,
     village: Optional[str] = None,
     min_stubble: Optional[float] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Lists enrolled farmers with dynamic filtering."""
     service = FarmerService(db)

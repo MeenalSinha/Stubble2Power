@@ -11,9 +11,7 @@ from backend.schemas.environmental import EnvironmentalImpactResult
 class EnvironmentalService:
     @staticmethod
     def calculate_environmental_impact(
-        stubble_tons: float,
-        assumptions: Optional[Dict[str, float]] = None,
-        scenario_name: str = "Base Case"
+        stubble_tons: float, assumptions: Optional[Dict[str, float]] = None, scenario_name: str = "Base Case"
     ) -> EnvironmentalImpactResult:
         """
         Calculates avoided CO2 emissions, coal replacement equivalents, and EPA social indicators.
@@ -39,5 +37,5 @@ class EnvironmentalService:
             coal_replaced=coal_replaced,
             trees_equivalent=int(co2_avoided * trees_per_ton_co2),
             cars_equivalent=int(co2_avoided * cars_per_ton_co2),
-            homes_powered=int(coal_replaced * homes_per_ton_coal)
+            homes_powered=int(coal_replaced * homes_per_ton_coal),
         )

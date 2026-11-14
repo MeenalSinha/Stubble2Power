@@ -35,7 +35,7 @@ def test_techno_economic_evaluation_base_case(db_session):
         farmer_procurement_price_per_ton=1500.0,
         diesel_price_per_liter=89.50,
         processing_capex_per_unit=2500000.0,
-        wacc_discount_rate_pct=10.5
+        wacc_discount_rate_pct=10.5,
     )
     result = econ_svc.evaluate_scenario(payload)
 
@@ -74,18 +74,17 @@ def test_preset_scenario_comparison(db_session):
 
 def test_sensitivity_analysis_tornado(db_session):
     econ_svc = FinancialEngineService(db_session)
-    base = econ_svc.evaluate_scenario(FinancialScenarioCreate(
-        scenario_name="Base Case",
-        biomass_processed_tons=500.0
-    ))
+    base = econ_svc.evaluate_scenario(FinancialScenarioCreate(scenario_name="Base Case", biomass_processed_tons=500.0))
 
     tornado = econ_svc.calculate_sensitivity(base.id, variations=[-0.10, 0.10])
     assert len(tornado) == 8  # 4 parameters * 2 variations
 
     for factor in tornado:
         assert factor.parameter_name in [
-            "Briquette Sale Price", "Biochar Sale Price",
-            "Farmer Procurement Price", "Diesel Fuel Price"
+            "Briquette Sale Price",
+            "Biochar Sale Price",
+            "Farmer Procurement Price",
+            "Diesel Fuel Price",
         ]
         if "Price" in factor.parameter_name and "Sale" in factor.parameter_name:
             # Positive variation should increase profit
@@ -104,7 +103,7 @@ def test_lca_net_emissions_and_carbon_accounting(db_session):
         transport_fuel_liters=600.0,
         processing_fuel_liters=2250.0,
         briquette_fraction_produced=0.70,
-        biochar_fraction_produced=0.15
+        biochar_fraction_produced=0.15,
     )
     res = lca_svc.conduct_lca(payload)
 
@@ -159,7 +158,7 @@ def test_custom_scenario_and_negative_contribution_margin(db_session):
         briquette_price_per_ton=500.0,
         biochar_price_per_ton=500.0,
         farmer_procurement_price_per_ton=3000.0,
-        diesel_price_per_liter=120.0
+        diesel_price_per_liter=120.0,
     )
     result = econ_svc.evaluate_scenario(payload)
     assert result.scenario_name == "Stress Test High Cost"
@@ -173,9 +172,7 @@ def test_custom_scenario_and_negative_contribution_margin(db_session):
 def test_lca_modeled_transport_fuel_annotation(db_session):
     lca_svc = LifeCycleAssessmentService(db_session)
     # When transport fuel is not provided, it is estimated and flagged in evidence
-    payload = EnvironmentalAssessmentCreate(
-        biomass_diverted_tons=200.0
-    )
+    payload = EnvironmentalAssessmentCreate(biomass_diverted_tons=200.0)
     result = lca_svc.conduct_lca(payload)
     assert result.evidence_json.get("is_transport_fuel_modeled_estimate") is True
     assert "carbon_credit_category" in result.evidence_json

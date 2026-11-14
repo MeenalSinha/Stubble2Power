@@ -26,11 +26,7 @@ def register_mobile_unit(payload: MobileRefineryCreate, db: Session = Depends(ge
 
 
 @router.get("/", response_model=List[MobileRefineryResponse])
-def list_mobile_units(
-    status: Optional[str] = None,
-    technology: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
+def list_mobile_units(status: Optional[str] = None, technology: Optional[str] = None, db: Session = Depends(get_db)):
     """Lists registered mobile bio-refineries in the fleet."""
     service = MobileRefineryService(db)
     return service.list_units(status=status, technology=technology)
@@ -50,7 +46,7 @@ def get_mobile_unit(unit_id: int, db: Session = Depends(get_db)):
 def update_unit_status(
     unit_id: int,
     status: str = Body(..., embed=True, description="New operational status"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Updates unit operational status (e.g. AVAILABLE, DEPLOYED, MAINTENANCE)."""
     try:

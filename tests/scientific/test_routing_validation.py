@@ -37,10 +37,7 @@ def test_pmgsy_road_tortuosity_and_fuel_physics():
     tortuosity = float(config_manager.get("refinery.transport.road_tortuosity_factor"))
     assert tortuosity == 1.35
 
-    res = svc.calculate_road_route(
-        origin_lat=30.7000, origin_lon=76.2000,
-        dest_lat=30.8000, dest_lon=76.3000
-    )
+    res = svc.calculate_road_route(origin_lat=30.7000, origin_lon=76.2000, dest_lat=30.8000, dest_lon=76.3000)
 
     geodesic = res["geodesic_distance_km"]
     road_dist = res["road_distance_km"]

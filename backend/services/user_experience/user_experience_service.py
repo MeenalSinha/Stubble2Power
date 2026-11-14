@@ -9,7 +9,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, desc
 
 from backend.models.entities import (
-    UserPreference, Notification, SavedReport, Farmer, BiomassEstimate, DeploymentPlan, FinancialScenario, EnvironmentalAssessment
+    UserPreference,
+    Notification,
+    SavedReport,
+    Farmer,
+    BiomassEstimate,
+    DeploymentPlan,
+    FinancialScenario,
+    EnvironmentalAssessment,
 )
 from backend.schemas.user_experience import UserPreferenceUpdate
 from backend.core.exceptions.base import NotFoundError
@@ -32,7 +39,7 @@ class UserExperienceService:
                 theme="light",
                 default_aoi="Punjab Central",
                 dashboard_layout="STANDARD",
-                notification_channels={"in_app": True, "email": False}
+                notification_channels={"in_app": True, "email": False},
             )
             self.db.add(pref)
             self.db.commit()
@@ -65,7 +72,7 @@ class UserExperienceService:
         category: str = "SYSTEM",
         priority: str = "NORMAL",
         action_url: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Notification:
         """Creates an in-app system notification for a user."""
         notif = Notification(
@@ -77,7 +84,7 @@ class UserExperienceService:
             action_url=action_url,
             metadata_json=metadata or {},
             read_status=False,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
         self.db.add(notif)
         self.db.commit()
@@ -88,7 +95,7 @@ class UserExperienceService:
         """Queries notifications for a user."""
         query = select(Notification).where(Notification.user_id == user_id)
         if unread_only:
-            query = query.where(Notification.read_status == False)
+            query = query.where(Notification.read_status.is_(False))
         query = query.order_by(desc(Notification.created_at)).limit(limit)
         return list(self.db.scalars(query).all())
 
@@ -111,7 +118,7 @@ class UserExperienceService:
         title: str,
         file_format: str = "CSV",
         organization_id: Optional[int] = None,
-        parameters: Optional[Dict[str, Any]] = None
+        parameters: Optional[Dict[str, Any]] = None,
     ) -> SavedReport:
         """Generates an auditable business intelligence report containing actual queried records."""
         summary_data: Dict[str, Any] = {}
@@ -121,7 +128,7 @@ class UserExperienceService:
             summary_data = {
                 "record_count": len(farmers),
                 "total_acreage": sum(f.acres for f in farmers),
-                "districts": list(set(f.district for f in farmers))
+                "districts": list(set(f.district for f in farmers)),
             }
         elif report_type == "BIOMASS_INVENTORY":
             estimates = self.db.scalars(select(BiomassEstimate).limit(100)).all()
@@ -129,28 +136,28 @@ class UserExperienceService:
                 "estimates_count": len(estimates),
                 "total_gross_tons": round(sum(e.gross_residue_tons for e in estimates), 2),
                 "total_net_usable_tons": round(sum(e.net_usable_biomass_tons for e in estimates), 2),
-                "avg_moisture_pct": round(sum(e.moisture_content_pct for e in estimates) / max(1, len(estimates)), 1)
+                "avg_moisture_pct": round(sum(e.moisture_content_pct for e in estimates) / max(1, len(estimates)), 1),
             }
         elif report_type == "DEPLOYMENT_DISPATCH":
             plans = self.db.scalars(select(DeploymentPlan).limit(50)).all()
             summary_data = {
                 "plans_count": len(plans),
                 "total_biomass_dispatched": round(sum(p.total_biomass_assigned_tons for p in plans), 2),
-                "total_route_distance_km": round(sum(p.total_route_distance_km for p in plans), 2)
+                "total_route_distance_km": round(sum(p.total_route_distance_km for p in plans), 2),
             }
         elif report_type == "FINANCIAL_PROJECTION":
             scenarios = self.db.scalars(select(FinancialScenario).limit(50)).all()
             summary_data = {
                 "scenarios_evaluated": len(scenarios),
                 "avg_gross_profit_inr": round(sum(s.gross_profit_inr for s in scenarios) / max(1, len(scenarios)), 2),
-                "avg_roi_pct": round(sum(s.roi_pct for s in scenarios) / max(1, len(scenarios)), 1)
+                "avg_roi_pct": round(sum(s.roi_pct for s in scenarios) / max(1, len(scenarios)), 1),
             }
         elif report_type == "LCA_IMPACT":
             assessments = self.db.scalars(select(EnvironmentalAssessment).limit(50)).all()
             summary_data = {
                 "assessments_count": len(assessments),
                 "total_net_avoided_co2e_tons": round(sum(a.net_avoided_co2e_tons for a in assessments), 2),
-                "total_carbon_credit_eligible_tons": round(sum(a.carbon_credit_eligible_tons for a in assessments), 2)
+                "total_carbon_credit_eligible_tons": round(sum(a.carbon_credit_eligible_tons for a in assessments), 2),
             }
         else:
             summary_data = {"status": "CUSTOM_REPORT_GENERATED", "generated_at": datetime.utcnow().isoformat()}
@@ -163,7 +170,7 @@ class UserExperienceService:
             file_format=file_format.upper(),
             parameters_json=parameters or {},
             summary_data_json=summary_data,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
         self.db.add(report)
         self.db.commit()

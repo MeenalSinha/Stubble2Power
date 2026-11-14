@@ -10,7 +10,9 @@ from pydantic import BaseModel, Field
 class BaselineComputeRequest(BaseModel):
     region_id: str = Field("Punjab", description="Administrative region or state identifier")
     analysis_period: str = Field("OCT_NOV_MULTIYEAR", description="Historical baseline period name")
-    metric_type: str = Field("harmonized_frp_mw", description="Metric to baseline: harmonized_frp_mw, activity_index, detections")
+    metric_type: str = Field(
+        "harmonized_frp_mw", description="Metric to baseline: harmonized_frp_mw, activity_index, detections"
+    )
     window_days: int = Field(15, ge=3, le=60, description="Centered rolling smoothing window")
     min_periods: int = Field(3, ge=1, le=30, description="Minimum periods for sufficient history")
 
@@ -38,7 +40,9 @@ class BaselineEntry(BaseModel):
 class SeasonalProfileCreate(BaseModel):
     region_id: str = Field("Punjab", description="Region identifier")
     year: int = Field(2026, ge=2000, le=2100)
-    season_name: str = Field("Kharif_PostHarvest", description="Name of season (Kharif_PostHarvest, Rabi_PostHarvest, Annual)")
+    season_name: str = Field(
+        "Kharif_PostHarvest", description="Name of season (Kharif_PostHarvest, Rabi_PostHarvest, Annual)"
+    )
     date_start: date
     date_end: date
 

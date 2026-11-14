@@ -17,10 +17,7 @@ router = APIRouter(prefix="/api/organizations", tags=["Organizations & Tenants"]
 
 
 @router.get("/", response_model=List[OrganizationResponse])
-def list_organizations(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
-):
+def list_organizations(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Lists tenant organizations. Regular users see their own organization; administrators see all."""
     auth_svc = AuthService(db)
     all_orgs = auth_svc.list_organizations()
@@ -36,7 +33,7 @@ def list_organizations(
 def create_organization(
     payload: OrganizationCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_role(["SYSTEM_ADMINISTRATOR"]))
+    user: User = Depends(require_role(["SYSTEM_ADMINISTRATOR"])),
 ):
     """Creates a new tenant organization (Administrator restricted)."""
     auth_svc = AuthService(db)
@@ -45,9 +42,7 @@ def create_organization(
 
 @router.get("/{organization_id}", response_model=OrganizationResponse)
 def get_organization_details(
-    organization_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
+    organization_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
     """Retrieves organization details enforcing tenant isolation."""
     verify_organization_access(user, organization_id)

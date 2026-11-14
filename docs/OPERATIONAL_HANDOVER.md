@@ -14,7 +14,7 @@ The platform comprises:
 - **FastAPI Backend Service:** High-performance asynchronous REST API running under Uvicorn with 4 worker processes.
 - **Streamlit Frontend Dashboard:** Multi-workspace interactive application with glassmorphism design system and multilingual localization (English, Hindi, Punjabi).
 - **PostGIS Relational Database:** Spatial PostgreSQL 16 database running PostGIS 3.4 extensions.
-- **Automated Backup & Restore Subsystem:** Python utilities supporting SQLite and PostgreSQL with streaming cryptographic SHA-256 validation.
+- **Automated Backup & Restore Subsystem:** Python utilities supporting SQLite and PostgreSQL with AES-128-CBC/HMAC-SHA256 (Fernet) backup encryption, streaming cryptographic SHA-256 validation, and comprehensive post-restore relational verification.
 
 ---
 
@@ -72,7 +72,7 @@ The platform comprises:
 
 | Cadence | Task Description | Executed By | Validation Procedure |
 |:---|:---|:---:|:---|
-| **Daily (02:00 UTC)** | Automated database backup and SHA-256 verification. | `scripts/backup_db.py` cron | Verify exit code 0 and presence of `.dump` and `.sha256` files. |
+| **Daily (02:00 UTC)** | Automated database backup, Fernet encryption, and SHA-256 verification. | `scripts/backup_db.py` cron | Verify exit code 0 and presence of `.enc`, `.enc.sha256`, and `.enc.meta.json` files. |
 | **Weekly (Sunday 03:00 UTC)** | Automated data retention sweep. | SRE Cron | Run DPDP retention policy to purge expired sessions (>30 days). |
 | **Monthly** | Off-site disaster recovery restoration test. | SRE Team | Run `scripts/restore_db.py` in test environment and verify smoke tests. |
 | **Quarterly** | NASA FIRMS MAP Key validation & quota review. | Operations | Verify API consumption rates and renewal dates. |
@@ -93,7 +93,7 @@ The platform comprises:
    ```
 3. If volume corruption is suspected, initiate emergency restoration from the latest verified backup:
    ```bash
-   python scripts/restore_db.py /var/backups/stubble2power/LATEST_BACKUP.dump
+   python scripts/restore_db.py /var/backups/stubble2power/LATEST_BACKUP.enc --confirm-destructive --target-db-url "$DATABASE_URL"
    ```
 
 ### 6.2 Application Rolling Restart
@@ -105,4 +105,4 @@ docker compose -f docker-compose.prod.yml restart backend
 ---
 
 ## 7. Sign-off & Acceptance
-This operational handover document confirms that Stubble2Power v2.5.0 satisfies all stability, observability, disaster recovery, and operational criteria required for 24/7 enterprise production service.
+This operational handover document confirms that Stubble2Power v2.5.0 satisfies all stability, observability, disaster recovery, and operational criteria required for verified staging deployment and production operational readiness upon cloud host configuration.

@@ -15,7 +15,7 @@ from backend.schemas.biomass import (
     BiomassEstimateResponse,
     BiomassInventoryTransactionCreate,
     BiomassInventoryTransactionResponse,
-    BiomassAvailabilitySummary
+    BiomassAvailabilitySummary,
 )
 from backend.core.exceptions.base import ValidationError, NotFoundError
 
@@ -32,7 +32,7 @@ def generate_biomass_estimate(payload: BiomassEstimationRequest, db: Session = D
             actual_grain_yield_tons=payload.actual_grain_yield_tons,
             moisture_pct=payload.moisture_content_pct,
             retained_override=payload.retained_fraction_override,
-            competing_override=payload.competing_demand_fraction_override
+            competing_override=payload.competing_demand_fraction_override,
         )
     except (ValidationError, NotFoundError) as e:
         raise HTTPException(status_code=400, detail=e.message)
@@ -75,7 +75,7 @@ def list_transactions_for_farm(farm_id: int, db: Session = Depends(get_db)):
 @router.get("/summary", response_model=BiomassAvailabilitySummary)
 def get_biomass_summary(
     region: Optional[str] = Query(None, description="Filter summary by state or district"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Retrieves aggregate biomass availability, commitments, and allocations across farms."""
     service = BiomassInventoryService(db)

@@ -18,7 +18,13 @@ import pytest
 from sqlalchemy.orm import Session
 
 from backend.models.entities import (
-    Farmer, Farm, FarmCrop, HarvestRecord, Organization, NormalizedSatelliteObservation, IngestionJob
+    Farmer,
+    Farm,
+    FarmCrop,
+    HarvestRecord,
+    Organization,
+    NormalizedSatelliteObservation,
+    IngestionJob,
 )
 from backend.services.harmonization.engine import HarmonizationEngine
 from backend.services.anomaly.detector import StatisticalAnomalyDetector
@@ -54,7 +60,7 @@ def test_workflow_1_nasa_fire_harmonization_to_anomaly_detection(db_session: Ses
         source_endpoint="FIRMS_API",
         date_start=obs_date,
         date_end=obs_date,
-        status="COMPLETED"
+        status="COMPLETED",
     )
     db_session.add(job)
     db_session.commit()
@@ -75,7 +81,7 @@ def test_workflow_1_nasa_fire_harmonization_to_anomaly_detection(db_session: Ses
         daynight="D",
         frp=45.0,
         spatial_grid_id="GRID_30.85_75.85",
-        is_valid=True
+        is_valid=True,
     )
     viirs_obs = NormalizedSatelliteObservation(
         source_record_hash="hash_viirs_01",
@@ -93,18 +99,14 @@ def test_workflow_1_nasa_fire_harmonization_to_anomaly_detection(db_session: Ses
         daynight="D",
         frp=32.0,
         spatial_grid_id="GRID_30.85_75.85",
-        is_valid=True
+        is_valid=True,
     )
     db_session.add_all([modis_obs, viirs_obs])
     db_session.commit()
 
     # 2. Run Harmonization Engine
     harm_engine = HarmonizationEngine(db_session)
-    run_resp = harm_engine.execute_harmonization(
-        name="E2E Fire Harmonization",
-        date_start=obs_date,
-        date_end=obs_date
-    )
+    run_resp = harm_engine.execute_harmonization(name="E2E Fire Harmonization", date_start=obs_date, date_end=obs_date)
 
     assert run_resp.status == "COMPLETED"
     assert run_resp.total_input_observations >= 2
@@ -113,10 +115,7 @@ def test_workflow_1_nasa_fire_harmonization_to_anomaly_detection(db_session: Ses
     # 3. Feed to Statistical Anomaly Detector
     anomaly_detector = StatisticalAnomalyDetector(db_session)
     anomalies = anomaly_detector.detect_anomalies(
-        date_start=obs_date,
-        date_end=obs_date,
-        region_id="Punjab",
-        zscore_threshold=1.5
+        date_start=obs_date, date_end=obs_date, region_id="Punjab", zscore_threshold=1.5
     )
     assert isinstance(anomalies, list)
 
@@ -134,7 +133,7 @@ def test_workflow_2_agricultural_context_and_harvest_association(db_session: Ses
         longitude=76.220,
         grid_id="GRID_30.72_76.22",
         frp_mw=35.0,
-        state_name="Punjab"
+        state_name="Punjab",
     )
 
     assert assessment is not None
@@ -159,7 +158,7 @@ def test_workflow_3_farmer_parcels_harvest_to_biomass_estimation(db_session: Ses
         harvest_date=date(2025, 10, 22),
         latitude=30.780,
         longitude=75.480,
-        consent_given=True
+        consent_given=True,
     )
     db_session.add(farmer)
     db_session.commit()
@@ -177,7 +176,7 @@ def test_workflow_3_farmer_parcels_harvest_to_biomass_estimation(db_session: Ses
         state="Punjab",
         ownership_status="OWNED",
         soil_type="ALLUVIAL",
-        verification_status="VERIFIED"
+        verification_status="VERIFIED",
     )
     db_session.add(farm)
     db_session.commit()
@@ -192,7 +191,7 @@ def test_workflow_3_farmer_parcels_harvest_to_biomass_estimation(db_session: Ses
         expected_yield_tons_per_acre=2.5,
         sowing_date=date(2025, 6, 20),
         expected_harvest_date=date(2025, 10, 22),
-        cultivation_status="ACTIVE"
+        cultivation_status="ACTIVE",
     )
     db_session.add(crop)
     db_session.commit()
@@ -204,7 +203,7 @@ def test_workflow_3_farmer_parcels_harvest_to_biomass_estimation(db_session: Ses
         harvest_date=date(2025, 10, 22),
         actual_grain_yield_tons=75.0,
         grain_moisture_pct=13.5,
-        is_measured=True
+        is_measured=True,
     )
     db_session.add(harvest)
     db_session.commit()
@@ -238,7 +237,7 @@ def test_workflow_4_biomass_inventory_fleet_selection_to_route_dispatch(db_sessi
         home_depot_name="Ludhiana Central Depot",
         home_latitude=30.700,
         home_longitude=75.500,
-        max_travel_radius_km=100.0
+        max_travel_radius_km=100.0,
     )
     unit = refinery_svc.register_unit(unit_create)
     assert unit.id is not None
@@ -254,7 +253,7 @@ def test_workflow_4_biomass_inventory_fleet_selection_to_route_dispatch(db_sessi
         harvest_date=date(2025, 10, 25),
         latitude=30.820,
         longitude=75.650,
-        consent_given=True
+        consent_given=True,
     )
     db_session.add(farmer)
     db_session.commit()
@@ -270,7 +269,7 @@ def test_workflow_4_biomass_inventory_fleet_selection_to_route_dispatch(db_sessi
         state="Punjab",
         ownership_status="OWNED",
         soil_type="ALLUVIAL",
-        verification_status="VERIFIED"
+        verification_status="VERIFIED",
     )
     db_session.add(farm)
     db_session.commit()
@@ -283,13 +282,13 @@ def test_workflow_4_biomass_inventory_fleet_selection_to_route_dispatch(db_sessi
         crop_year=2025,
         expected_yield_tons_per_acre=2.5,
         expected_harvest_date=date(2025, 10, 25),
-        cultivation_status="HARVESTED"
+        cultivation_status="HARVESTED",
     )
     db_session.add(crop)
     db_session.commit()
 
     bio_svc = BiomassEstimationService(db_session)
-    est = bio_svc.estimate_crop_biomass(farm_crop_id=crop.id, actual_grain_yield_tons=40.0, persist=True)
+    bio_svc.estimate_crop_biomass(farm_crop_id=crop.id, actual_grain_yield_tons=40.0, persist=True)
 
     # 3. Generate Deployment & Route Plan
     planner_svc = DeploymentPlannerService(db_session)
@@ -297,7 +296,7 @@ def test_workflow_4_biomass_inventory_fleet_selection_to_route_dispatch(db_sessi
         name="E2E Autumn Collection Schedule",
         date_start=date(2025, 10, 20),
         date_end=date(2025, 11, 15),
-        region="Ludhiana"
+        region="Ludhiana",
     )
     plan = planner_svc.generate_deployment_plan(plan_create)
 
@@ -326,7 +325,7 @@ def test_workflow_5_deployment_to_financial_dcf_and_lca(db_session: Session):
         briquette_price_per_ton=6200.0,
         biochar_price_per_ton=15500.0,
         farmer_procurement_price_per_ton=1450.0,
-        wacc_discount_rate_pct=10.5
+        wacc_discount_rate_pct=10.5,
     )
     fin_scenario = fin_svc.evaluate_scenario(scenario_create)
 
@@ -343,7 +342,7 @@ def test_workflow_5_deployment_to_financial_dcf_and_lca(db_session: Session):
         transport_fuel_liters=3500.0,
         processing_fuel_liters=5200.0,
         briquette_fraction_produced=0.70,
-        biochar_fraction_produced=0.20
+        biochar_fraction_produced=0.20,
     )
     lca_assessment = lca_svc.conduct_lca(lca_create)
 
@@ -370,7 +369,7 @@ def test_workflow_6_multi_user_tenant_jwt_and_rbac(db_session: Session):
         country="IND",
         domain="dabacoop.org",
         contact_email="admin@dabacoop.org",
-        is_active=True
+        is_active=True,
     )
     db_session.add(org)
     db_session.commit()
@@ -384,7 +383,7 @@ def test_workflow_6_multi_user_tenant_jwt_and_rbac(db_session: Session):
             password="SecurePassword@123",
             full_name="Kuldip Singh",
             role_name="FARMER",
-            organization_id=org.id
+            organization_id=org.id,
         )
     )
 
@@ -395,7 +394,7 @@ def test_workflow_6_multi_user_tenant_jwt_and_rbac(db_session: Session):
             password="SecurePassword@123",
             full_name="Surjit Kumar",
             role_name="FIELD_OPERATOR",
-            organization_id=org.id
+            organization_id=org.id,
         )
     )
 
@@ -403,9 +402,7 @@ def test_workflow_6_multi_user_tenant_jwt_and_rbac(db_session: Session):
     assert user_operator.id is not None
 
     # 3. Authenticate and verify JWT tokens
-    login_resp = auth_svc.authenticate_user(
-        UserLoginRequest(username="farmer_kuldip", password="SecurePassword@123")
-    )
+    login_resp = auth_svc.authenticate_user(UserLoginRequest(username="farmer_kuldip", password="SecurePassword@123"))
     assert login_resp.access_token is not None
 
     payload = decode_token(login_resp.access_token)
@@ -446,7 +443,7 @@ def test_workflow_7_dpdp_consent_withdrawal_and_dispatch_exclusion(db_session: S
         harvest_date=date(2025, 10, 26),
         latitude=30.860,
         longitude=75.750,
-        consent_given=True
+        consent_given=True,
     )
     db_session.add(farmer)
     db_session.commit()
@@ -463,7 +460,7 @@ def test_workflow_7_dpdp_consent_withdrawal_and_dispatch_exclusion(db_session: S
         state="Punjab",
         ownership_status="OWNED",
         soil_type="ALLUVIAL",
-        verification_status="VERIFIED"
+        verification_status="VERIFIED",
     )
     db_session.add(farm)
     db_session.commit()
@@ -477,14 +474,14 @@ def test_workflow_7_dpdp_consent_withdrawal_and_dispatch_exclusion(db_session: S
         crop_year=2025,
         expected_yield_tons_per_acre=2.5,
         expected_harvest_date=date(2025, 10, 26),
-        cultivation_status="HARVESTED"
+        cultivation_status="HARVESTED",
     )
     db_session.add(crop)
     db_session.commit()
     db_session.refresh(crop)
 
     bio_svc = BiomassEstimationService(db_session)
-    est = bio_svc.estimate_crop_biomass(farm_crop_id=crop.id, actual_grain_yield_tons=50.0, persist=True)
+    bio_svc.estimate_crop_biomass(farm_crop_id=crop.id, actual_grain_yield_tons=50.0, persist=True)
 
     # 2. Record initial consent and register mobile refinery unit
     refinery_svc = MobileRefineryService(db_session)
@@ -499,14 +496,14 @@ def test_workflow_7_dpdp_consent_withdrawal_and_dispatch_exclusion(db_session: S
             home_depot_name="Ludhiana Central Depot",
             home_latitude=30.700,
             home_longitude=75.500,
-            max_travel_radius_km=100.0
+            max_travel_radius_km=100.0,
         )
     )
 
     consent = priv_svc.record_consent(
         farmer_id=farmer.id,
         consent_purpose="LOGISTICS_DISPATCH",
-        notes="Authorized for seasonal bio-refinery collection"
+        notes="Authorized for seasonal bio-refinery collection",
     )
     assert consent.is_granted is True
 
@@ -517,12 +514,9 @@ def test_workflow_7_dpdp_consent_withdrawal_and_dispatch_exclusion(db_session: S
 
     # 4. Attempt to generate collection route -> Parcel MUST be excluded from dispatch
     plan_create = DeploymentPlanCreate(
-        name="Consented Fleet Dispatch",
-        date_start=date(2025, 10, 20),
-        date_end=date(2025, 11, 15),
-        region="Ludhiana"
+        name="Consented Fleet Dispatch", date_start=date(2025, 10, 20), date_end=date(2025, 11, 15), region="Ludhiana"
     )
-    
+
     # Either the plan contains other farms, or raises ValidationError if this was the only candidate
     try:
         plan = planner_svc.generate_deployment_plan(plan_create)
@@ -543,14 +537,12 @@ def test_workflow_7_dpdp_consent_withdrawal_and_dispatch_exclusion(db_session: S
             password="SecurePass@123",
             full_name="Harjit Kaur",
             role_name="FARMER",
-            farmer_id=farmer.id
+            farmer_id=farmer.id,
         )
     )
-    
+
     dsr = priv_svc.submit_subject_request(
-        user_id=user.id,
-        request_type="ERASURE",
-        details={"reason": "Discontinued farming contract for 2026"}
+        user_id=user.id, request_type="ERASURE", details={"reason": "Discontinued farming contract for 2026"}
     )
     assert dsr.id is not None
     assert dsr.status == "SUBMITTED"

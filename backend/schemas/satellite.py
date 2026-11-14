@@ -8,7 +8,9 @@ from pydantic import BaseModel, Field
 
 
 class IngestionJobCreate(BaseModel):
-    satellite: str = Field(..., description="Satellite platform: MODIS_NRT, MODIS_SP, VIIRS_NOAA20_NRT, VIIRS_SNPP_NRT, VIIRS_NOAA21_NRT")
+    satellite: str = Field(
+        ..., description="Satellite platform: MODIS_NRT, MODIS_SP, VIIRS_NOAA20_NRT, VIIRS_SNPP_NRT, VIIRS_NOAA21_NRT"
+    )
     country_code: Optional[str] = Field(None, description="ISO 3166-1 alpha-3 country code e.g. IND")
     bbox: Optional[List[float]] = Field(None, description="[min_lon, min_lat, max_lon, max_lat]")
     date_start: date = Field(..., description="Start date of observation window")

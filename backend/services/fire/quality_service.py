@@ -18,16 +18,11 @@ logger = get_logger("stubble2power.fire.quality")
 class QualityControlService:
     @staticmethod
     def generate_observation_hash(
-        satellite: str,
-        instrument: str,
-        acq_date_str: str,
-        acq_time_str: str,
-        lat: float,
-        lon: float
+        satellite: str, instrument: str, acq_date_str: str, acq_time_str: str, lat: float, lon: float
     ) -> str:
         """Computes a deterministic MD5 hash for idempotent deduplication."""
         payload = f"{satellite}|{instrument}|{acq_date_str}|{acq_time_str}|{lat:.4f}|{lon:.4f}"
-        return hashlib.sha256(payload.encode('utf-8')).hexdigest()
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     @staticmethod
     def normalize_timestamp(acq_date_val: Any, acq_time_val: Any) -> Tuple[date, str, datetime]:
@@ -87,9 +82,7 @@ class QualityControlService:
 
     @classmethod
     def process_raw_record(
-        cls,
-        raw_record: Dict[str, Any],
-        grid_resolution_deg: Optional[float] = None
+        cls, raw_record: Dict[str, Any], grid_resolution_deg: Optional[float] = None
     ) -> NormalizedObservationSchema:
         """
         Transforms raw NASA FIRMS dictionary into validated canonical schema.
@@ -184,7 +177,7 @@ class QualityControlService:
             acq_date_str=str(acq_date),
             acq_time_str=acq_time_utc,
             lat=lat,
-            lon=lon
+            lon=lon,
         )
 
         return NormalizedObservationSchema(
@@ -207,14 +200,12 @@ class QualityControlService:
             track=float(raw_record.get("track", 0.0)) if raw_record.get("track") else None,
             spatial_grid_id=grid_id,
             is_valid=is_valid,
-            quarantine_reason=quarantine_reason
+            quarantine_reason=quarantine_reason,
         )
 
     @classmethod
     def batch_process(
-        cls,
-        raw_records: List[Dict[str, Any]],
-        grid_resolution_deg: Optional[float] = None
+        cls, raw_records: List[Dict[str, Any]], grid_resolution_deg: Optional[float] = None
     ) -> Tuple[List[NormalizedObservationSchema], QualityControlSummary]:
         """
         Processes batch of raw satellite records, categorizing valid vs quarantined observations.
@@ -259,7 +250,7 @@ class QualityControlService:
             sensor_counts=sensor_counts,
             date_range_covered={
                 "start": str(min(dates_seen)) if dates_seen else "N/A",
-                "end": str(max(dates_seen)) if dates_seen else "N/A"
+                "end": str(max(dates_seen)) if dates_seen else "N/A",
             },
             spatial_bbox_covered={
                 "min_lat": round(min_lat, 4) if valid_count > 0 else 0.0,
@@ -267,7 +258,7 @@ class QualityControlService:
                 "min_lon": round(min_lon, 4) if valid_count > 0 else 0.0,
                 "max_lon": round(max_lon, 4) if valid_count > 0 else 0.0,
             },
-            processing_version="2.0.0-canonical"
+            processing_version="2.0.0-canonical",
         )
 
         return normalized_list, summary

@@ -4,6 +4,7 @@ Provides RESTful APIs for NASA Earth Observation, MODIS-VIIRS Harmonization,
 Farmer Management, Agricultural Waste Logistics, and Economic Simulation.
 """
 
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,14 +56,23 @@ app = FastAPI(
         "(Harmonization of MODIS and VIIRS Hot Spots) with decentralized agricultural waste management."
     ),
     version="2.5.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS Configuration
+# In production, restrict to configured origins; wildcard with credentials is prohibited
+_cors_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if _cors_origins_env:
+    _allowed_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+elif app_settings.app_env in ("production", "prod"):
+    _allowed_origins = ["http://localhost:8501", "http://127.0.0.1:8501"]
+else:
+    _allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_allowed_origins,
+    allow_credentials=True if _allowed_origins != ["*"] else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -94,13 +104,10 @@ app.include_router(privacy_governance.router)
 
 @app.get("/")
 def root():
-    return {
-        "message": "Welcome to Stubble2Power API",
-        "docs_url": "/docs",
-        "version": "2.5.0"
-    }
+    return {"message": "Welcome to Stubble2Power API", "docs_url": "/docs", "version": "2.5.0"}
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("backend.main:app", host=app_settings.api_host, port=app_settings.api_port, reload=True)

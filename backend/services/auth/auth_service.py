@@ -9,10 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, or_
 
 from backend.models.entities import User, UserSession, Organization, OrganizationMembership, UserPreference
-from backend.schemas.auth import (
-    UserRegisterRequest, UserLoginRequest, TokenResponse,
-    OrganizationCreate
-)
+from backend.schemas.auth import UserRegisterRequest, UserLoginRequest, TokenResponse, OrganizationCreate
 from backend.core.security.password import hash_password, verify_password
 from backend.core.security.auth import create_access_token, compute_token_hash
 from backend.core.config.settings import config_manager
@@ -39,8 +36,13 @@ class AuthService:
 
         # Validate role
         valid_roles = [
-            "PUBLIC_VISITOR", "FARMER", "FIELD_OPERATOR", "AGRICULTURAL_ANALYST",
-            "ENVIRONMENTAL_ANALYST", "ORGANIZATION_MANAGER", "SYSTEM_ADMINISTRATOR"
+            "PUBLIC_VISITOR",
+            "FARMER",
+            "FIELD_OPERATOR",
+            "AGRICULTURAL_ANALYST",
+            "ENVIRONMENTAL_ANALYST",
+            "ORGANIZATION_MANAGER",
+            "SYSTEM_ADMINISTRATOR",
         ]
         role = payload.role_name.upper() if payload.role_name else "FARMER"
         if role not in valid_roles:
@@ -58,7 +60,7 @@ class AuthService:
             phone=payload.phone,
             is_active=True,
             is_verified=True,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
         self.db.add(user)
         self.db.flush()
@@ -70,16 +72,14 @@ class AuthService:
             theme="light",
             default_aoi="Punjab Central",
             dashboard_layout="STANDARD",
-            notification_channels={"in_app": True, "email": False}
+            notification_channels={"in_app": True, "email": False},
         )
         self.db.add(pref)
 
         # If organization specified, create membership
         if payload.organization_id:
             membership = OrganizationMembership(
-                organization_id=payload.organization_id,
-                user_id=user.id,
-                org_role="MEMBER"
+                organization_id=payload.organization_id, user_id=user.id, org_role="MEMBER"
             )
             self.db.add(membership)
 
@@ -89,10 +89,7 @@ class AuthService:
         return user
 
     def authenticate_user(
-        self,
-        payload: UserLoginRequest,
-        client_ip: Optional[str] = None,
-        user_agent: Optional[str] = None
+        self, payload: UserLoginRequest, client_ip: Optional[str] = None, user_agent: Optional[str] = None
     ) -> TokenResponse:
         """Authenticates user credentials and issues signed JWT tokens."""
         user = self.db.scalars(
@@ -112,7 +109,7 @@ class AuthService:
             username=user.username,
             role=role,
             organization_id=user.organization_id,
-            farmer_id=user.farmer_id
+            farmer_id=user.farmer_id,
         )
 
         expire_minutes = int(config_manager.get("security.access_token_expire_minutes"))
@@ -122,7 +119,7 @@ class AuthService:
             ip_address=client_ip,
             user_agent=user_agent,
             expires_at=datetime.utcnow() + timedelta(minutes=expire_minutes),
-            is_revoked=False
+            is_revoked=False,
         )
         self.db.add(session)
         self.db.commit()
@@ -136,7 +133,7 @@ class AuthService:
             username=user.username,
             role=role,
             organization_id=user.organization_id,
-            farmer_id=user.farmer_id
+            farmer_id=user.farmer_id,
         )
 
     def create_organization(self, payload: OrganizationCreate) -> Organization:
@@ -145,7 +142,9 @@ class AuthService:
             select(Organization).where(or_(Organization.name == payload.name, Organization.code == payload.code))
         ).first()
         if existing:
-            raise ConflictError(message=f"Organization '{payload.name}' or code '{payload.code}' already exists.", entity="Organization")
+            raise ConflictError(
+                message=f"Organization '{payload.name}' or code '{payload.code}' already exists.", entity="Organization"
+            )
 
         org = Organization(
             name=payload.name,
@@ -154,7 +153,7 @@ class AuthService:
             country=payload.country,
             domain=payload.domain,
             contact_email=payload.contact_email,
-            is_active=True
+            is_active=True,
         )
         self.db.add(org)
         self.db.commit()
@@ -164,7 +163,7 @@ class AuthService:
 
     def list_organizations(self) -> List[Organization]:
         """Lists active tenant organizations."""
-        return list(self.db.scalars(select(Organization).where(Organization.is_active == True)).all())
+        return list(self.db.scalars(select(Organization).where(Organization.is_active.is_(True))).all())
 
     def get_organization(self, org_id: int) -> Organization:
         org = self.db.scalars(select(Organization).where(Organization.id == org_id)).first()

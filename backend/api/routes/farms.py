@@ -15,7 +15,7 @@ from backend.schemas.farm import (
     FarmCropCreate,
     FarmCropResponse,
     HarvestRecordCreate,
-    HarvestRecordResponse
+    HarvestRecordResponse,
 )
 from backend.core.exceptions.base import ValidationError, NotFoundError
 
@@ -38,7 +38,7 @@ def list_farms(
     district: Optional[str] = None,
     state: Optional[str] = None,
     soil_type: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Lists registered farm parcels with spatial attributes."""
     service = FarmService(db)

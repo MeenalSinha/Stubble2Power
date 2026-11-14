@@ -13,7 +13,7 @@ from backend.schemas.advanced_economics import (
     FinancialScenarioCreate,
     FinancialScenarioResponse,
     FinancialComparisonSummary,
-    SensitivityFactor
+    SensitivityFactor,
 )
 from backend.core.exceptions.base import ValidationError, NotFoundError
 
@@ -51,7 +51,7 @@ def get_financial_scenario(scenario_id: int, db: Session = Depends(get_db)):
 def compare_scenarios(
     deployment_plan_id: Optional[int] = Query(None, description="Optional deployment plan to link"),
     biomass_tons: Optional[float] = Query(None, description="Biomass volume to model in tonnes"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Runs Conservative, Base Case, and Optimistic models side-by-side."""
     service = FinancialEngineService(db)
@@ -59,10 +59,7 @@ def compare_scenarios(
 
 
 @router.get("/scenarios/{scenario_id}/sensitivity", response_model=List[SensitivityFactor])
-def calculate_sensitivity_tornado(
-    scenario_id: int,
-    db: Session = Depends(get_db)
-):
+def calculate_sensitivity_tornado(scenario_id: int, db: Session = Depends(get_db)):
     """Generates sensitivity tornado factors across key price, operational, and fuel parameters."""
     try:
         service = FinancialEngineService(db)

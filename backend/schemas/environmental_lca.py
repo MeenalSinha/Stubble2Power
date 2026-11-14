@@ -46,7 +46,7 @@ class SystemBoundarySummary(BaseModel):
         "Rural Road Low-Emission Tractor Transport",
         "Decentralized Briquetting & Biochar Pyrolysis",
         "Industrial Sub-Bituminous Coal Displacement",
-        "100-Year Soil Carbon Sequestration via Biochar"
+        "100-Year Soil Carbon Sequestration via Biochar",
     ]
     gwp_version: str = "IPCC AR6 WG1 100-year metrics (CH4=27.9, N2O=273)"
     grid_emission_factor_source: str = "CEA CO2 Baseline Database for the Indian Power Sector v19.0"

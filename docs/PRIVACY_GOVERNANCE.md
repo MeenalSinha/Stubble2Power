@@ -1,7 +1,9 @@
-# Stubble2Power - Privacy Governance & DPDP Act 2023 Compliance
+# Stubble2Power - Privacy Governance & DPDP Act 2023 Technical Architecture
 
-## 1. Statutory Framework
-The Stubble2Power platform processes agricultural landholder information in strict alignment with India's **Digital Personal Data Protection (DPDP) Act 2023**. This document outlines the technical and legal controls governing personal data handling, consent life cycles, data subject rights, and geospatial location obfuscation.
+> **Legal Disclaimer**: The technical controls described herein (purpose-bound consent recording, withdrawal mechanisms, Data Subject Request workflows, and geospatial obfuscation) are engineered to support compliance with India's Digital Personal Data Protection (DPDP) Act 2023. These technical mechanisms do not constitute formal legal certification, which requires independent legal and organizational assessment.
+
+## 1. Statutory Framework & Scope
+The Stubble2Power platform processes agricultural landholder information following privacy-by-design principles designed to support alignment with India's **Digital Personal Data Protection (DPDP) Act 2023**. This document outlines the technical architecture governing personal data handling, consent life cycles, data subject rights, and geospatial location obfuscation.
 
 ---
 

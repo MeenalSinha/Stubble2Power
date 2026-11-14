@@ -19,7 +19,7 @@ class FarmerBase(BaseModel):
     latitude: float = Field(..., ge=-90.0, le=90.0, description="WGS84 latitude coordinate")
     longitude: float = Field(..., ge=-180.0, le=180.0, description="WGS84 longitude coordinate")
 
-    @field_validator('name')
+    @field_validator("name")
     @classmethod
     def clean_name(cls, v: str) -> str:
         cleaned = v.strip()

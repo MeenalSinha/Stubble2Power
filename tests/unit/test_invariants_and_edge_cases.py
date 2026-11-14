@@ -20,9 +20,7 @@ from backend.services.routing.road_network_service import RoadNetworkService
 from backend.services.economics.financial_engine import FinancialEngineService
 from backend.services.environmental.lca_engine import LifeCycleAssessmentService
 from backend.services.privacy.privacy_service import PrivacyService
-from backend.core.security.auth import (
-    create_access_token, decode_token
-)
+from backend.core.security.auth import create_access_token, decode_token
 from backend.core.exceptions.base import AuthenticationError
 from backend.schemas.advanced_economics import FinancialScenarioCreate
 from backend.schemas.environmental_lca import EnvironmentalAssessmentCreate
@@ -64,11 +62,7 @@ def test_road_network_distance_monotonicity():
     road_distance >= geodesic_distance for any valid coordinate pair.
     """
     road_svc = RoadNetworkService()
-    coords = [
-        ((30.70, 76.20), (30.80, 76.30)),
-        ((30.50, 75.80), (30.90, 75.85)),
-        ((30.10, 74.90), (30.30, 75.20))
-    ]
+    coords = [((30.70, 76.20), (30.80, 76.30)), ((30.50, 75.80), (30.90, 75.85)), ((30.10, 74.90), (30.30, 75.20))]
 
     for (lat1, lon1), (lat2, lon2) in coords:
         res = road_svc.calculate_road_route(lat1, lon1, lat2, lon2)
@@ -89,7 +83,7 @@ def test_zero_biomass_economic_and_environmental_safety(db_session: Session):
         scenario_name="Minimal Tonnage",
         biomass_processed_tons=1.0,
         briquette_price_per_ton=6000.0,
-        biochar_price_per_ton=15000.0
+        biochar_price_per_ton=15000.0,
     )
     fin_res = fin_svc.evaluate_scenario(fin_payload)
     assert fin_res.total_biomass_processed_tons == 1.0
@@ -97,9 +91,7 @@ def test_zero_biomass_economic_and_environmental_safety(db_session: Session):
 
     # 2. LCA Engine with minimal positive biomass (0.1 ton floor)
     lca_payload = EnvironmentalAssessmentCreate(
-        biomass_diverted_tons=0.1,
-        transport_fuel_liters=0.0,
-        processing_fuel_liters=0.0
+        biomass_diverted_tons=0.1, transport_fuel_liters=0.0, processing_fuel_liters=0.0
     )
     lca_res = lca_svc.conduct_lca(lca_payload)
     assert lca_res.biomass_diverted_tons == 0.1
@@ -111,11 +103,7 @@ def test_jwt_tampering_and_forgery_rejection():
     Validates that altered, corrupted, or re-signed JWT tokens are strictly rejected
     by cryptographic signature verification.
     """
-    valid_token = create_access_token(
-        user_id=42,
-        username="authentic_user",
-        role="FARMER"
-    )
+    valid_token = create_access_token(user_id=42, username="authentic_user", role="FARMER")
 
     # 1. Valid token decodes correctly
     payload = decode_token(valid_token)
@@ -142,12 +130,7 @@ def test_location_privacy_bounding_box_invariant(db_session: Session):
     priv_svc = PrivacyService(db_session)
     geo_svc = GeospatialService()
 
-    test_points = [
-        (30.7333, 76.7794),
-        (31.3260, 75.5762),
-        (30.2100, 74.9450),
-        (30.9010, 75.8573)
-    ]
+    test_points = [(30.7333, 76.7794), (31.3260, 75.5762), (30.2100, 74.9450), (30.9010, 75.8573)]
 
     for lat, lon in test_points:
         b_lat, b_lon, is_blurred = priv_svc.filter_location_privacy(lat, lon, viewer_role="PUBLIC_VISITOR")

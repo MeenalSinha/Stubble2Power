@@ -194,13 +194,16 @@ In the event of database corruption, accidental loss, or hardware failure:
 ls -lt /var/backups/stubble2power/s2p_backup_*
 ```
 
-### Step 6.2: Execute Checksum Validation and Restoration
+### Step 6.2: Execute Decryption, Checksum Validation, and Restoration
 ```bash
-# Perform dry-run integrity verification first
-python scripts/restore_db.py /var/backups/stubble2power/s2p_backup_pg_20261114_020000.dump --dry-run
+# Ensure BACKUP_ENCRYPTION_KEY is set in environment or supplied via --key
+export BACKUP_ENCRYPTION_KEY="your-secret-base64-fernet-key"
 
-# Execute full restore with post-restore smoke test verification
-python scripts/restore_db.py /var/backups/stubble2power/s2p_backup_pg_20261114_020000.dump
+# Perform dry-run cryptographic integrity verification first
+python scripts/restore_db.py /var/backups/stubble2power/s2p_backup_postgresql_20261114_020000.enc --dry-run
+
+# Execute full restore with mandatory --confirm-destructive and comprehensive post-restore validation
+python scripts/restore_db.py /var/backups/stubble2power/s2p_backup_postgresql_20261114_020000.enc --confirm-destructive --target-db-url "$DATABASE_URL"
 ```
 
 ---

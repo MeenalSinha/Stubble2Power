@@ -11,7 +11,7 @@ from backend.schemas.economics import (
     RevenueBreakdown,
     CostBreakdown,
     FinancialMetrics,
-    LogisticsSavingsResult
+    LogisticsSavingsResult,
 )
 
 
@@ -21,7 +21,7 @@ class EconomicsService:
         stubble_tons: float,
         assumptions: Optional[Dict[str, float]] = None,
         transport_cost: float = 0.0,
-        scenario_name: str = "Base Case"
+        scenario_name: str = "Base Case",
     ) -> EconomicsCalculationResult:
         """
         Calculates complete unit economics for on-site biomass processing.
@@ -67,29 +67,20 @@ class EconomicsService:
         return EconomicsCalculationResult(
             stubble_tons=stubble_tons,
             scenario=scenario_name,
-            production=ProductionSummary(
-                briquette_kg=briquette_prod_kg,
-                biochar_kg=biochar_prod_kg
-            ),
+            production=ProductionSummary(briquette_kg=briquette_prod_kg, biochar_kg=biochar_prod_kg),
             revenue=RevenueBreakdown(
-                briquette=briquette_rev,
-                biochar=biochar_rev,
-                carbon=carbon_rev,
-                total=total_revenue
+                briquette=briquette_rev, biochar=biochar_rev, carbon=carbon_rev, total=total_revenue
             ),
             cost=CostBreakdown(
-                processing=processing_cost,
-                farmer_payment=farmer_payment,
-                transport=transport_cost,
-                total=total_cost
+                processing=processing_cost, farmer_payment=farmer_payment, transport=transport_cost, total=total_cost
             ),
             metrics=FinancialMetrics(
                 profit=profit,
                 margin=margin,
                 cost_per_ton=cost_per_ton,
                 revenue_per_ton=revenue_per_ton,
-                breakeven_tons=breakeven_tons
-            )
+                breakeven_tons=breakeven_tons,
+            ),
         )
 
     @staticmethod
@@ -98,7 +89,7 @@ class EconomicsService:
         stubble_tons: float,
         haulage_distance_km: Optional[float] = None,
         freight_rate_per_km: Optional[float] = None,
-        payload_capacity_tons: Optional[float] = None
+        payload_capacity_tons: Optional[float] = None,
     ) -> LogisticsSavingsResult:
         """
         Calculates savings of decentralized mobile units vs centralized plant logistics.
@@ -122,8 +113,5 @@ class EconomicsService:
         reduction_pct = (savings / central_cost * 100.0) if central_cost > 0 else 0.0
 
         return LogisticsSavingsResult(
-            mobile_cost=mobile_cost,
-            central_cost=central_cost,
-            savings=savings,
-            reduction_pct=reduction_pct
+            mobile_cost=mobile_cost, central_cost=central_cost, savings=savings, reduction_pct=reduction_pct
         )

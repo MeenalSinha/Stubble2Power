@@ -44,7 +44,11 @@ def test_nasa_client_network_timeout_recovery():
     with patch("requests.get", side_effect=requests.exceptions.Timeout("Connection timed out")), patch("time.sleep"):
         with pytest.raises(NASAAPIError) as exc_info:
             client.fetch_country_fires("IND")
-        assert "timed out" in str(exc_info.value).lower() or "timeout" in str(exc_info.value).lower() or "connection" in str(exc_info.value).lower()
+        assert (
+            "timed out" in str(exc_info.value).lower()
+            or "timeout" in str(exc_info.value).lower()
+            or "connection" in str(exc_info.value).lower()
+        )
 
 
 def test_database_transaction_rollback_and_session_recovery(db_session: Session):
@@ -59,7 +63,7 @@ def test_database_transaction_rollback_and_session_recovery(db_session: Session)
         org_type="COOP",
         country="IND",
         domain="rollback.org",
-        contact_email="test@rollback.org"
+        contact_email="test@rollback.org",
     )
     db_session.add(org)
     db_session.commit()
@@ -71,7 +75,7 @@ def test_database_transaction_rollback_and_session_recovery(db_session: Session)
         org_type="COOP",
         country="IND",
         domain="dup.org",
-        contact_email="dup@rollback.org"
+        contact_email="dup@rollback.org",
     )
     db_session.add(dup_org)
     with pytest.raises(IntegrityError):
@@ -91,7 +95,7 @@ def test_database_transaction_rollback_and_session_recovery(db_session: Session)
         harvest_date=date(2025, 10, 20),
         latitude=30.820,
         longitude=76.350,
-        consent_given=True
+        consent_given=True,
     )
     db_session.add(recovered_farmer)
     db_session.commit()
@@ -113,3 +117,52 @@ def test_corrupted_satellite_csv_payload_handling(db_session: Session):
     # Ingestion job should complete with quarantined records or zero valid records
     assert job.status in ("COMPLETED", "COMPLETED_WITH_WARNINGS", "FAILED")
     assert job.records_valid == 0
+
+
+def test_encrypted_backup_and_safe_restore_lifecycle(tmp_path):
+    """
+    Validates end-to-end encrypted backup and authenticated restore lifecycle:
+    - Verifies AES-128-CBC/HMAC-SHA256 (Fernet) archive encryption.
+    - Verifies companion SHA-256 and cryptographic manifest creation.
+    - Verifies prevention of unconfirmed destructive restore.
+    - Verifies post-restore relationship integrity verification.
+    """
+    from cryptography.fernet import Fernet
+    from scripts.backup_db import create_backup
+    from scripts.restore_db import restore_backup
+
+    key = Fernet.generate_key().decode()
+    backup_dir = tmp_path / "backups"
+
+    # 1. Create encrypted backup
+    backup_file = create_backup(backup_dir=str(backup_dir), encryption_key=key)
+    assert backup_file.exists()
+    assert backup_file.name.endswith(".enc")
+
+    # Companion files
+    checksum_file = backup_file.with_suffix(".enc.sha256")
+    manifest_file = backup_file.with_suffix(".enc.meta.json")
+    assert checksum_file.exists()
+    assert manifest_file.exists()
+
+    # 2. Refuse unconfirmed destructive restore
+    isolated_target = tmp_path / "restored.db"
+    isolated_url = f"sqlite:///{isolated_target}"
+
+    with pytest.raises(PermissionError):
+        restore_backup(
+            str(backup_file), target_database_url=isolated_url, confirm_destructive=False, encryption_key=key
+        )
+
+    # 3. Dry-run execution
+    dry_run_res = restore_backup(
+        str(backup_file), target_database_url=isolated_url, dry_run=True, confirm_destructive=False, encryption_key=key
+    )
+    assert dry_run_res is True
+
+    # 4. Confirmed destructive restore into isolated database
+    restore_res = restore_backup(
+        str(backup_file), target_database_url=isolated_url, confirm_destructive=True, encryption_key=key
+    )
+    assert restore_res is True
+    assert isolated_target.exists()

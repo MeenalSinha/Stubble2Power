@@ -2,7 +2,7 @@
 Stubble2Power - Satellite Fire Intelligence & Mobile Bio-Refinery Platform.
 Phases 0-14 Enterprise Implementation.
 Harmonizes NASA MODIS & VIIRS Earth Observations with Decentralized Agricultural Waste Management.
-Professional Multi-User Role-Based Access Control, Tenant Isolation & DPDP Act 2023 Compliance.
+Professional Multi-User Role-Based Access Control, Tenant Isolation & DPDP Act 2023 Technical Controls.
 Zero emojis compliance (Rule 7 & Rule 9).
 """
 
@@ -37,7 +37,7 @@ init_db()
 st.set_page_config(
     page_title="Stubble2Power - Satellite Fire Intelligence & Mobile Bio-Refineries",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # Apply global styling
@@ -64,7 +64,8 @@ def main():
     user_ctx, active_workspace, selected_lang = render_sidebar(db, db_ok, nasa_ok)
 
     # Hero Section
-    st.markdown("""
+    st.markdown(
+        """
     <div class="hero-section">
         <h1 class="hero-title">Stubble2Power</h1>
         <p class="hero-subtitle">
@@ -76,10 +77,12 @@ def main():
             <span class="tech-badge">Mobile Bio-Refineries</span>
             <span class="tech-badge">70% Logistics Cost Reduction</span>
             <span class="tech-badge">Carbon Negative</span>
-            <span class="tech-badge">DPDP Act 2023 Compliant</span>
+            <span class="tech-badge">DPDP Act 2023 Technical Controls</span>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # Workspace Dispatcher
     if active_workspace == "Public Fire Intelligence & Mission":
@@ -102,7 +105,8 @@ def main():
         st.info("Please select a workspace from the sidebar.")
 
     # Footer
-    st.markdown("""
+    st.markdown(
+        """
     <div class="footer">
         <h3 style="color: #2d5f3f !important; margin: 0.5rem 0;">Stubble2Power</h3>
         <p style="color: #666; margin-bottom: 1rem;">
@@ -113,7 +117,9 @@ def main():
             Powered by PostGIS Spatial Architecture + Geodesic Harmonization Engine | Copyright 2026 Stubble2Power Team
         </p>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     db.close()
 

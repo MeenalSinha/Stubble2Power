@@ -30,13 +30,13 @@ def create_access_token(
     role: str,
     organization_id: Optional[int] = None,
     farmer_id: Optional[int] = None,
-    expires_delta: Optional[timedelta] = None
+    expires_delta: Optional[timedelta] = None,
 ) -> str:
     """Generates a signed HMAC-SHA256 JWT access token."""
     expire_minutes = int(config_manager.get("security.access_token_expire_minutes"))
     now_ts = time.time()
     exp_ts = now_ts + (expires_delta.total_seconds() if expires_delta else expire_minutes * 60)
-    
+
     payload = {
         "sub": username,
         "user_id": user_id,
@@ -45,32 +45,22 @@ def create_access_token(
         "farmer_id": farmer_id,
         "type": "access",
         "iat": int(now_ts),
-        "exp": int(exp_ts)
+        "exp": int(exp_ts),
     }
-    
+
     secret = get_jwt_secret_key()
     algo = get_jwt_algorithm()
     return jwt.encode(payload, secret, algorithm=algo)
 
 
-def create_refresh_token(
-    user_id: int,
-    username: str,
-    expires_delta: Optional[timedelta] = None
-) -> str:
+def create_refresh_token(user_id: int, username: str, expires_delta: Optional[timedelta] = None) -> str:
     """Generates a long-lived signed JWT refresh token."""
     expire_days = int(config_manager.get("security.refresh_token_expire_days"))
     now_ts = time.time()
     exp_ts = now_ts + (expires_delta.total_seconds() if expires_delta else expire_days * 86400)
-    
-    payload = {
-        "sub": username,
-        "user_id": user_id,
-        "type": "refresh",
-        "iat": int(now_ts),
-        "exp": int(exp_ts)
-    }
-    
+
+    payload = {"sub": username, "user_id": user_id, "type": "refresh", "iat": int(now_ts), "exp": int(exp_ts)}
+
     secret = get_jwt_secret_key()
     algo = get_jwt_algorithm()
     return jwt.encode(payload, secret, algorithm=algo)

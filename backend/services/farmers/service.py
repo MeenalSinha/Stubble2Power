@@ -31,10 +31,7 @@ class FarmerService:
         return FarmerResponse.model_validate(farmer)
 
     def list_farmers(
-        self,
-        district: Optional[str] = None,
-        village: Optional[str] = None,
-        min_stubble: Optional[float] = None
+        self, district: Optional[str] = None, village: Optional[str] = None, min_stubble: Optional[float] = None
     ) -> List[FarmerResponse]:
         entities = self.repo.list_all(district=district, village=village, min_stubble=min_stubble)
         return [FarmerResponse.model_validate(f) for f in entities]
@@ -47,24 +44,19 @@ class FarmerService:
         count = self.repo.count()
         stubble = self.repo.total_stubble()
         df = self.repo.to_dataframe()
-        villages = int(df['Village'].nunique()) if not df.empty else 0
-        acres = float(df['Acres'].sum()) if not df.empty else 0.0
+        villages = int(df["Village"].nunique()) if not df.empty else 0
+        acres = float(df["Acres"].sum()) if not df.empty else 0.0
 
-        return {
-            "total_farmers": count,
-            "total_stubble_tons": stubble,
-            "total_acres": acres,
-            "total_villages": villages
-        }
+        return {"total_farmers": count, "total_stubble_tons": stubble, "total_acres": acres, "total_villages": villages}
 
     def import_farmers_csv(self, csv_content: str) -> Dict[str, Any]:
         """Parses and validates CSV input, inserting records idempotently."""
         df = pd.read_csv(io.StringIO(csv_content))
-        name_col = next((c for c in df.columns if 'name' in c.lower()), None)
-        lat_col = next((c for c in df.columns if 'lat' in c.lower()), None)
-        lon_col = next((c for c in df.columns if 'lon' in c.lower() or 'lng' in c.lower()), None)
-        stubble_col = next((c for c in df.columns if 'stubble' in c.lower()), None)
-        village_col = next((c for c in df.columns if 'village' in c.lower()), None)
+        name_col = next((c for c in df.columns if "name" in c.lower()), None)
+        lat_col = next((c for c in df.columns if "lat" in c.lower()), None)
+        lon_col = next((c for c in df.columns if "lon" in c.lower() or "lng" in c.lower()), None)
+        stubble_col = next((c for c in df.columns if "stubble" in c.lower()), None)
+        village_col = next((c for c in df.columns if "village" in c.lower()), None)
 
         if not all([name_col, lat_col, lon_col, stubble_col]):
             raise ValidationError(
@@ -86,21 +78,17 @@ class FarmerService:
                 farmer_in = FarmerCreate(
                     name=str(row[name_col]),
                     village=str(row.get(village_col, "Unknown")),
-                    district=str(row.get('District', row.get('district', 'Punjab'))),
-                    state=str(row.get('State', row.get('state', 'Punjab'))),
-                    acres=float(row.get('Acres', row.get('acres', max(1.0, stubble / 2.0)))),
+                    district=str(row.get("District", row.get("district", "Punjab"))),
+                    state=str(row.get("State", row.get("state", "Punjab"))),
+                    acres=float(row.get("Acres", row.get("acres", max(1.0, stubble / 2.0)))),
                     stubble_tons=stubble,
                     harvest_date=date.today(),
                     latitude=lat,
-                    longitude=lon
+                    longitude=lon,
                 )
                 self.repo.create(farmer_in)
                 imported += 1
             except Exception as e:
                 errors.append(f"Row {idx}: {str(e)}")
 
-        return {
-            "records_imported": imported,
-            "errors_count": len(errors),
-            "errors": errors[:10]
-        }
+        return {"records_imported": imported, "errors_count": len(errors), "errors": errors[:10]}

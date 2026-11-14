@@ -18,10 +18,7 @@ from collections import defaultdict
 import numpy as np
 from sqlalchemy.orm import Session
 
-from backend.schemas.harmonization import (
-    HarmonizedObservationSchema,
-    HarmonizationRunResponse
-)
+from backend.schemas.harmonization import HarmonizedObservationSchema, HarmonizationRunResponse
 from backend.models.entities import NormalizedSatelliteObservation
 from backend.repositories.satellite_repository import SatelliteRepository
 from backend.repositories.harmonization_repository import HarmonizationRepository
@@ -49,7 +46,7 @@ class HarmonizationEngine:
         cross_sensor_dist_km: Optional[float] = None,
         time_window_hours: Optional[float] = None,
         viirs_frp_slope: Optional[float] = None,
-        bbox: Optional[List[float]] = None
+        bbox: Optional[List[float]] = None,
     ) -> HarmonizationRunResponse:
         """
         Executes complete scientific harmonization pipeline across MODIS and VIIRS observations.
@@ -66,11 +63,7 @@ class HarmonizationEngine:
 
         # Query normalized observations
         raw_obs_list = self.sat_repo.query_observations(
-            date_start=date_start,
-            date_end=date_end,
-            bbox=bbox,
-            is_valid=True,
-            limit=50000
+            date_start=date_start, date_end=date_end, bbox=bbox, is_valid=True, limit=50000
         )
 
         run_uuid = str(uuid.uuid4())
@@ -83,7 +76,7 @@ class HarmonizationEngine:
             "cross_sensor_distance_km": cross_sensor_dist_km,
             "cross_sensor_time_window_hours": time_window_hours,
             "viirs_frp_calibration_slope": viirs_frp_slope,
-            "bbox": bbox
+            "bbox": bbox,
         }
 
         run_record = self.harm_repo.create_run(
@@ -93,7 +86,7 @@ class HarmonizationEngine:
             date_end=actual_end,
             grid_resolution_deg=grid_resolution_deg,
             parameters_json=params_json,
-            algorithm_version=self.ALGORITHM_VERSION
+            algorithm_version=self.ALGORITHM_VERSION,
         )
 
         if not raw_obs_list:
@@ -104,7 +97,7 @@ class HarmonizationEngine:
                 associated_pairs=0,
                 mean_consensus=0.0,
                 status="COMPLETED_EMPTY",
-                sensor_breakdown={"MODIS": 0, "VIIRS": 0}
+                sensor_breakdown={"MODIS": 0, "VIIRS": 0},
             )
             resp = HarmonizationRunResponse.model_validate(completed_run)
             resp.sensor_breakdown = {"MODIS": 0, "VIIRS": 0}
@@ -181,29 +174,28 @@ class HarmonizationEngine:
             # Normalized Burning Activity Index (0 to 100 scale)
             # Combines detection count, calibrated energy (FRP), and consensus weight
             activity_index = self._compute_activity_index(
-                modis_count=m_count,
-                viirs_count=v_count,
-                calibrated_frp_mw=calibrated_frp_mw,
-                consensus_score=consensus
+                modis_count=m_count, viirs_count=v_count, calibrated_frp_mw=calibrated_frp_mw, consensus_score=consensus
             )
 
-            harmonized_schemas.append(HarmonizedObservationSchema(
-                grid_id=grid_id,
-                observation_date=obs_date,
-                centroid_lat=round(mean_lat, 5),
-                centroid_lon=round(mean_lon, 5),
-                modis_count=m_count,
-                viirs_count=v_count,
-                total_detections=tot_count,
-                associated_pairs_count=len(associated_pairs),
-                modis_mean_frp=round(m_mean_frp, 2) if m_mean_frp is not None else None,
-                viirs_mean_frp=round(v_mean_frp, 2) if v_mean_frp is not None else None,
-                harmonized_frp_mw=round(calibrated_frp_mw, 2),
-                harmonized_activity_index=round(activity_index, 1),
-                consensus_score=round(consensus, 3),
-                uncertainty_level=uncertainty,
-                data_coverage_flag=coverage_flag
-            ))
+            harmonized_schemas.append(
+                HarmonizedObservationSchema(
+                    grid_id=grid_id,
+                    observation_date=obs_date,
+                    centroid_lat=round(mean_lat, 5),
+                    centroid_lon=round(mean_lon, 5),
+                    modis_count=m_count,
+                    viirs_count=v_count,
+                    total_detections=tot_count,
+                    associated_pairs_count=len(associated_pairs),
+                    modis_mean_frp=round(m_mean_frp, 2) if m_mean_frp is not None else None,
+                    viirs_mean_frp=round(v_mean_frp, 2) if v_mean_frp is not None else None,
+                    harmonized_frp_mw=round(calibrated_frp_mw, 2),
+                    harmonized_activity_index=round(activity_index, 1),
+                    consensus_score=round(consensus, 3),
+                    uncertainty_level=uncertainty,
+                    data_coverage_flag=coverage_flag,
+                )
+            )
 
         # Bulk persist harmonized results
         self.harm_repo.bulk_insert_harmonized(run_record.id, harmonized_schemas)
@@ -211,7 +203,7 @@ class HarmonizationEngine:
         mean_consensus = float(np.mean(consensus_scores)) if consensus_scores else 0.0
         sensor_breakdown_dict = {
             "MODIS": sum(1 for o in raw_obs_list if o.instrument == "MODIS"),
-            "VIIRS": sum(1 for o in raw_obs_list if o.instrument == "VIIRS")
+            "VIIRS": sum(1 for o in raw_obs_list if o.instrument == "VIIRS"),
         }
         completed_run = self.harm_repo.complete_run(
             run_id=run_record.id,
@@ -220,7 +212,7 @@ class HarmonizationEngine:
             associated_pairs=total_associated_pairs,
             mean_consensus=round(mean_consensus, 3),
             status="COMPLETED",
-            sensor_breakdown=sensor_breakdown_dict
+            sensor_breakdown=sensor_breakdown_dict,
         )
         resp = HarmonizationRunResponse.model_validate(completed_run)
         resp.sensor_breakdown = sensor_breakdown_dict
@@ -231,7 +223,7 @@ class HarmonizationEngine:
         modis_points: List[NormalizedSatelliteObservation],
         viirs_points: List[NormalizedSatelliteObservation],
         dist_threshold_km: float,
-        time_window_hours: float
+        time_window_hours: float,
     ) -> List[Tuple[int, int]]:
         """
         Identifies spatial and temporal pairs between MODIS and VIIRS detections.
@@ -244,20 +236,12 @@ class HarmonizationEngine:
                 time_diff_hours = abs((m.timestamp_utc - v.timestamp_utc).total_seconds()) / 3600.0
                 if time_diff_hours <= time_window_hours:
                     # Great circle distance check
-                    dist_km = GeospatialService.haversine_distance(
-                        m.latitude, m.longitude,
-                        v.latitude, v.longitude
-                    )
+                    dist_km = GeospatialService.haversine_distance(m.latitude, m.longitude, v.latitude, v.longitude)
                     if dist_km <= dist_threshold_km:
                         associations.append((m.id, v.id))
         return associations
 
-    def _compute_consensus_score(
-        self,
-        modis_count: int,
-        viirs_count: int,
-        associated_pairs: int
-    ) -> float:
+    def _compute_consensus_score(self, modis_count: int, viirs_count: int, associated_pairs: int) -> float:
         """
         Quantifies inter-sensor agreement on a 0.0 to 1.0 scale.
         Consensus is highest when both sensors detect activity and share associated pairs.
@@ -274,11 +258,7 @@ class HarmonizationEngine:
         return 0.0
 
     def _compute_activity_index(
-        self,
-        modis_count: int,
-        viirs_count: int,
-        calibrated_frp_mw: float,
-        consensus_score: float
+        self, modis_count: int, viirs_count: int, calibrated_frp_mw: float, consensus_score: float
     ) -> float:
         """
         Derives Normalized Burning Activity Index (0.0 to 100.0).

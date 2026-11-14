@@ -14,7 +14,7 @@ from backend.schemas.deployment import (
     DeploymentPlanCreate,
     DeploymentPlanResponse,
     DeploymentAssignmentResponse,
-    RoutePlanResponse
+    RoutePlanResponse,
 )
 from backend.core.exceptions.base import ValidationError, NotFoundError
 
@@ -35,7 +35,7 @@ def format_deployment_plan(plan: DeploymentPlan) -> DeploymentPlanResponse:
                 farm_name=a.farm.farm_name if a.farm else f"Farm #{a.farm_id}",
                 assigned_biomass_tons=a.assigned_biomass_tons,
                 scheduled_date=a.scheduled_date,
-                collection_status=a.collection_status
+                collection_status=a.collection_status,
             )
         )
     routes = []
@@ -54,7 +54,7 @@ def format_deployment_plan(plan: DeploymentPlan) -> DeploymentPlanResponse:
                 fuel_consumed_liters=r.fuel_consumed_liters,
                 total_payload_tons=r.total_payload_tons,
                 stops=stops,
-                created_at=r.created_at
+                created_at=r.created_at,
             )
         )
     return DeploymentPlanResponse(
@@ -73,7 +73,7 @@ def format_deployment_plan(plan: DeploymentPlan) -> DeploymentPlanResponse:
         capacity_utilization_pct=plan.capacity_utilization_pct,
         assignments=assignments,
         routes=routes,
-        created_at=plan.created_at
+        created_at=plan.created_at,
     )
 
 
@@ -81,7 +81,7 @@ def format_deployment_plan(plan: DeploymentPlan) -> DeploymentPlanResponse:
 def generate_deployment_plan(
     payload: DeploymentPlanCreate,
     strategy: str = Query("BALANCED", description="Optimization strategy: BALANCED, MAX_BIOMASS, MIN_COST"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Executes capacity-aware assignment and road network vehicle routing for target farms."""
     try:
@@ -93,10 +93,7 @@ def generate_deployment_plan(
 
 
 @router.get("/", response_model=List[DeploymentPlanResponse])
-def list_deployments(
-    region: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
+def list_deployments(region: Optional[str] = None, db: Session = Depends(get_db)):
     """Lists existing deployment plans."""
     service = DeploymentPlannerService(db)
     plans = service.list_deployments(region=region)
@@ -146,7 +143,7 @@ def get_deployment_routes(plan_id: int, db: Session = Depends(get_db)):
                 fuel_consumed_liters=r.fuel_consumed_liters,
                 total_payload_tons=r.total_payload_tons,
                 stops=stops,
-                created_at=r.created_at
+                created_at=r.created_at,
             )
         )
     return routes

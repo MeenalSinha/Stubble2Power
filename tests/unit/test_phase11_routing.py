@@ -9,9 +9,7 @@ from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.models.entities import (
-    Base, Farmer, Farm, FarmCrop, BiomassEstimate
-)
+from backend.models.entities import Base, Farmer, Farm, FarmCrop, BiomassEstimate
 from backend.services.deployment.refinery_service import MobileRefineryService
 from backend.services.routing.road_network_service import RoadNetworkService
 from backend.services.deployment.planner_service import DeploymentPlannerService
@@ -36,7 +34,7 @@ def db_session():
         acres=50.0,
         stubble_tons=100.0,
         harvest_date=date(2024, 10, 25),
-        consent_given=True
+        consent_given=True,
     )
     session.add(farmer)
     session.flush()
@@ -49,7 +47,7 @@ def db_session():
         longitude=75.4900,
         district="Ludhiana",
         village="Jagraon",
-        state="Punjab"
+        state="Punjab",
     )
     farm2 = Farm(
         farmer_id=farmer.id,
@@ -59,25 +57,13 @@ def db_session():
         longitude=75.5100,
         district="Ludhiana",
         village="Jagraon",
-        state="Punjab"
+        state="Punjab",
     )
     session.add_all([farm1, farm2])
     session.flush()
 
-    crop1 = FarmCrop(
-        farm_id=farm1.id,
-        crop_type="PADDY",
-        cultivated_acres=20.0,
-        crop_season="Kharif",
-        crop_year=2024
-    )
-    crop2 = FarmCrop(
-        farm_id=farm2.id,
-        crop_type="PADDY",
-        cultivated_acres=30.0,
-        crop_season="Kharif",
-        crop_year=2024
-    )
+    crop1 = FarmCrop(farm_id=farm1.id, crop_type="PADDY", cultivated_acres=20.0, crop_season="Kharif", crop_year=2024)
+    crop2 = FarmCrop(farm_id=farm2.id, crop_type="PADDY", cultivated_acres=30.0, crop_season="Kharif", crop_year=2024)
     session.add_all([crop1, crop2])
     session.flush()
 
@@ -90,7 +76,7 @@ def db_session():
         net_usable_biomass_tons=30.0,
         dry_matter_tons=25.8,
         availability_start_date=date(2024, 10, 20),
-        availability_end_date=date(2024, 11, 15)
+        availability_end_date=date(2024, 11, 15),
     )
     est2 = BiomassEstimate(
         farm_crop_id=crop2.id,
@@ -100,7 +86,7 @@ def db_session():
         net_usable_biomass_tons=45.0,
         dry_matter_tons=38.7,
         availability_start_date=date(2024, 10, 20),
-        availability_end_date=date(2024, 11, 15)
+        availability_end_date=date(2024, 11, 15),
     )
     session.add_all([est1, est2])
     session.commit()
@@ -121,7 +107,7 @@ def test_mobile_unit_registration_and_validation(db_session):
         home_depot_name="Ludhiana Ag Hub",
         home_latitude=30.9010,
         home_longitude=75.8573,
-        max_travel_radius_km=50.0
+        max_travel_radius_km=50.0,
     )
     unit = ref_svc.register_unit(payload)
     assert unit.id is not None
@@ -156,7 +142,7 @@ def test_multi_stop_route_sequencing():
     depot = (30.9010, 75.8573)
     stops = [
         {"farm_name": "Farm Alpha", "latitude": 30.8200, "longitude": 75.6000, "biomass_tons": 25.0},
-        {"farm_name": "Farm Beta", "latitude": 30.7500, "longitude": 75.5500, "biomass_tons": 35.0}
+        {"farm_name": "Farm Beta", "latitude": 30.7500, "longitude": 75.5500, "biomass_tons": 35.0},
     ]
 
     result = road_svc.solve_multi_stop_route(depot, stops)
@@ -176,22 +162,24 @@ def test_multi_stop_route_sequencing():
 
 def test_deployment_planner_capacity_and_routing(db_session):
     ref_svc = MobileRefineryService(db_session)
-    unit = ref_svc.register_unit(MobileRefineryCreate(
-        unit_code="MBR-LDH-02",
-        name="Ludhiana Unit 2",
-        hourly_capacity_tons=2.5,
-        daily_operating_hours=10.0,  # 25t/day
-        home_latitude=30.8000,
-        home_longitude=75.5000,
-        max_travel_radius_km=30.0
-    ))
+    ref_svc.register_unit(
+        MobileRefineryCreate(
+            unit_code="MBR-LDH-02",
+            name="Ludhiana Unit 2",
+            hourly_capacity_tons=2.5,
+            daily_operating_hours=10.0,  # 25t/day
+            home_latitude=30.8000,
+            home_longitude=75.5000,
+            max_travel_radius_km=30.0,
+        )
+    )
 
     planner_svc = DeploymentPlannerService(db_session)
     plan_req = DeploymentPlanCreate(
         name="Jagraon Harvest Campaign",
         region="Ludhiana",
         date_start=date(2024, 10, 22),
-        date_end=date(2024, 10, 26)  # 5 days = 125t fleet capacity
+        date_end=date(2024, 10, 26),  # 5 days = 125t fleet capacity
     )
 
     plan = planner_svc.plan_deployment(plan_req, strategy="BALANCED")

@@ -28,7 +28,7 @@ def db_session():
         max_latitude=32.5,
         min_longitude=73.8,
         max_longitude=76.9,
-        is_active=True
+        is_active=True,
     )
     session.add(aoi)
     session.commit()

@@ -15,9 +15,7 @@ router = APIRouter(prefix="/clustering", tags=["Logistics & Clustering"])
 
 @router.post("/run", response_model=ClusteringResult)
 def run_clustering(
-    n_clusters: int = Query(4, ge=1, le=20),
-    scenario: str = Query("Base Case"),
-    db: Session = Depends(get_db)
+    n_clusters: int = Query(4, ge=1, le=20), scenario: str = Query("Base Case"), db: Session = Depends(get_db)
 ):
     """Executes K-Means grouping and mobile refinery route optimization."""
     try:
@@ -26,11 +24,7 @@ def run_clustering(
         if df.empty:
             raise HTTPException(status_code=400, detail="No registered farmers available for clustering.")
 
-        result = ClusteringService.generate_clusters(
-            farmers_df=df,
-            n_clusters=n_clusters,
-            scenario_name=scenario
-        )
+        result = ClusteringService.generate_clusters(farmers_df=df, n_clusters=n_clusters, scenario_name=scenario)
         return result
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=e.message)

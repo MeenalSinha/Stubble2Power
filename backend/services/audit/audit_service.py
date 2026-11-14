@@ -29,7 +29,7 @@ class AuditService:
         client_ip: Optional[str] = None,
         user_agent: Optional[str] = None,
         status_code: int = 200,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ) -> AuditLog:
         """Persists an immutable audit log entry."""
         log_entry = AuditLog(
@@ -43,7 +43,7 @@ class AuditService:
             user_agent=user_agent,
             status_code=status_code,
             details_json=details or {},
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
         self.db.add(log_entry)
         self.db.commit()
@@ -56,7 +56,7 @@ class AuditService:
         severity: str = "LOW",
         user_id: Optional[int] = None,
         client_ip: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ) -> SecurityEvent:
         """Records a security anomaly or compliance violation event."""
         event = SecurityEvent(
@@ -65,7 +65,7 @@ class AuditService:
             user_id=user_id,
             client_ip=client_ip,
             details_json=details or {},
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
         self.db.add(event)
         self.db.commit()
@@ -78,7 +78,7 @@ class AuditService:
         organization_id: Optional[int] = None,
         actor_user_id: Optional[int] = None,
         action: Optional[str] = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[AuditLog]:
         """Queries historical audit logs with filtering."""
         query = select(AuditLog)
@@ -93,6 +93,4 @@ class AuditService:
 
     def list_security_events(self, limit: int = 100) -> List[SecurityEvent]:
         """Retrieves recent security monitoring events."""
-        return list(
-            self.db.scalars(select(SecurityEvent).order_by(desc(SecurityEvent.created_at)).limit(limit)).all()
-        )
+        return list(self.db.scalars(select(SecurityEvent).order_by(desc(SecurityEvent.created_at)).limit(limit)).all())

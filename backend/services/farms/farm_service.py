@@ -44,7 +44,7 @@ class FarmService:
             ownership_status=payload.ownership_status,
             soil_type=payload.soil_type,
             boundary_geojson=payload.boundary_geojson,
-            verification_status="VERIFIED"
+            verification_status="VERIFIED",
         )
         self.db.add(farm)
         self.db.commit()
@@ -63,7 +63,7 @@ class FarmService:
         farmer_id: Optional[int] = None,
         district: Optional[str] = None,
         state: Optional[str] = None,
-        soil_type: Optional[str] = None
+        soil_type: Optional[str] = None,
     ) -> List[Farm]:
         stmt = select(Farm)
         filters = []
@@ -86,7 +86,7 @@ class FarmService:
         if payload.cultivated_acres > farm.total_acres:
             raise ValidationError(
                 message=f"Cultivated acres ({payload.cultivated_acres}) cannot exceed farm total acres ({farm.total_acres}).",
-                field="cultivated_acres"
+                field="cultivated_acres",
             )
 
         crop = FarmCrop(
@@ -98,7 +98,7 @@ class FarmService:
             sowing_date=payload.sowing_date,
             expected_harvest_date=payload.expected_harvest_date,
             expected_yield_tons_per_acre=payload.expected_yield_tons_per_acre,
-            cultivation_status="ACTIVE"
+            cultivation_status="ACTIVE",
         )
         self.db.add(crop)
         self.db.commit()
@@ -117,11 +117,7 @@ class FarmService:
     def list_crops_by_farm(self, farm_id: int) -> List[FarmCrop]:
         return self.list_crops_for_farm(farm_id)
 
-    def record_harvest(
-        self,
-        payload_or_crop_id: Any,
-        payload: Optional[HarvestRecordCreate] = None
-    ) -> HarvestRecord:
+    def record_harvest(self, payload_or_crop_id: Any, payload: Optional[HarvestRecordCreate] = None) -> HarvestRecord:
         """Records actual grain harvest measurements for a farm crop."""
         if isinstance(payload_or_crop_id, int):
             actual_payload = payload
@@ -135,7 +131,9 @@ class FarmService:
 
         crop = self.db.scalars(select(FarmCrop).where(FarmCrop.id == actual_payload.farm_crop_id)).first()
         if not crop:
-            raise NotFoundError(message=f"Farm crop with id {actual_payload.farm_crop_id} not found.", entity="FarmCrop")
+            raise NotFoundError(
+                message=f"Farm crop with id {actual_payload.farm_crop_id} not found.", entity="FarmCrop"
+            )
 
         harvest = HarvestRecord(
             farm_crop_id=actual_payload.farm_crop_id,
@@ -144,11 +142,13 @@ class FarmService:
             grain_moisture_pct=actual_payload.grain_moisture_pct,
             harvest_method=actual_payload.harvest_method,
             is_measured=actual_payload.is_measured,
-            notes=actual_payload.notes
+            notes=actual_payload.notes,
         )
         # Update crop record with actual metrics
         crop.actual_harvest_date = actual_payload.harvest_date
-        crop.actual_yield_tons_per_acre = round(actual_payload.actual_grain_yield_tons / max(0.1, crop.cultivated_acres), 2)
+        crop.actual_yield_tons_per_acre = round(
+            actual_payload.actual_grain_yield_tons / max(0.1, crop.cultivated_acres), 2
+        )
         crop.cultivation_status = "HARVESTED"
 
         self.db.add(harvest)

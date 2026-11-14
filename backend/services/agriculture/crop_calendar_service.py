@@ -31,7 +31,7 @@ DEFAULT_CROP_CALENDARS = [
         "stubble_burning_susceptibility": "HIGH",
         "official_source": "Punjab Agricultural University (PAU) Crop Production Package",
         "citation": "PAU Ludhiana Agronomy Guidelines & ICAR-CSSRI Karnal Stubble Advisory (2024)",
-        "version": "1.0.0"
+        "version": "1.0.0",
     },
     {
         "crop_name": "Wheat (Rabi)",
@@ -47,7 +47,7 @@ DEFAULT_CROP_CALENDARS = [
         "stubble_burning_susceptibility": "MEDIUM",
         "official_source": "Indian Council of Agricultural Research (ICAR)",
         "citation": "ICAR Kharif/Rabi National Crop Production Directory",
-        "version": "1.0.0"
+        "version": "1.0.0",
     },
     {
         "crop_name": "Cotton (Kharif)",
@@ -63,7 +63,7 @@ DEFAULT_CROP_CALENDARS = [
         "stubble_burning_susceptibility": "LOW",
         "official_source": "Central Institute for Cotton Research (CICR)",
         "citation": "CICR Annual Agro-Advisory Series",
-        "version": "1.0.0"
+        "version": "1.0.0",
     },
     {
         "crop_name": "Sugarcane (Perennial)",
@@ -79,8 +79,8 @@ DEFAULT_CROP_CALENDARS = [
         "stubble_burning_susceptibility": "MEDIUM",
         "official_source": "Sugarcane Breeding Institute (ICAR-SBI)",
         "citation": "ICAR-SBI Production & Trash Management Advisory",
-        "version": "1.0.0"
-    }
+        "version": "1.0.0",
+    },
 ]
 
 
@@ -102,16 +102,13 @@ class CropCalendarService:
 
     def get_all_calendars(self, state_name: Optional[str] = None) -> List[CropCalendar]:
         """Lists active crop calendars."""
-        stmt = select(CropCalendar).where(CropCalendar.is_active == True)
+        stmt = select(CropCalendar).where(CropCalendar.is_active.is_(True))
         if state_name:
             stmt = stmt.where(CropCalendar.state_name == state_name)
         return list(self.db.scalars(stmt).all())
 
     def match_harvest_window(
-        self,
-        obs_date: date,
-        state_name: str = "Punjab",
-        crop_name: Optional[str] = None
+        self, obs_date: date, state_name: str = "Punjab", crop_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Determines if an observation date falls in peak harvest, extended harvest, or off-season.
@@ -165,7 +162,7 @@ class CropCalendarService:
                         "matched_crop": cal.crop_name,
                         "season": cal.season_name,
                         "susceptibility": cal.stubble_burning_susceptibility,
-                        "source": cal.official_source
+                        "source": cal.official_source,
                     }
 
                 # Remember extended window match if no peak match is found later
@@ -175,7 +172,7 @@ class CropCalendarService:
                         "matched_crop": cal.crop_name,
                         "season": cal.season_name,
                         "susceptibility": cal.stubble_burning_susceptibility,
-                        "source": cal.official_source
+                        "source": cal.official_source,
                     }
             except Exception as e:
                 logger.warning(f"Error parsing date window for {cal.crop_name}: {str(e)}")
@@ -189,5 +186,5 @@ class CropCalendarService:
             "matched_crop": None,
             "season": "None",
             "susceptibility": "LOW",
-            "source": "None"
+            "source": "None",
         }

@@ -17,27 +17,21 @@ from backend.schemas.agriculture import (
     CropCalendarResponse,
     AgriculturalClassificationRequest,
     AgriculturalContextAssessmentResponse,
-    AgriculturalContextSummary
+    AgriculturalContextSummary,
 )
 
 router = APIRouter(prefix="/agriculture", tags=["Agricultural Context Intelligence"])
 
 
 @router.get("/calendars", response_model=List[CropCalendarResponse])
-def get_crop_calendars(
-    state_name: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
+def get_crop_calendars(state_name: Optional[str] = None, db: Session = Depends(get_db)):
     """Retrieves authoritative crop calendars with sowing, harvest, and residue burn windows."""
     svc = CropCalendarService(db)
     return svc.get_all_calendars(state_name=state_name)
 
 
 @router.post("/calendars", response_model=CropCalendarResponse)
-def create_crop_calendar(
-    payload: CropCalendarCreate,
-    db: Session = Depends(get_db)
-):
+def create_crop_calendar(payload: CropCalendarCreate, db: Session = Depends(get_db)):
     """Registers an official agricultural crop calendar."""
     cal = CropCalendar(**payload.model_dump())
     db.add(cal)
@@ -51,7 +45,7 @@ def get_assessments(
     date_start: Optional[date] = None,
     date_end: Optional[date] = None,
     context_classification: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Retrieves agricultural context classifications for satellite fire observations."""
     stmt = select(AgriculturalContextAssessment)
@@ -64,31 +58,25 @@ def get_assessments(
         filters.append(AgriculturalContextAssessment.context_classification == context_classification)
     if filters:
         from sqlalchemy import and_
+
         stmt = stmt.where(and_(*filters))
     stmt = stmt.order_by(AgriculturalContextAssessment.observation_date.desc())
     return list(db.scalars(stmt).all())
 
 
 @router.post("/classify", response_model=List[AgriculturalContextAssessmentResponse])
-def classify_fire_activity(
-    payload: AgriculturalClassificationRequest,
-    db: Session = Depends(get_db)
-):
+def classify_fire_activity(payload: AgriculturalClassificationRequest, db: Session = Depends(get_db)):
     """Executes evidence-based agricultural fire context classification across harmonized observations."""
     svc = AgriculturalClassificationService(db)
     assessments = svc.classify_harmonized_records(
-        date_start=payload.date_start,
-        date_end=payload.date_end,
-        state_name=payload.state_name
+        date_start=payload.date_start, date_end=payload.date_end, state_name=payload.state_name
     )
     return assessments
 
 
 @router.get("/summary", response_model=AgriculturalContextSummary)
 def get_agricultural_summary(
-    date_start: Optional[date] = None,
-    date_end: Optional[date] = None,
-    db: Session = Depends(get_db)
+    date_start: Optional[date] = None, date_end: Optional[date] = None, db: Session = Depends(get_db)
 ):
     """Computes distribution metrics and breakdown of agricultural fire classifications."""
     svc = AgriculturalClassificationService(db)

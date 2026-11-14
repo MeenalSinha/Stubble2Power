@@ -22,10 +22,7 @@ class GeospatialService:
         delta_phi = math.radians(lat2 - lat1)
         delta_lambda = math.radians(lon2 - lon1)
 
-        a = (
-            math.sin(delta_phi / 2.0) ** 2
-            + math.cos(phi1) * math.cos(phi2) * (math.sin(delta_lambda / 2.0) ** 2)
-        )
+        a = math.sin(delta_phi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * (math.sin(delta_lambda / 2.0) ** 2)
         c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
         return GeospatialService.EARTH_RADIUS_KM * c
 
@@ -38,15 +35,9 @@ class GeospatialService:
     def validate_coordinates(lat: float, lon: float) -> None:
         """Validates that latitude and longitude fall within legal WGS84 ranges."""
         if not (-90.0 <= lat <= 90.0):
-            raise ValidationError(
-                message=f"Latitude {lat} is out of valid bounds [-90, +90].",
-                field="latitude"
-            )
+            raise ValidationError(message=f"Latitude {lat} is out of valid bounds [-90, +90].", field="latitude")
         if not (-180.0 <= lon <= 180.0):
-            raise ValidationError(
-                message=f"Longitude {lon} is out of valid bounds [-180, +180].",
-                field="longitude"
-            )
+            raise ValidationError(message=f"Longitude {lon} is out of valid bounds [-180, +180].", field="longitude")
 
     @staticmethod
     def compute_grid_id(lat: float, lon: float, resolution_deg: float) -> str:

@@ -29,7 +29,7 @@ class PrivacyService:
         consent_version: str = "v1.0",
         user_id: Optional[int] = None,
         ip_address: Optional[str] = None,
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
     ) -> ConsentRecord:
         """Records granular, purpose-bound farmer consent."""
         farmer = self.db.scalars(select(Farmer).where(Farmer.id == farmer_id)).first()
@@ -42,7 +42,7 @@ class PrivacyService:
                 and_(
                     ConsentRecord.farmer_id == farmer_id,
                     ConsentRecord.consent_purpose == consent_purpose,
-                    ConsentRecord.is_granted == True
+                    ConsentRecord.is_granted.is_(True),
                 )
             )
         ).first()
@@ -64,7 +64,7 @@ class PrivacyService:
             is_granted=True,
             consent_timestamp=datetime.utcnow(),
             ip_address=ip_address,
-            notes=notes
+            notes=notes,
         )
         self.db.add(record)
         self.db.commit()
@@ -96,17 +96,13 @@ class PrivacyService:
         )
 
     def submit_subject_request(
-        self,
-        user_id: int,
-        request_type: str,
-        details: Optional[Dict[str, Any]] = None
+        self, user_id: int, request_type: str, details: Optional[Dict[str, Any]] = None
     ) -> DataSubjectRequest:
         """Submits a formal Data Subject Access/Correction/Erasure Request."""
         valid_types = ["ACCESS", "CORRECTION", "ERASURE", "EXPORT"]
         if request_type.upper() not in valid_types:
             raise ValidationError(
-                message=f"Invalid request type '{request_type}'. Must be one of {valid_types}.",
-                field="request_type"
+                message=f"Invalid request type '{request_type}'. Must be one of {valid_types}.", field="request_type"
             )
 
         dsr = DataSubjectRequest(
@@ -114,7 +110,7 @@ class PrivacyService:
             request_type=request_type.upper(),
             status="SUBMITTED",
             details_json=details or {},
-            requested_at=datetime.utcnow()
+            requested_at=datetime.utcnow(),
         )
         self.db.add(dsr)
         self.db.commit()
@@ -136,7 +132,7 @@ class PrivacyService:
         longitude: float,
         viewer_role: Optional[str] = None,
         is_owner: bool = False,
-        use_metric_scaling: bool = False
+        use_metric_scaling: bool = False,
     ) -> Tuple[float, float, bool]:
         """
         Enforces geospatial privacy protection under DPDP Act 2023.

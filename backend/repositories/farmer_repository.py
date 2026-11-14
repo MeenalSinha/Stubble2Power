@@ -26,7 +26,7 @@ class FarmerRepository:
             stubble_tons=farmer_in.stubble_tons,
             harvest_date=farmer_in.harvest_date,
             latitude=farmer_in.latitude,
-            longitude=farmer_in.longitude
+            longitude=farmer_in.longitude,
         )
         self.db.add(farmer)
         self.db.commit()
@@ -42,7 +42,7 @@ class FarmerRepository:
         village: Optional[str] = None,
         min_stubble: Optional[float] = None,
         limit: int = 1000,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Farmer]:
         stmt = select(Farmer)
         filters = []
@@ -91,20 +91,33 @@ class FarmerRepository:
     def to_dataframe(self) -> pd.DataFrame:
         farmers = self.list_all(limit=50000)
         if not farmers:
-            return pd.DataFrame(columns=[
-                'id', 'Farmer Name', 'Village', 'District', 'State',
-                'Acres', 'Stubble (tons)', 'Harvest Date', 'Latitude', 'Longitude'
-            ])
-        records = [{
-            'id': f.id,
-            'Farmer Name': f.name,
-            'Village': f.village,
-            'District': f.district,
-            'State': f.state,
-            'Acres': f.acres,
-            'Stubble (tons)': f.stubble_tons,
-            'Harvest Date': f.harvest_date,
-            'Latitude': f.latitude,
-            'Longitude': f.longitude
-        } for f in farmers]
+            return pd.DataFrame(
+                columns=[
+                    "id",
+                    "Farmer Name",
+                    "Village",
+                    "District",
+                    "State",
+                    "Acres",
+                    "Stubble (tons)",
+                    "Harvest Date",
+                    "Latitude",
+                    "Longitude",
+                ]
+            )
+        records = [
+            {
+                "id": f.id,
+                "Farmer Name": f.name,
+                "Village": f.village,
+                "District": f.district,
+                "State": f.state,
+                "Acres": f.acres,
+                "Stubble (tons)": f.stubble_tons,
+                "Harvest Date": f.harvest_date,
+                "Latitude": f.latitude,
+                "Longitude": f.longitude,
+            }
+            for f in farmers
+        ]
         return pd.DataFrame(records)

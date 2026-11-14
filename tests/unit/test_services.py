@@ -13,9 +13,7 @@ from backend.services.fire.quality_service import QualityControlService
 class TestEconomicsService:
     def test_calculate_unit_economics_positive(self):
         result = EconomicsService.calculate_unit_economics(
-            stubble_tons=100.0,
-            transport_cost=5000.0,
-            scenario_name="Base Case"
+            stubble_tons=100.0, transport_cost=5000.0, scenario_name="Base Case"
         )
         assert result.stubble_tons == 100.0
         assert result.production.briquette_kg == 70000.0
@@ -50,12 +48,42 @@ class TestEnvironmentalService:
 
 class TestClusteringService:
     def test_clustering_execution(self):
-        df = pd.DataFrame([
-            {'Farmer Name': 'F1', 'Village': 'V1', 'District': 'D1', 'Latitude': 30.70, 'Longitude': 76.22, 'Stubble (tons)': 10.0},
-            {'Farmer Name': 'F2', 'Village': 'V1', 'District': 'D1', 'Latitude': 30.72, 'Longitude': 76.24, 'Stubble (tons)': 12.0},
-            {'Farmer Name': 'F3', 'Village': 'V2', 'District': 'D2', 'Latitude': 30.90, 'Longitude': 75.85, 'Stubble (tons)': 20.0},
-            {'Farmer Name': 'F4', 'Village': 'V2', 'District': 'D2', 'Latitude': 30.92, 'Longitude': 75.87, 'Stubble (tons)': 25.0},
-        ])
+        df = pd.DataFrame(
+            [
+                {
+                    "Farmer Name": "F1",
+                    "Village": "V1",
+                    "District": "D1",
+                    "Latitude": 30.70,
+                    "Longitude": 76.22,
+                    "Stubble (tons)": 10.0,
+                },
+                {
+                    "Farmer Name": "F2",
+                    "Village": "V1",
+                    "District": "D1",
+                    "Latitude": 30.72,
+                    "Longitude": 76.24,
+                    "Stubble (tons)": 12.0,
+                },
+                {
+                    "Farmer Name": "F3",
+                    "Village": "V2",
+                    "District": "D2",
+                    "Latitude": 30.90,
+                    "Longitude": 75.85,
+                    "Stubble (tons)": 20.0,
+                },
+                {
+                    "Farmer Name": "F4",
+                    "Village": "V2",
+                    "District": "D2",
+                    "Latitude": 30.92,
+                    "Longitude": 75.87,
+                    "Stubble (tons)": 25.0,
+                },
+            ]
+        )
         res = ClusteringService.generate_clusters(farmers_df=df, n_clusters=2)
         assert res.total_farmers == 4
         assert res.total_stubble_tons == 67.0
@@ -80,7 +108,7 @@ class TestQualityControlService:
             "bright_t31": 298.0,
             "frp": 45.2,
             "daynight": "D",
-            "_instrument": "MODIS"
+            "_instrument": "MODIS",
         }
         norm = QualityControlService.process_raw_record(raw)
         assert norm.is_valid is True
@@ -105,7 +133,7 @@ class TestQualityControlService:
             "bright_ti5": 301.0,
             "frp": 12.8,
             "daynight": "D",
-            "_instrument": "VIIRS"
+            "_instrument": "VIIRS",
         }
         norm = QualityControlService.process_raw_record(raw)
         assert norm.is_valid is True
@@ -119,7 +147,7 @@ class TestQualityControlService:
             "acq_date": "2025-10-25",
             "acq_time": "0830",
             "confidence": "50",
-            "_instrument": "MODIS"
+            "_instrument": "MODIS",
         }
         norm = QualityControlService.process_raw_record(raw)
         assert norm.is_valid is False
@@ -141,7 +169,7 @@ class TestQualityControlService:
             "acq_time": "0830",
             "confidence": "80",
             "frp": 0.0,
-            "_instrument": "MODIS"
+            "_instrument": "MODIS",
         }
         norm = QualityControlService.process_raw_record(raw)
         assert norm.is_valid is True

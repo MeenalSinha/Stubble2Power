@@ -60,7 +60,7 @@ def test_benchmark_financial_dcf_evaluation_speed(db_session: Session):
         scenario_name="Benchmark Scenario",
         biomass_processed_tons=1000.0,
         briquette_price_per_ton=6000.0,
-        biochar_price_per_ton=15000.0
+        biochar_price_per_ton=15000.0,
     )
 
     start = time.perf_counter()
@@ -82,7 +82,7 @@ def test_benchmark_lca_calculation_throughput(db_session: Session):
         transport_fuel_liters=2500.0,
         processing_fuel_liters=4000.0,
         briquette_fraction_produced=0.70,
-        biochar_fraction_produced=0.20
+        biochar_fraction_produced=0.20,
     )
 
     start = time.perf_counter()

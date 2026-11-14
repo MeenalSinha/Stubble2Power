@@ -35,7 +35,7 @@ class TestPhase8Phase9Integration:
             name="Phase 8 & 9 Integration Run",
             date_start=date(2025, 10, 20),
             date_end=date(2025, 11, 10),
-            grid_resolution_deg=0.05
+            grid_resolution_deg=0.05,
         )
         test_db.add(run)
         test_db.commit()
@@ -56,7 +56,7 @@ class TestPhase8Phase9Integration:
                 total_detections=5,
                 harmonized_frp_mw=frp,
                 harmonized_activity_index=frp / 2.0,
-                consensus_score=0.95
+                consensus_score=0.95,
             )
             test_db.add(obs)
         test_db.commit()
@@ -67,7 +67,7 @@ class TestPhase8Phase9Integration:
             year=2025,
             season_name="Kharif_PostHarvest",
             date_start=date(2025, 10, 20),
-            date_end=date(2025, 11, 10)
+            date_end=date(2025, 11, 10),
         )
         profile_res = generate_seasonal_profile(payload=profile_req, db=test_db)
         assert profile_res.year == 2025
@@ -80,9 +80,7 @@ class TestPhase8Phase9Integration:
 
         # 3. Test Anomaly Detection API Route Handler
         anomaly_req = AnomalyDetectRequest(
-            region_id="Punjab",
-            date_start=date(2025, 10, 25),
-            date_end=date(2025, 11, 5)
+            region_id="Punjab", date_start=date(2025, 10, 25), date_end=date(2025, 11, 5)
         )
         anomaly_summary = detect_anomalies(payload=anomaly_req, db=test_db)
         assert anomaly_summary.total_anomalies >= 1
@@ -102,9 +100,7 @@ class TestPhase8Phase9Integration:
 
         # 5. Test Agricultural Classification Route Handler
         class_req = AgriculturalClassificationRequest(
-            date_start=date(2025, 10, 25),
-            date_end=date(2025, 11, 5),
-            state_name="Punjab"
+            date_start=date(2025, 10, 25), date_end=date(2025, 11, 5), state_name="Punjab"
         )
         classified_records = classify_fire_activity(payload=class_req, db=test_db)
         assert len(classified_records) == 10

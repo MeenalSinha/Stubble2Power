@@ -7,8 +7,18 @@ Harmonization Runs, Calendar Aggregates, and Configuration.
 from datetime import datetime, date
 from typing import Optional, List
 from sqlalchemy import (
-    Integer, String, Float, Boolean, Date, DateTime,
-    ForeignKey, Text, Index, UniqueConstraint, JSON, event
+    Integer,
+    String,
+    Float,
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Text,
+    Index,
+    UniqueConstraint,
+    JSON,
+    event,
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from backend.models.database import Base
@@ -17,6 +27,7 @@ from backend.models.database import Base
 # ============================================================================
 # USER AND ORGANIZATIONAL ENTITIES
 # ============================================================================
+
 
 class Organization(Base):
     __tablename__ = "organizations"
@@ -32,14 +43,18 @@ class Organization(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     users: Mapped[List["User"]] = relationship("User", back_populates="organization")
-    memberships: Mapped[List["OrganizationMembership"]] = relationship("OrganizationMembership", back_populates="organization", cascade="all, delete-orphan")
+    memberships: Mapped[List["OrganizationMembership"]] = relationship(
+        "OrganizationMembership", back_populates="organization", cascade="all, delete-orphan"
+    )
 
 
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True, index=True
+    )
     username: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     email: Mapped[str] = mapped_column(String(150), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), default="")
@@ -56,9 +71,15 @@ class User(Base):
 
     organization: Mapped[Optional[Organization]] = relationship("Organization", back_populates="users")
     farmer: Mapped[Optional["Farmer"]] = relationship("Farmer", foreign_keys=[farmer_id])
-    preferences: Mapped[Optional["UserPreference"]] = relationship("UserPreference", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    sessions: Mapped[List["UserSession"]] = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
-    notifications: Mapped[List["Notification"]] = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+    preferences: Mapped[Optional["UserPreference"]] = relationship(
+        "UserPreference", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    sessions: Mapped[List["UserSession"]] = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan"
+    )
+    notifications: Mapped[List["Notification"]] = relationship(
+        "Notification", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class UserSession(Base):
@@ -88,9 +109,7 @@ class OrganizationMembership(Base):
     organization: Mapped[Organization] = relationship("Organization", back_populates="memberships")
     user: Mapped[User] = relationship("User")
 
-    __table_args__ = (
-        UniqueConstraint("organization_id", "user_id", name="uq_org_user_membership"),
-    )
+    __table_args__ = (UniqueConstraint("organization_id", "user_id", name="uq_org_user_membership"),)
 
 
 class Role(Base):
@@ -107,7 +126,9 @@ class Permission(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
-    category: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # FIRE, FARM, BIOMASS, DEPLOYMENT, FINANCE, LCA, ADMIN, PRIVACY
+    category: Mapped[str] = mapped_column(
+        String(50), index=True, nullable=False
+    )  # FIRE, FARM, BIOMASS, DEPLOYMENT, FINANCE, LCA, ADMIN, PRIVACY
     description: Mapped[str] = mapped_column(String(255), nullable=False)
 
 
@@ -118,20 +139,21 @@ class RolePermission(Base):
     role_name: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
     permission_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint("role_name", "permission_name", name="uq_role_permission"),
-    )
+    __table_args__ = (UniqueConstraint("role_name", "permission_name", name="uq_role_permission"),)
 
 
 # ============================================================================
 # AGRICULTURAL ENTITIES
 # ============================================================================
 
+
 class Farmer(Base):
     __tablename__ = "farmers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True, index=True
+    )
     name: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
     village: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
     district: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
@@ -188,6 +210,7 @@ class AreaOfInterest(Base):
 # NASA SATELLITE OBSERVATIONS & INGESTION
 # ============================================================================
 
+
 class SatelliteProduct(Base):
     __tablename__ = "satellite_products"
 
@@ -221,6 +244,7 @@ class IngestionJob(Base):
 
 class RawSatelliteObservation(Base):
     """Immutable raw observation layer preserving untouched source payload."""
+
     __tablename__ = "raw_satellite_observations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -233,6 +257,7 @@ class RawSatelliteObservation(Base):
 
 class NormalizedSatelliteObservation(Base):
     """Canonical standardized observation layer with sensor-specific fields preserved."""
+
     __tablename__ = "normalized_satellite_observations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -267,6 +292,7 @@ class NormalizedSatelliteObservation(Base):
 # ============================================================================
 # SCIENTIFIC HARMONIZATION ENTITIES
 # ============================================================================
+
 
 class HarmonizationRun(Base):
     __tablename__ = "harmonization_runs"
@@ -327,6 +353,7 @@ class HarmonizedObservation(Base):
 # CALENDAR AGGREGATES & CONFIG REGISTRY ENTITIES
 # ============================================================================
 
+
 class DailyActivityAggregate(Base):
     __tablename__ = "daily_activity_aggregates"
 
@@ -361,6 +388,7 @@ class ConfigParameter(Base):
 # PHASE 8: HISTORICAL BASELINES, SEASONAL PROFILES & ANOMALIES
 # ============================================================================
 
+
 class HistoricalBaseline(Base):
     __tablename__ = "historical_baselines"
 
@@ -368,7 +396,9 @@ class HistoricalBaseline(Base):
     region_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     grid_id: Mapped[Optional[str]] = mapped_column(String(50), index=True, nullable=True)
     analysis_period: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g., "OCT_NOV_MULTIYEAR"
-    metric_type: Mapped[str] = mapped_column(String(50), nullable=False)  # harmonized_frp_mw, activity_index, detections
+    metric_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # harmonized_frp_mw, activity_index, detections
     day_of_year: Mapped[Optional[int]] = mapped_column(Integer, index=True, nullable=True)
     mean_val: Mapped[float] = mapped_column(Float, default=0.0)
     median_val: Mapped[float] = mapped_column(Float, default=0.0)
@@ -380,12 +410,12 @@ class HistoricalBaseline(Base):
     max_val: Mapped[float] = mapped_column(Float, default=0.0)
     sample_count: Mapped[int] = mapped_column(Integer, default=0)
     data_coverage_ratio: Mapped[float] = mapped_column(Float, default=1.0)
-    data_sufficiency_status: Mapped[str] = mapped_column(String(50), default="SUFFICIENT")  # SUFFICIENT, LIMITED_HISTORY, INSUFFICIENT_COVERAGE
+    data_sufficiency_status: Mapped[str] = mapped_column(
+        String(50), default="SUFFICIENT"
+    )  # SUFFICIENT, LIMITED_HISTORY, INSUFFICIENT_COVERAGE
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    __table_args__ = (
-        Index("idx_baseline_reg_metric", "region_id", "metric_type", "day_of_year"),
-    )
+    __table_args__ = (Index("idx_baseline_reg_metric", "region_id", "metric_type", "day_of_year"),)
 
 
 class SeasonalProfile(Base):
@@ -394,7 +424,9 @@ class SeasonalProfile(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     region_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     year: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
-    season_name: Mapped[str] = mapped_column(String(100), nullable=False)  # Kharif_PostHarvest, Rabi_PostHarvest, Annual
+    season_name: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )  # Kharif_PostHarvest, Rabi_PostHarvest, Annual
     onset_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     peak_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     decay_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
@@ -404,9 +436,7 @@ class SeasonalProfile(Base):
     profile_curve_json: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    __table_args__ = (
-        UniqueConstraint("region_id", "year", "season_name", name="uq_seasonal_profile"),
-    )
+    __table_args__ = (UniqueConstraint("region_id", "year", "season_name", name="uq_seasonal_profile"),)
 
 
 class FireActivityAnomaly(Base):
@@ -422,9 +452,13 @@ class FireActivityAnomaly(Base):
     z_score: Mapped[float] = mapped_column(Float, default=0.0)
     mad_score: Mapped[float] = mapped_column(Float, default=0.0)
     ewma_score: Mapped[float] = mapped_column(Float, default=0.0)
-    anomaly_type: Mapped[str] = mapped_column(String(50), nullable=False)  # SPIKE, PROLONGED_ELEVATION, UNSEASONAL_TIMING, SPATIAL_CLUSTER, EARLY_ONSET, LATE_SURGE
+    anomaly_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # SPIKE, PROLONGED_ELEVATION, UNSEASONAL_TIMING, SPATIAL_CLUSTER, EARLY_ONSET, LATE_SURGE
     severity_level: Mapped[str] = mapped_column(String(20), default="MODERATE")  # LOW, MODERATE, HIGH, CRITICAL
-    data_sufficiency_flag: Mapped[str] = mapped_column(String(50), default="SUFFICIENT")  # SUFFICIENT, UNCERTAIN_LIMITED_BASELINE
+    data_sufficiency_flag: Mapped[str] = mapped_column(
+        String(50), default="SUFFICIENT"
+    )  # SUFFICIENT, UNCERTAIN_LIMITED_BASELINE
     explanation_json: Mapped[dict] = mapped_column(JSON, default=dict)
     centroid_lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     centroid_lon: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -440,20 +474,23 @@ class FireActivityAnomaly(Base):
 # PHASE 9: AGRICULTURAL REFERENCE & FIRE CONTEXT INTELLIGENCE
 # ============================================================================
 
+
 class CropCalendar(Base):
     __tablename__ = "crop_calendars"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    crop_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)  # Paddy / Rice (Kharif), Wheat (Rabi)
+    crop_name: Mapped[str] = mapped_column(
+        String(100), index=True, nullable=False
+    )  # Paddy / Rice (Kharif), Wheat (Rabi)
     state_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)  # Punjab, Haryana, National
     district_name: Mapped[str] = mapped_column(String(100), default="ALL")
     season_name: Mapped[str] = mapped_column(String(50), nullable=False)  # Kharif, Rabi, Zaid
     sowing_start_month_day: Mapped[str] = mapped_column(String(10), nullable=False)  # "06-15"
-    sowing_end_month_day: Mapped[str] = mapped_column(String(10), nullable=False)    # "07-15"
-    harvest_start_month_day: Mapped[str] = mapped_column(String(10), nullable=False) # "10-01"
-    harvest_end_month_day: Mapped[str] = mapped_column(String(10), nullable=False)   # "11-30"
-    peak_burn_start_month_day: Mapped[str] = mapped_column(String(10), nullable=False) # "10-15"
-    peak_burn_end_month_day: Mapped[str] = mapped_column(String(10), nullable=False)   # "11-20"
+    sowing_end_month_day: Mapped[str] = mapped_column(String(10), nullable=False)  # "07-15"
+    harvest_start_month_day: Mapped[str] = mapped_column(String(10), nullable=False)  # "10-01"
+    harvest_end_month_day: Mapped[str] = mapped_column(String(10), nullable=False)  # "11-30"
+    peak_burn_start_month_day: Mapped[str] = mapped_column(String(10), nullable=False)  # "10-15"
+    peak_burn_end_month_day: Mapped[str] = mapped_column(String(10), nullable=False)  # "11-20"
     stubble_burning_susceptibility: Mapped[str] = mapped_column(String(20), default="HIGH")  # HIGH, MEDIUM, LOW
     official_source: Mapped[str] = mapped_column(String(200), nullable=False)
     citation: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -461,9 +498,7 @@ class CropCalendar(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    __table_args__ = (
-        Index("idx_crop_cal_state_crop", "state_name", "crop_name"),
-    )
+    __table_args__ = (Index("idx_crop_cal_state_crop", "state_name", "crop_name"),)
 
 
 class LandUseRecord(Base):
@@ -473,7 +508,9 @@ class LandUseRecord(Base):
     zone_name: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
     state_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     district_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
-    land_use_class: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # CROPLAND, FOREST, URBAN_INDUSTRIAL, WETLAND_WATER, BARREN_SCRUB
+    land_use_class: Mapped[str] = mapped_column(
+        String(50), index=True, nullable=False
+    )  # CROPLAND, FOREST, URBAN_INDUSTRIAL, WETLAND_WATER, BARREN_SCRUB
     min_lat: Mapped[float] = mapped_column(Float, nullable=False)
     min_lon: Mapped[float] = mapped_column(Float, nullable=False)
     max_lat: Mapped[float] = mapped_column(Float, nullable=False)
@@ -482,9 +519,7 @@ class LandUseRecord(Base):
     confidence: Mapped[float] = mapped_column(Float, default=0.90)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    __table_args__ = (
-        Index("idx_lulc_spatial", "min_lat", "max_lat", "min_lon", "max_lon"),
-    )
+    __table_args__ = (Index("idx_lulc_spatial", "min_lat", "max_lat", "min_lon", "max_lon"),)
 
 
 class AgriculturalContextAssessment(Base):
@@ -501,28 +536,33 @@ class AgriculturalContextAssessment(Base):
     land_use_class: Mapped[str] = mapped_column(String(50), nullable=False)
     land_use_confidence: Mapped[float] = mapped_column(Float, default=0.0)
     matched_crop: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    harvest_window_status: Mapped[str] = mapped_column(String(50), default="OFF_SEASON")  # IN_PEAK_HARVEST_WINDOW, IN_EXTENDED_HARVEST_WINDOW, OFF_SEASON, UNKNOWN
-    context_classification: Mapped[str] = mapped_column(String(60), index=True, nullable=False)  # LIKELY_AGRICULTURAL_CONTEXT, POSSIBLE_AGRICULTURAL_CONTEXT, OTHER_LAND_USE_CONTEXT, UNKNOWN_OR_INSUFFICIENT_EVIDENCE
+    harvest_window_status: Mapped[str] = mapped_column(
+        String(50), default="OFF_SEASON"
+    )  # IN_PEAK_HARVEST_WINDOW, IN_EXTENDED_HARVEST_WINDOW, OFF_SEASON, UNKNOWN
+    context_classification: Mapped[str] = mapped_column(
+        String(60), index=True, nullable=False
+    )  # LIKELY_AGRICULTURAL_CONTEXT, POSSIBLE_AGRICULTURAL_CONTEXT, OTHER_LAND_USE_CONTEXT, UNKNOWN_OR_INSUFFICIENT_EVIDENCE
     confidence_score: Mapped[float] = mapped_column(Float, default=0.0)  # 0.0 to 1.0
     distance_to_cropland_km: Mapped[float] = mapped_column(Float, default=0.0)
     stubble_risk_index: Mapped[float] = mapped_column(Float, default=0.0)
     evidence_json: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    __table_args__ = (
-        Index("idx_agri_ctx_date_class", "observation_date", "context_classification"),
-    )
+    __table_args__ = (Index("idx_agri_ctx_date_class", "observation_date", "context_classification"),)
 
 
 # ============================================================================
 # PHASE 10: FARM & BIOMASS MANAGEMENT ENTITIES
 # ============================================================================
 
+
 class Farm(Base):
     __tablename__ = "farms"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True, index=True
+    )
     farmer_id: Mapped[int] = mapped_column(Integer, ForeignKey("farmers.id"), index=True, nullable=False)
     farm_name: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
     total_acres: Mapped[float] = mapped_column(Float, nullable=False)
@@ -546,7 +586,9 @@ class FarmCrop(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     farm_id: Mapped[int] = mapped_column(Integer, ForeignKey("farms.id"), index=True, nullable=False)
-    crop_type: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # PADDY, WHEAT, COTTON, SUGARCANE, MAIZE
+    crop_type: Mapped[str] = mapped_column(
+        String(50), index=True, nullable=False
+    )  # PADDY, WHEAT, COTTON, SUGARCANE, MAIZE
     cultivated_acres: Mapped[float] = mapped_column(Float, nullable=False)
     crop_season: Mapped[str] = mapped_column(String(50), nullable=False)  # Kharif, Rabi, Zaid, Perennial
     crop_year: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
@@ -559,8 +601,12 @@ class FarmCrop(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     farm: Mapped[Farm] = relationship("Farm", back_populates="crops")
-    harvests: Mapped[List["HarvestRecord"]] = relationship("HarvestRecord", back_populates="crop", cascade="all, delete-orphan")
-    biomass_estimates: Mapped[List["BiomassEstimate"]] = relationship("BiomassEstimate", back_populates="crop", cascade="all, delete-orphan")
+    harvests: Mapped[List["HarvestRecord"]] = relationship(
+        "HarvestRecord", back_populates="crop", cascade="all, delete-orphan"
+    )
+    biomass_estimates: Mapped[List["BiomassEstimate"]] = relationship(
+        "BiomassEstimate", back_populates="crop", cascade="all, delete-orphan"
+    )
 
 
 class HarvestRecord(Base):
@@ -593,7 +639,9 @@ class BiomassEstimate(Base):
     net_usable_biomass_tons: Mapped[float] = mapped_column(Float, nullable=False)
     moisture_content_pct: Mapped[float] = mapped_column(Float, default=14.0)
     dry_matter_tons: Mapped[float] = mapped_column(Float, nullable=False)
-    estimation_source: Mapped[str] = mapped_column(String(50), default="SCIENTIFIC_MODEL")  # MEASURED, FARMER_REPORTED, OFFICIAL_STATISTICS, SCIENTIFIC_MODEL
+    estimation_source: Mapped[str] = mapped_column(
+        String(50), default="SCIENTIFIC_MODEL"
+    )  # MEASURED, FARMER_REPORTED, OFFICIAL_STATISTICS, SCIENTIFIC_MODEL
     confidence_score: Mapped[float] = mapped_column(Float, default=0.90)
     availability_start_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
     availability_end_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
@@ -610,10 +658,14 @@ class BiomassInventoryTransaction(Base):
     __tablename__ = "biomass_inventory_transactions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    biomass_estimate_id: Mapped[int] = mapped_column(Integer, ForeignKey("biomass_estimates.id"), index=True, nullable=False)
+    biomass_estimate_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("biomass_estimates.id"), index=True, nullable=False
+    )
     farm_id: Mapped[int] = mapped_column(Integer, ForeignKey("farms.id"), index=True, nullable=False)
     quantity_tons: Mapped[float] = mapped_column(Float, nullable=False)
-    stage: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # ESTIMATED, CONFIRMED, COMMITTED, COLLECTED, STORED, ALLOCATED, PROCESSED
+    stage: Mapped[str] = mapped_column(
+        String(50), index=True, nullable=False
+    )  # ESTIMATED, CONFIRMED, COMMITTED, COLLECTED, STORED, ALLOCATED, PROCESSED
     allocated_unit_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     transaction_timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -625,11 +677,14 @@ class BiomassInventoryTransaction(Base):
 # PHASE 11: MOBILE BIO-REFINERY & ROUTE OPTIMIZATION ENTITIES
 # ============================================================================
 
+
 class MobileBioRefinery(Base):
     __tablename__ = "mobile_bio_refineries"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True, index=True
+    )
     unit_code: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     equipment_type: Mapped[str] = mapped_column(String(50), default="TRAILER_MOUNTED_DENSIFIER")
@@ -639,7 +694,9 @@ class MobileBioRefinery(Base):
     daily_capacity_tons: Mapped[float] = mapped_column(Float, default=25.0)
     fuel_consumption_liters_per_ton: Mapped[float] = mapped_column(Float, default=4.5)
     operating_cost_per_hour_inr: Mapped[float] = mapped_column(Float, default=750.0)
-    current_status: Mapped[str] = mapped_column(String(50), default="AVAILABLE")  # AVAILABLE, DEPLOYED, MAINTENANCE, STANDBY
+    current_status: Mapped[str] = mapped_column(
+        String(50), default="AVAILABLE"
+    )  # AVAILABLE, DEPLOYED, MAINTENANCE, STANDBY
     home_depot_name: Mapped[str] = mapped_column(String(150), default="Ludhiana Central Depot")
     home_latitude: Mapped[float] = mapped_column(Float, default=30.9010)
     home_longitude: Mapped[float] = mapped_column(Float, default=75.8573)
@@ -652,13 +709,17 @@ class DeploymentPlan(Base):
     __tablename__ = "deployment_plans"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True, index=True
+    )
     plan_code: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     region: Mapped[str] = mapped_column(String(100), default="Punjab")
     date_start: Mapped[date] = mapped_column(Date, index=True, nullable=False)
     date_end: Mapped[date] = mapped_column(Date, index=True, nullable=False)
-    status: Mapped[str] = mapped_column(String(50), default="OPTIMIZED")  # DRAFT, OPTIMIZED, APPROVED, EXECUTED, REJECTED
+    status: Mapped[str] = mapped_column(
+        String(50), default="OPTIMIZED"
+    )  # DRAFT, OPTIMIZED, APPROVED, EXECUTED, REJECTED
     total_biomass_assigned_tons: Mapped[float] = mapped_column(Float, default=0.0)
     total_units_deployed: Mapped[int] = mapped_column(Integer, default=0)
     total_route_distance_km: Mapped[float] = mapped_column(Float, default=0.0)
@@ -668,20 +729,30 @@ class DeploymentPlan(Base):
     parameters_json: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    assignments: Mapped[List["DeploymentAssignment"]] = relationship("DeploymentAssignment", back_populates="deployment_plan", cascade="all, delete-orphan")
-    routes: Mapped[List["RoutePlan"]] = relationship("RoutePlan", back_populates="deployment_plan", cascade="all, delete-orphan")
+    assignments: Mapped[List["DeploymentAssignment"]] = relationship(
+        "DeploymentAssignment", back_populates="deployment_plan", cascade="all, delete-orphan"
+    )
+    routes: Mapped[List["RoutePlan"]] = relationship(
+        "RoutePlan", back_populates="deployment_plan", cascade="all, delete-orphan"
+    )
 
 
 class DeploymentAssignment(Base):
     __tablename__ = "deployment_assignments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    deployment_plan_id: Mapped[int] = mapped_column(Integer, ForeignKey("deployment_plans.id"), index=True, nullable=False)
-    mobile_unit_id: Mapped[int] = mapped_column(Integer, ForeignKey("mobile_bio_refineries.id"), index=True, nullable=False)
+    deployment_plan_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("deployment_plans.id"), index=True, nullable=False
+    )
+    mobile_unit_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("mobile_bio_refineries.id"), index=True, nullable=False
+    )
     farm_id: Mapped[int] = mapped_column(Integer, ForeignKey("farms.id"), index=True, nullable=False)
     assigned_biomass_tons: Mapped[float] = mapped_column(Float, nullable=False)
     scheduled_date: Mapped[date] = mapped_column(Date, nullable=False)
-    collection_status: Mapped[str] = mapped_column(String(50), default="SCHEDULED")  # SCHEDULED, PICKED_UP, PROCESSED, CANCELLED
+    collection_status: Mapped[str] = mapped_column(
+        String(50), default="SCHEDULED"
+    )  # SCHEDULED, PICKED_UP, PROCESSED, CANCELLED
 
     deployment_plan: Mapped[DeploymentPlan] = relationship("DeploymentPlan", back_populates="assignments")
     mobile_unit: Mapped[MobileBioRefinery] = relationship("MobileBioRefinery")
@@ -692,8 +763,12 @@ class RoutePlan(Base):
     __tablename__ = "route_plans"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    deployment_plan_id: Mapped[int] = mapped_column(Integer, ForeignKey("deployment_plans.id"), index=True, nullable=False)
-    mobile_unit_id: Mapped[int] = mapped_column(Integer, ForeignKey("mobile_bio_refineries.id"), index=True, nullable=False)
+    deployment_plan_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("deployment_plans.id"), index=True, nullable=False
+    )
+    mobile_unit_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("mobile_bio_refineries.id"), index=True, nullable=False
+    )
     route_date: Mapped[date] = mapped_column(Date, nullable=False)
     total_distance_km: Mapped[float] = mapped_column(Float, nullable=False)
     road_tortuosity_ratio: Mapped[float] = mapped_column(Float, default=1.35)
@@ -712,13 +787,20 @@ class RoutePlan(Base):
 # PHASE 12: ADVANCED ECONOMICS & LCA ENVIRONMENTAL ENTITIES
 # ============================================================================
 
+
 class FinancialScenario(Base):
     __tablename__ = "financial_scenarios"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
-    deployment_plan_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("deployment_plans.id"), nullable=True, index=True)
-    scenario_name: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # Conservative, Base Case, Optimistic, Custom
+    organization_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True, index=True
+    )
+    deployment_plan_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("deployment_plans.id"), nullable=True, index=True
+    )
+    scenario_name: Mapped[str] = mapped_column(
+        String(50), index=True, nullable=False
+    )  # Conservative, Base Case, Optimistic, Custom
     briquette_price_per_ton: Mapped[float] = mapped_column(Float, default=5000.0)
     biochar_price_per_ton: Mapped[float] = mapped_column(Float, default=12000.0)
     farmer_procurement_price_per_ton: Mapped[float] = mapped_column(Float, default=1500.0)
@@ -747,8 +829,12 @@ class EnvironmentalAssessment(Base):
     __tablename__ = "environmental_assessments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
-    deployment_plan_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("deployment_plans.id"), nullable=True, index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True, index=True
+    )
+    deployment_plan_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("deployment_plans.id"), nullable=True, index=True
+    )
     biomass_diverted_tons: Mapped[float] = mapped_column(Float, default=0.0)
     baseline_burning_co2_tons: Mapped[float] = mapped_column(Float, default=0.0)
     baseline_burning_ch4_tons: Mapped[float] = mapped_column(Float, default=0.0)
@@ -764,7 +850,9 @@ class EnvironmentalAssessment(Base):
     net_avoided_co2e_tons: Mapped[float] = mapped_column(Float, default=0.0)
     net_benefit_ratio: Mapped[float] = mapped_column(Float, default=0.0)
     carbon_credit_eligible_tons: Mapped[float] = mapped_column(Float, default=0.0)
-    methodology_provenance: Mapped[str] = mapped_column(String(255), default="IPCC 2006 / AR6 WG1 / CEA CO2 Baseline v19.0")
+    methodology_provenance: Mapped[str] = mapped_column(
+        String(255), default="IPCC 2006 / AR6 WG1 / CEA CO2 Baseline v19.0"
+    )
     evidence_json: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -772,6 +860,7 @@ class EnvironmentalAssessment(Base):
 # ============================================================================
 # PHASE 13 & 14: USER EXPERIENCE, GOVERNANCE, PRIVACY & SECURITY ENTITIES
 # ============================================================================
+
 
 class UserPreference(Base):
     __tablename__ = "user_preferences"
@@ -796,7 +885,9 @@ class Notification(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     title: Mapped[str] = mapped_column(String(150), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
-    category: Mapped[str] = mapped_column(String(50), index=True, default="SYSTEM")  # SYSTEM, HARVEST, COLLECTION, DEPLOYMENT, SECURITY, REPORT
+    category: Mapped[str] = mapped_column(
+        String(50), index=True, default="SYSTEM"
+    )  # SYSTEM, HARVEST, COLLECTION, DEPLOYMENT, SECURITY, REPORT
     read_status: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     priority: Mapped[str] = mapped_column(String(20), default="NORMAL")  # LOW, NORMAL, HIGH, CRITICAL
     action_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
@@ -811,8 +902,12 @@ class SavedReport(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True, nullable=False)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
-    report_type: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # FARMER_DIRECTORY, BIOMASS_INVENTORY, DEPLOYMENT_DISPATCH, FINANCIAL_PROJECTION, LCA_IMPACT, FIRE_INTELLIGENCE
+    organization_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True, index=True
+    )
+    report_type: Mapped[str] = mapped_column(
+        String(50), index=True, nullable=False
+    )  # FARMER_DIRECTORY, BIOMASS_INVENTORY, DEPLOYMENT_DISPATCH, FINANCIAL_PROJECTION, LCA_IMPACT, FIRE_INTELLIGENCE
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     parameters_json: Mapped[dict] = mapped_column(JSON, default=dict)
     file_format: Mapped[str] = mapped_column(String(20), default="CSV")  # CSV, JSON, SUMMARY
@@ -828,7 +923,9 @@ class ConsentRecord(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     farmer_id: Mapped[int] = mapped_column(Integer, ForeignKey("farmers.id"), index=True, nullable=False)
     user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    consent_purpose: Mapped[str] = mapped_column(String(60), index=True, nullable=False)  # BIOMASS_AGGREGATION, SATELLITE_FIRE_CORRELATION, LOGISTICS_DISPATCH, DIRECT_PAYMENT
+    consent_purpose: Mapped[str] = mapped_column(
+        String(60), index=True, nullable=False
+    )  # BIOMASS_AGGREGATION, SATELLITE_FIRE_CORRELATION, LOGISTICS_DISPATCH, DIRECT_PAYMENT
     consent_version: Mapped[str] = mapped_column(String(20), default="v1.0")
     is_granted: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     consent_timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -844,8 +941,12 @@ class DataSubjectRequest(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True, nullable=False)
-    request_type: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # ACCESS, CORRECTION, ERASURE, EXPORT
-    status: Mapped[str] = mapped_column(String(50), default="SUBMITTED", index=True)  # SUBMITTED, IN_REVIEW, COMPLETED, REJECTED
+    request_type: Mapped[str] = mapped_column(
+        String(50), index=True, nullable=False
+    )  # ACCESS, CORRECTION, ERASURE, EXPORT
+    status: Mapped[str] = mapped_column(
+        String(50), default="SUBMITTED", index=True
+    )  # SUBMITTED, IN_REVIEW, COMPLETED, REJECTED
     details_json: Mapped[dict] = mapped_column(JSON, default=dict)
     requested_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -859,7 +960,9 @@ class DataRetentionPolicy(Base):
     __tablename__ = "data_retention_policies"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    data_category: Mapped[str] = mapped_column(String(60), unique=True, index=True, nullable=False)  # AUDIT_LOGS, USER_SESSIONS, INACTIVE_USERS, FARM_COORDINATES
+    data_category: Mapped[str] = mapped_column(
+        String(60), unique=True, index=True, nullable=False
+    )  # AUDIT_LOGS, USER_SESSIONS, INACTIVE_USERS, FARM_COORDINATES
     retention_period_days: Mapped[int] = mapped_column(Integer, nullable=False)
     legal_basis: Mapped[str] = mapped_column(String(150), nullable=False)
     action_on_expiry: Mapped[str] = mapped_column(String(50), default="DELETE")  # DELETE, ANONYMIZE, ARCHIVE
@@ -872,8 +975,12 @@ class AuditLog(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     actor_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     actor_username: Mapped[str] = mapped_column(String(100), default="anonymous", index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
-    action: Mapped[str] = mapped_column(String(100), index=True, nullable=False)  # AUTH_LOGIN, DATA_EXPORT, DELETE_RECORD, etc.
+    organization_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True, index=True
+    )
+    action: Mapped[str] = mapped_column(
+        String(100), index=True, nullable=False
+    )  # AUTH_LOGIN, DATA_EXPORT, DELETE_RECORD, etc.
     resource_type: Mapped[str] = mapped_column(String(60), index=True, nullable=False)
     resource_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     client_ip: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -887,7 +994,9 @@ class SecurityEvent(Base):
     __tablename__ = "security_events"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    event_type: Mapped[str] = mapped_column(String(60), index=True, nullable=False)  # LOGIN_FAILURE, UNAUTHORIZED_ACCESS, RATE_LIMIT_EXCEEDED, SUSPICIOUS_EXPORT
+    event_type: Mapped[str] = mapped_column(
+        String(60), index=True, nullable=False
+    )  # LOGIN_FAILURE, UNAUTHORIZED_ACCESS, RATE_LIMIT_EXCEEDED, SUSPICIOUS_EXPORT
     severity: Mapped[str] = mapped_column(String(20), index=True, default="LOW")  # LOW, MEDIUM, HIGH, CRITICAL
     user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     client_ip: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -899,6 +1008,7 @@ class SecurityEvent(Base):
 # AUDIT LOG & SECURITY EVENT IMMUTABILITY EVENT LISTENERS
 # Enforces append-only write guarantees at the ORM layer (ISO 27001 / SOC 2)
 # ============================================================================
+
 
 @event.listens_for(AuditLog, "before_update")
 def _audit_log_prevent_update(mapper, connection, target):

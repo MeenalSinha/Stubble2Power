@@ -10,8 +10,11 @@ from sqlalchemy.orm import Session
 from backend.models.database import get_db
 from backend.models.entities import User
 from backend.schemas.user_experience import (
-    UserPreferenceUpdate, UserPreferenceResponse,
-    NotificationResponse, SavedReportCreate, SavedReportResponse
+    UserPreferenceUpdate,
+    UserPreferenceResponse,
+    NotificationResponse,
+    SavedReportCreate,
+    SavedReportResponse,
 )
 from backend.services.user_experience.user_experience_service import UserExperienceService
 from backend.api.dependencies.auth import get_current_user
@@ -20,10 +23,7 @@ router = APIRouter(prefix="/api/user", tags=["User Experience & Personalization"
 
 
 @router.get("/preferences", response_model=UserPreferenceResponse)
-def get_user_preferences(
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def get_user_preferences(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Retrieves personalization preferences for the authenticated user."""
     ux_svc = UserExperienceService(db)
     return ux_svc.get_or_create_preferences(user.id)
@@ -31,9 +31,7 @@ def get_user_preferences(
 
 @router.put("/preferences", response_model=UserPreferenceResponse)
 def update_user_preferences(
-    payload: UserPreferenceUpdate,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    payload: UserPreferenceUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Updates personalization preferences (language, theme, default AOI, layout)."""
     ux_svc = UserExperienceService(db)
@@ -45,7 +43,7 @@ def get_user_notifications(
     unread_only: bool = Query(False),
     limit: int = Query(50, le=100),
     user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Lists recent system and operational notifications for the authenticated user."""
     ux_svc = UserExperienceService(db)
@@ -54,9 +52,7 @@ def get_user_notifications(
 
 @router.patch("/notifications/{notification_id}/read", response_model=NotificationResponse)
 def mark_notification_as_read(
-    notification_id: int,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    notification_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Marks a notification as read."""
     ux_svc = UserExperienceService(db)
@@ -64,11 +60,7 @@ def mark_notification_as_read(
 
 
 @router.post("/reports/generate", response_model=SavedReportResponse, status_code=status.HTTP_201_CREATED)
-def generate_report(
-    payload: SavedReportCreate,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def generate_report(payload: SavedReportCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Generates an auditable report snapshot from real database assets."""
     ux_svc = UserExperienceService(db)
     return ux_svc.generate_and_save_report(
@@ -77,15 +69,12 @@ def generate_report(
         title=payload.title,
         file_format=payload.file_format,
         organization_id=user.organization_id,
-        parameters=payload.parameters_json
+        parameters=payload.parameters_json,
     )
 
 
 @router.get("/reports", response_model=List[SavedReportResponse])
-def list_reports(
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def list_reports(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Lists saved reports for the authenticated user or organization."""
     ux_svc = UserExperienceService(db)
     user_role = (user.role_name or user.role or "").upper()

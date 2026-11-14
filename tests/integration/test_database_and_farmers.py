@@ -39,7 +39,7 @@ class TestDatabaseAndFarmerService:
             stubble_tons=18.5,
             harvest_date=date(2025, 10, 28),
             latitude=30.7056,
-            longitude=76.2222
+            longitude=76.2222,
         )
         created = svc.register_farmer(farmer_in)
         assert created.id is not None

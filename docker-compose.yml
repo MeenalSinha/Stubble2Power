@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stubble_user} -d ${POSTGRES_DB:-stubble2power}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stubble_user} -d ${POSTGRES_DB:-stubble2power}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,7 +35,8 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 8000
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-stubble2power-secure-production-jwt-secret-key-2026-v230}
-      NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-}
+      NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-${FIRMS_MAP_KEY:-}}
+      FIRMS_MAP_KEY: ${FIRMS_MAP_KEY:-${NASA_FIRMS_MAP_KEY:-}}
     ports:
       - "8000:8000"
     networks:
@@ -52,7 +53,8 @@ services:
       APP_ENV: ${APP_ENV:-development}
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://${POSTGRES_USER:-stubble_user}:${POSTGRES_PASSWORD:-stubble_secure_password}@db:5432/${POSTGRES_DB:-stubble2power}}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-stubble2power-secure-production-jwt-secret-key-2026-v230}
-      NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-}
+      NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-${FIRMS_MAP_KEY:-}}
+      FIRMS_MAP_KEY: ${FIRMS_MAP_KEY:-${NASA_FIRMS_MAP_KEY:-}}
     ports:
       - "8501:8501"
     networks:

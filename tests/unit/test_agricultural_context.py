@@ -69,11 +69,7 @@ class TestAgriculturalClassificationService:
         svc = AgriculturalClassificationService(in_memory_db)
         # Point in central Punjab cropland on Nov 02 during peak harvest with moderate FRP 45 MW
         assessment = svc.assess_observation(
-            observation_date=date(2025, 11, 2),
-            latitude=30.8,
-            longitude=75.5,
-            grid_id="GRID_PB_LUDHIANA",
-            frp_mw=45.0
+            observation_date=date(2025, 11, 2), latitude=30.8, longitude=75.5, grid_id="GRID_PB_LUDHIANA", frp_mw=45.0
         )
         assert assessment.context_classification == "LIKELY_AGRICULTURAL_CONTEXT"
         assert assessment.confidence_score >= 0.70
@@ -90,7 +86,7 @@ class TestAgriculturalClassificationService:
             latitude=31.8,
             longitude=76.4,
             grid_id="GRID_SHIVALIK_FOREST",
-            frp_mw=80.0
+            frp_mw=80.0,
         )
         assert assessment.context_classification == "OTHER_LAND_USE_CONTEXT"
         assert assessment.land_use_class == "FOREST"
@@ -104,7 +100,7 @@ class TestAgriculturalClassificationService:
             latitude=30.8,
             longitude=75.5,
             grid_id="GRID_INDUSTRIAL_BLAST",
-            frp_mw=650.0
+            frp_mw=650.0,
         )
         assert assessment.context_classification == "OTHER_LAND_USE_CONTEXT"
         assert "exceeds typical crop residue limit" in assessment.evidence_json["evidence_factors"][-1]
@@ -116,6 +112,7 @@ class TestAgriculturalClassificationService:
         """
         svc = AgriculturalClassificationService(in_memory_db)
         import inspect
+
         sig = inspect.signature(svc.assess_observation)
         # Assert parameters do not contain anomaly_score or z_score
         assert "anomaly_score" not in sig.parameters

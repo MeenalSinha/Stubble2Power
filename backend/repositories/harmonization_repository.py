@@ -22,7 +22,7 @@ class HarmonizationRepository:
         date_end: date,
         grid_resolution_deg: float,
         parameters_json: dict,
-        algorithm_version: str = "1.0.0-scientific"
+        algorithm_version: str = "1.0.0-scientific",
     ) -> HarmonizationRun:
         run = HarmonizationRun(
             run_uuid=run_uuid,
@@ -32,7 +32,7 @@ class HarmonizationRepository:
             grid_resolution_deg=grid_resolution_deg,
             algorithm_version=algorithm_version,
             parameters_json=parameters_json,
-            status="PENDING"
+            status="PENDING",
         )
         self.db.add(run)
         self.db.commit()
@@ -47,7 +47,7 @@ class HarmonizationRepository:
         associated_pairs: int,
         mean_consensus: float,
         status: str = "COMPLETED",
-        sensor_breakdown: Optional[dict] = None
+        sensor_breakdown: Optional[dict] = None,
     ) -> HarmonizationRun:
         run = self.db.get(HarmonizationRun, run_id)
         if run:
@@ -81,7 +81,7 @@ class HarmonizationRepository:
                 harmonized_activity_index=item.harmonized_activity_index,
                 consensus_score=item.consensus_score,
                 uncertainty_level=item.uncertainty_level,
-                data_coverage_flag=item.data_coverage_flag
+                data_coverage_flag=item.data_coverage_flag,
             )
             self.db.add(obs)
             count += 1
@@ -98,7 +98,7 @@ class HarmonizationRepository:
         date_end: Optional[date] = None,
         min_activity: Optional[float] = None,
         bbox: Optional[List[float]] = None,
-        limit: int = 5000
+        limit: int = 5000,
     ) -> List[HarmonizedObservation]:
         stmt = select(HarmonizedObservation)
         filters = []

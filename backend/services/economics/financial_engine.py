@@ -13,7 +13,7 @@ from backend.schemas.advanced_economics import (
     FinancialScenarioCreate,
     FinancialScenarioResponse,
     SensitivityFactor,
-    FinancialComparisonSummary
+    FinancialComparisonSummary,
 )
 from backend.core.config.settings import config_manager
 from backend.core.exceptions.base import NotFoundError
@@ -142,7 +142,9 @@ class FinancialEngineService:
         # 7-Year DCF for NPV
         discount_rate = wacc / 100.0
         annual_cash_flow = annual_net_operating_profit + annual_depreciation
-        pv_cash_flows = sum(annual_cash_flow / ((1.0 + discount_rate) ** t) for t in range(1, int(depreciation_years) + 1))
+        pv_cash_flows = sum(
+            annual_cash_flow / ((1.0 + discount_rate) ** t) for t in range(1, int(depreciation_years) + 1)
+        )
         npv = round(pv_cash_flows - total_capex, 2)
 
         # Simplified IRR estimate via binary search
@@ -178,27 +180,25 @@ class FinancialEngineService:
                 "biochar_produced_tons": round(biochar_tons, 2),
                 "units_count": units_count,
                 "total_capex_inr": total_capex,
-                "annual_fixed_cost_inr": total_fixed_cost
-            }
+                "annual_fixed_cost_inr": total_fixed_cost,
+            },
         )
         self.db.add(scenario_record)
         self.db.commit()
         self.db.refresh(scenario_record)
-        logger.info(f"Evaluated financial scenario '{payload.scenario_name}': Gross Profit INR {gross_profit:,.2f}, ROI {roi_pct}%.")
+        logger.info(
+            f"Evaluated financial scenario '{payload.scenario_name}': Gross Profit INR {gross_profit:,.2f}, ROI {roi_pct}%."
+        )
         return scenario_record
 
     def compare_preset_scenarios(
-        self,
-        deployment_plan_id: Optional[int] = None,
-        biomass_tons: Optional[float] = None
+        self, deployment_plan_id: Optional[int] = None, biomass_tons: Optional[float] = None
     ) -> FinancialComparisonSummary:
         """Runs Conservative, Base Case, and Optimistic models side-by-side."""
         results: List[FinancialScenarioResponse] = []
         for name in ["Conservative", "Base Case", "Optimistic"]:
             req = FinancialScenarioCreate(
-                deployment_plan_id=deployment_plan_id,
-                scenario_name=name,
-                biomass_processed_tons=biomass_tons
+                deployment_plan_id=deployment_plan_id, scenario_name=name, biomass_processed_tons=biomass_tons
             )
             sc = self.evaluate_scenario(req)
             results.append(FinancialScenarioResponse.model_validate(sc, from_attributes=True))
@@ -209,13 +209,11 @@ class FinancialEngineService:
         return FinancialComparisonSummary(
             scenarios=results,
             most_profitable_scenario=best_profit.scenario_name,
-            highest_roi_scenario=best_roi.scenario_name
+            highest_roi_scenario=best_roi.scenario_name,
         )
 
     def calculate_sensitivity(
-        self,
-        base_scenario_id: int,
-        variations: List[float] = [-0.20, -0.10, 0.10, 0.20]
+        self, base_scenario_id: int, variations: List[float] = [-0.20, -0.10, 0.10, 0.20]
     ) -> List[SensitivityFactor]:
         """
         Calculates sensitivity tornado data across Briquette Price, Biochar Price,
@@ -229,7 +227,7 @@ class FinancialEngineService:
             ("Briquette Sale Price", base.briquette_price_per_ton, "briquette_price_per_ton"),
             ("Biochar Sale Price", base.biochar_price_per_ton, "biochar_price_per_ton"),
             ("Farmer Procurement Price", base.farmer_procurement_price_per_ton, "farmer_procurement_price_per_ton"),
-            ("Diesel Fuel Price", base.diesel_price_per_liter, "diesel_price_per_liter")
+            ("Diesel Fuel Price", base.diesel_price_per_liter, "diesel_price_per_liter"),
         ]
 
         tornado: List[SensitivityFactor] = []
@@ -240,7 +238,7 @@ class FinancialEngineService:
                     "deployment_plan_id": base.deployment_plan_id,
                     "scenario_name": f"Sensitivity_{field_key}_{delta:+.0%}",
                     "biomass_processed_tons": base.total_biomass_processed_tons,
-                    field_key: mod_val
+                    field_key: mod_val,
                 }
                 # Keep other parameters matching base
                 for other_label, other_val, other_key in factors:
@@ -248,17 +246,21 @@ class FinancialEngineService:
                         payload_kwargs[other_key] = other_val
 
                 sim = self.evaluate_scenario(FinancialScenarioCreate(**payload_kwargs))
-                profit_change_pct = ((sim.gross_profit_inr - base.gross_profit_inr) / max(1.0, abs(base.gross_profit_inr)))
+                profit_change_pct = (sim.gross_profit_inr - base.gross_profit_inr) / max(
+                    1.0, abs(base.gross_profit_inr)
+                )
                 elasticity = round(profit_change_pct / delta, 2) if delta != 0 else 0.0
 
-                tornado.append(SensitivityFactor(
-                    parameter_name=param_label,
-                    baseline_value=base_val,
-                    variation_pct=round(delta * 100.0, 1),
-                    resulting_profit_inr=sim.gross_profit_inr,
-                    resulting_roi_pct=sim.roi_pct,
-                    profit_elasticity=elasticity
-                ))
+                tornado.append(
+                    SensitivityFactor(
+                        parameter_name=param_label,
+                        baseline_value=base_val,
+                        variation_pct=round(delta * 100.0, 1),
+                        resulting_profit_inr=sim.gross_profit_inr,
+                        resulting_roi_pct=sim.roi_pct,
+                        profit_elasticity=elasticity,
+                    )
+                )
 
         return tornado
 

@@ -18,15 +18,7 @@ from backend.schemas.biomass import BiomassEstimationRequest
 from backend.schemas.deployment import MobileRefineryCreate, DeploymentPlanCreate
 from backend.schemas.advanced_economics import FinancialScenarioCreate
 from backend.schemas.environmental_lca import EnvironmentalAssessmentCreate
-from backend.api.routes import (
-    farmers,
-    farms,
-    biomass,
-    mobile_units,
-    deployments,
-    advanced_economics,
-    environmental_lca
-)
+from backend.api.routes import farmers, farms, biomass, mobile_units, deployments, advanced_economics, environmental_lca
 
 
 @pytest.fixture
@@ -46,68 +38,81 @@ def test_complete_phase10_11_12_integrated_pipeline(db_session):
     # ---------------------------------------------------------
     # STEP 1: Register Farmer and Farm Parcel (Phase 10)
     # ---------------------------------------------------------
-    farmer = farmers.create_farmer(FarmerCreate(
-        name="Harpreet Singh Dhillon",
-        phone="9876501234",
-        district="Ludhiana",
-        village="Mullanpur",
-        acres=40.0,
-        stubble_tons=90.0,
-        latitude=30.8650,
-        longitude=75.7200,
-        harvest_date=date(2024, 10, 25)
-    ), db=db_session)
+    farmer = farmers.create_farmer(
+        FarmerCreate(
+            name="Harpreet Singh Dhillon",
+            phone="9876501234",
+            district="Ludhiana",
+            village="Mullanpur",
+            acres=40.0,
+            stubble_tons=90.0,
+            latitude=30.8650,
+            longitude=75.7200,
+            harvest_date=date(2024, 10, 25),
+        ),
+        db=db_session,
+    )
     assert farmer.id is not None
     assert farmer.name == "Harpreet Singh Dhillon"
 
-    farm = farms.create_farm(FarmCreate(
-        farmer_id=farmer.id,
-        farm_name="Dhillon Model Farm East",
-        total_acres=40.0,
-        village="Mullanpur",
-        district="Ludhiana",
-        state="Punjab",
-        latitude=30.8650,
-        longitude=75.7200,
-        soil_type="Clay Loam"
-    ), db=db_session)
+    farm = farms.create_farm(
+        FarmCreate(
+            farmer_id=farmer.id,
+            farm_name="Dhillon Model Farm East",
+            total_acres=40.0,
+            village="Mullanpur",
+            district="Ludhiana",
+            state="Punjab",
+            latitude=30.8650,
+            longitude=75.7200,
+            soil_type="Clay Loam",
+        ),
+        db=db_session,
+    )
     assert farm.id is not None
     assert farm.farm_name == "Dhillon Model Farm East"
 
     # ---------------------------------------------------------
     # STEP 2: Record Crop Cultivation & Harvest Event (Phase 10)
     # ---------------------------------------------------------
-    crop = farms.add_crop_cultivation(farm.id, FarmCropCreate(
-        farm_id=farm.id,
-        crop_type="PADDY",
-        cultivated_acres=35.0,
-        crop_season="Kharif",
-        crop_year=2024,
-        sowing_date=date(2024, 6, 20),
-        expected_harvest_date=date(2024, 10, 28),
-        expected_yield_tons_per_acre=2.80
-    ), db=db_session)
+    crop = farms.add_crop_cultivation(
+        farm.id,
+        FarmCropCreate(
+            farm_id=farm.id,
+            crop_type="PADDY",
+            cultivated_acres=35.0,
+            crop_season="Kharif",
+            crop_year=2024,
+            sowing_date=date(2024, 6, 20),
+            expected_harvest_date=date(2024, 10, 28),
+            expected_yield_tons_per_acre=2.80,
+        ),
+        db=db_session,
+    )
     assert crop.id is not None
     assert crop.crop_type == "PADDY"
 
-    harvest = farms.record_crop_harvest(crop.id, HarvestRecordCreate(
-        farm_crop_id=crop.id,
-        harvest_date=date(2024, 10, 28),
-        actual_grain_yield_tons=98.0,
-        grain_moisture_pct=14.2,
-        harvest_method="COMBINE_HARVESTER_SUPER_SMS",
-        is_measured=True
-    ), db=db_session)
+    harvest = farms.record_crop_harvest(
+        crop.id,
+        HarvestRecordCreate(
+            farm_crop_id=crop.id,
+            harvest_date=date(2024, 10, 28),
+            actual_grain_yield_tons=98.0,
+            grain_moisture_pct=14.2,
+            harvest_method="COMBINE_HARVESTER_SUPER_SMS",
+            is_measured=True,
+        ),
+        db=db_session,
+    )
     assert harvest.id is not None
     assert harvest.actual_grain_yield_tons == 98.0
 
     # ---------------------------------------------------------
     # STEP 3: Biomass Mathematical Estimation (Phase 10)
     # ---------------------------------------------------------
-    estimate = biomass.generate_biomass_estimate(BiomassEstimationRequest(
-        farm_crop_id=crop.id,
-        actual_grain_yield_tons=98.0
-    ), db=db_session)
+    estimate = biomass.generate_biomass_estimate(
+        BiomassEstimationRequest(farm_crop_id=crop.id, actual_grain_yield_tons=98.0), db=db_session
+    )
     assert estimate.id is not None
     net_biomass = estimate.net_usable_biomass_tons
     assert net_biomass > 80.0
@@ -118,31 +123,38 @@ def test_complete_phase10_11_12_integrated_pipeline(db_session):
     # ---------------------------------------------------------
     # STEP 4: Register Mobile Bio-Refinery Unit (Phase 11)
     # ---------------------------------------------------------
-    unit = mobile_units.register_mobile_unit(MobileRefineryCreate(
-        unit_code="MBR-PB-INT-01",
-        name="Ludhiana Mobile Densifier 01",
-        technology="BRIQUETTING",
-        hourly_capacity_tons=2.5,
-        daily_operating_hours=10.0,
-        fuel_consumption_liters_per_ton=4.5,
-        home_depot_name="Ludhiana Ag Hub Depot",
-        home_latitude=30.9010,
-        home_longitude=75.8573,
-        max_travel_radius_km=40.0
-    ), db=db_session)
+    unit = mobile_units.register_mobile_unit(
+        MobileRefineryCreate(
+            unit_code="MBR-PB-INT-01",
+            name="Ludhiana Mobile Densifier 01",
+            technology="BRIQUETTING",
+            hourly_capacity_tons=2.5,
+            daily_operating_hours=10.0,
+            fuel_consumption_liters_per_ton=4.5,
+            home_depot_name="Ludhiana Ag Hub Depot",
+            home_latitude=30.9010,
+            home_longitude=75.8573,
+            max_travel_radius_km=40.0,
+        ),
+        db=db_session,
+    )
     assert unit.id is not None
     assert unit.unit_code == "MBR-PB-INT-01"
 
     # ---------------------------------------------------------
     # STEP 5: Plan Deployment and Vehicle Routing (Phase 11)
     # ---------------------------------------------------------
-    plan = deployments.generate_deployment_plan(DeploymentPlanCreate(
-        name="Mullanpur Integrated Cluster Campaign",
-        region="Ludhiana",
-        date_start=date(2024, 10, 28),
-        date_end=date(2024, 11, 4),
-        unit_ids=[unit.id]
-    ), strategy="BALANCED", db=db_session)
+    plan = deployments.generate_deployment_plan(
+        DeploymentPlanCreate(
+            name="Mullanpur Integrated Cluster Campaign",
+            region="Ludhiana",
+            date_start=date(2024, 10, 28),
+            date_end=date(2024, 11, 4),
+            unit_ids=[unit.id],
+        ),
+        strategy="BALANCED",
+        db=db_session,
+    )
 
     assert plan.id is not None
     assert plan.status == "OPTIMIZED"
@@ -158,17 +170,20 @@ def test_complete_phase10_11_12_integrated_pipeline(db_session):
     # ---------------------------------------------------------
     # STEP 6: Techno-Economic Decision Modeling (Phase 12)
     # ---------------------------------------------------------
-    econ = advanced_economics.evaluate_financial_scenario(FinancialScenarioCreate(
-        deployment_plan_id=plan.id,
-        scenario_name="Base Case",
-        biomass_processed_tons=plan.total_biomass_assigned_tons,
-        briquette_price_per_ton=6000.0,
-        biochar_price_per_ton=15000.0,
-        farmer_procurement_price_per_ton=1500.0,
-        diesel_price_per_liter=89.50,
-        processing_capex_per_unit=2500000.0,
-        wacc_discount_rate_pct=10.5
-    ), db=db_session)
+    econ = advanced_economics.evaluate_financial_scenario(
+        FinancialScenarioCreate(
+            deployment_plan_id=plan.id,
+            scenario_name="Base Case",
+            biomass_processed_tons=plan.total_biomass_assigned_tons,
+            briquette_price_per_ton=6000.0,
+            biochar_price_per_ton=15000.0,
+            farmer_procurement_price_per_ton=1500.0,
+            diesel_price_per_liter=89.50,
+            processing_capex_per_unit=2500000.0,
+            wacc_discount_rate_pct=10.5,
+        ),
+        db=db_session,
+    )
 
     assert econ.id is not None
     assert econ.total_revenue_inr > 0.0
@@ -181,10 +196,12 @@ def test_complete_phase10_11_12_integrated_pipeline(db_session):
     # ---------------------------------------------------------
     # STEP 7: Life Cycle Assessment & Environmental Accounting (Phase 12)
     # ---------------------------------------------------------
-    lca = environmental_lca.conduct_life_cycle_assessment(EnvironmentalAssessmentCreate(
-        deployment_plan_id=plan.id,
-        biomass_diverted_tons=plan.total_biomass_assigned_tons
-    ), db=db_session)
+    lca = environmental_lca.conduct_life_cycle_assessment(
+        EnvironmentalAssessmentCreate(
+            deployment_plan_id=plan.id, biomass_diverted_tons=plan.total_biomass_assigned_tons
+        ),
+        db=db_session,
+    )
 
     assert lca.id is not None
     assert lca.baseline_total_co2e_tons > 0.0

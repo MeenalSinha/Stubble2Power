@@ -9,10 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from backend.models.entities import EnvironmentalAssessment, DeploymentPlan, RoutePlan
-from backend.schemas.environmental_lca import (
-    EnvironmentalAssessmentCreate,
-    SystemBoundarySummary
-)
+from backend.schemas.environmental_lca import EnvironmentalAssessmentCreate, SystemBoundarySummary
 from backend.core.config.settings import config_manager
 from backend.core.exceptions.base import NotFoundError
 from backend.core.logging.logger import get_logger
@@ -84,8 +81,14 @@ class LifeCycleAssessmentService:
             proc_rate = float(config_manager.get("refinery.mobile.fuel_consumption_liters_per_ton"))
             proc_diesel_l = biomass_tons * proc_rate
 
-        briquette_frac = payload.briquette_fraction_produced if payload.briquette_fraction_produced is not None else default_briquette_f
-        biochar_frac = payload.biochar_fraction_produced if payload.biochar_fraction_produced is not None else default_biochar_f
+        briquette_frac = (
+            payload.briquette_fraction_produced
+            if payload.briquette_fraction_produced is not None
+            else default_briquette_f
+        )
+        biochar_frac = (
+            payload.biochar_fraction_produced if payload.biochar_fraction_produced is not None else default_biochar_f
+        )
 
         # 2. Baseline Emissions (Open Burning)
         co2_burn_tons = round((biomass_tons * self.burn_co2_kg) / 1000.0, 2)
@@ -156,8 +159,8 @@ class LifeCycleAssessmentService:
                 "processing_diesel_liters": round(proc_diesel_l, 1),
                 "pm25_avoided_tons": pm25_burn_tons,
                 "is_transport_fuel_modeled_estimate": is_modeled_transport_fuel,
-                "carbon_credit_category": "Model-derived theoretical additionality; subject to formal Verra VM0044/Puro.earth MRV certification"
-            }
+                "carbon_credit_category": "Model-derived theoretical additionality; subject to formal Verra VM0044/Puro.earth MRV certification",
+            },
         )
         self.db.add(assessment)
         self.db.commit()
@@ -169,13 +172,19 @@ class LifeCycleAssessmentService:
         return assessment
 
     def get_assessment(self, assessment_id: int) -> EnvironmentalAssessment:
-        ass = self.db.scalars(select(EnvironmentalAssessment).where(EnvironmentalAssessment.id == assessment_id)).first()
+        ass = self.db.scalars(
+            select(EnvironmentalAssessment).where(EnvironmentalAssessment.id == assessment_id)
+        ).first()
         if not ass:
-            raise NotFoundError(message=f"Environmental assessment {assessment_id} not found.", entity="EnvironmentalAssessment")
+            raise NotFoundError(
+                message=f"Environmental assessment {assessment_id} not found.", entity="EnvironmentalAssessment"
+            )
         return ass
 
     def list_assessments(self) -> List[EnvironmentalAssessment]:
-        return list(self.db.scalars(select(EnvironmentalAssessment).order_by(EnvironmentalAssessment.created_at.desc())).all())
+        return list(
+            self.db.scalars(select(EnvironmentalAssessment).order_by(EnvironmentalAssessment.created_at.desc())).all()
+        )
 
     @staticmethod
     def get_system_boundary() -> SystemBoundarySummary:

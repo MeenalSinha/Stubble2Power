@@ -40,7 +40,7 @@ class TestSeasonalBaselineService:
             daily_records=daily_records,
             region_id="Punjab",
             analysis_period="TEST_MULTIYEAR",
-            metric_type="harmonized_frp_mw"
+            metric_type="harmonized_frp_mw",
         )
         assert len(baselines) == 1
         b = baselines[0]
@@ -53,14 +53,12 @@ class TestSeasonalBaselineService:
     def test_compute_baseline_limited_history(self, in_memory_db):
         svc = HistoricalBaselineService(in_memory_db)
         # Only 1 sample: should flag LIMITED_HISTORY (< min 3 periods)
-        daily_records = [
-            {"date": "2025-10-27", "harmonized_frp_mw": 25.0}
-        ]
+        daily_records = [{"date": "2025-10-27", "harmonized_frp_mw": 25.0}]
         baselines = svc.compute_baselines_from_data(
             daily_records=daily_records,
             region_id="Punjab",
             analysis_period="TEST_LIMITED",
-            metric_type="harmonized_frp_mw"
+            metric_type="harmonized_frp_mw",
         )
         assert len(baselines) == 1
         assert baselines[0].data_sufficiency_status == "LIMITED_HISTORY"
@@ -79,7 +77,7 @@ class TestSeasonalBaselineService:
             daily_records=daily_records,
             region_id="Punjab",
             analysis_period="TEST_OUTLIER",
-            metric_type="harmonized_frp_mw"
+            metric_type="harmonized_frp_mw",
         )
         b = baselines[0]
         # Median is resistant to the 500 outlier: median should stay around 21
@@ -98,7 +96,7 @@ class TestSeasonalProfileService:
             name="Test Seasonal Run",
             date_start=date(2025, 10, 1),
             date_end=date(2025, 11, 30),
-            grid_resolution_deg=0.05
+            grid_resolution_deg=0.05,
         )
         in_memory_db.add(run)
         in_memory_db.commit()
@@ -115,7 +113,7 @@ class TestSeasonalProfileService:
                 centroid_lat=30.5,
                 centroid_lon=75.5,
                 harmonized_frp_mw=frp,
-                harmonized_activity_index=frp / 2.0
+                harmonized_activity_index=frp / 2.0,
             )
             in_memory_db.add(obs)
         in_memory_db.commit()
@@ -126,7 +124,7 @@ class TestSeasonalProfileService:
             year=2025,
             season_name="Kharif_PostHarvest",
             date_start=date(2025, 10, 15),
-            date_end=date(2025, 11, 15)
+            date_end=date(2025, 11, 15),
         )
         assert profile.year == 2025
         assert profile.total_activity > 0.0
@@ -144,13 +142,14 @@ class TestStatisticalAnomalyDetector:
             name="Test Anomaly Run",
             date_start=date(2025, 10, 1),
             date_end=date(2025, 11, 10),
-            grid_resolution_deg=0.05
+            grid_resolution_deg=0.05,
         )
         in_memory_db.add(run)
         in_memory_db.commit()
 
         # Seed baseline in db
         from backend.models.entities import HistoricalBaseline
+
         b = HistoricalBaseline(
             region_id="Punjab",
             analysis_period="OCT_NOV_MULTIYEAR",
@@ -161,7 +160,7 @@ class TestStatisticalAnomalyDetector:
             std_val=6.0,
             mad_val=5.0,
             sample_count=5,
-            data_sufficiency_status="SUFFICIENT"
+            data_sufficiency_status="SUFFICIENT",
         )
         in_memory_db.add(b)
 
@@ -173,16 +172,14 @@ class TestStatisticalAnomalyDetector:
             centroid_lat=30.9,
             centroid_lon=75.8,
             harmonized_frp_mw=120.0,
-            harmonized_activity_index=85.0
+            harmonized_activity_index=85.0,
         )
         in_memory_db.add(spike_obs)
         in_memory_db.commit()
 
         detector = StatisticalAnomalyDetector(in_memory_db)
         anomalies = detector.detect_anomalies(
-            date_start=date(2025, 10, 26),
-            date_end=date(2025, 10, 28),
-            region_id="Punjab"
+            date_start=date(2025, 10, 26), date_end=date(2025, 10, 28), region_id="Punjab"
         )
         assert len(anomalies) >= 1
         anom = anomalies[0]
@@ -206,7 +203,7 @@ class TestStatisticalAnomalyDetector:
             anomaly_type="SPIKE",
             severity_level="CRITICAL",
             data_sufficiency_status="SUFFICIENT",
-            co_occurring_count=3
+            co_occurring_count=3,
         )
         assert exp["severity_level"] == "CRITICAL"
         assert exp["anomaly_type"] == "SPIKE"

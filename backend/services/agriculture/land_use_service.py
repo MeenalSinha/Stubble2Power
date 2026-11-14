@@ -28,7 +28,7 @@ DEFAULT_LULC_ZONES = [
         "max_lat": 31.2,
         "max_lon": 76.5,
         "source": "ESA WorldCover 10m / NRSC Bhuvan",
-        "confidence": 0.95
+        "confidence": 0.95,
     },
     # Punjab Western Agri Belt (Bhatinda-Firozpur-Moga)
     {
@@ -41,7 +41,7 @@ DEFAULT_LULC_ZONES = [
         "max_lat": 31.0,
         "max_lon": 75.4,
         "source": "ESA WorldCover 10m / NRSC Bhuvan",
-        "confidence": 0.94
+        "confidence": 0.94,
     },
     # Punjab Northern Agri Belt (Amritsar-Tarn Taran-Gurdaspur)
     {
@@ -54,7 +54,7 @@ DEFAULT_LULC_ZONES = [
         "max_lat": 32.2,
         "max_lon": 75.6,
         "source": "ESA WorldCover 10m / NRSC Bhuvan",
-        "confidence": 0.93
+        "confidence": 0.93,
     },
     # Shivalik Foothills Forest Belt
     {
@@ -67,7 +67,7 @@ DEFAULT_LULC_ZONES = [
         "max_lat": 32.3,
         "max_lon": 76.8,
         "source": "Forest Survey of India / ESA WorldCover",
-        "confidence": 0.92
+        "confidence": 0.92,
     },
     # Harike Wetland Protected Area
     {
@@ -80,7 +80,7 @@ DEFAULT_LULC_ZONES = [
         "max_lat": 31.22,
         "max_lon": 75.05,
         "source": "Ramsar Site Directory / NRSC",
-        "confidence": 0.96
+        "confidence": 0.96,
     },
     # Ludhiana Metropolitan Industrial Area
     {
@@ -93,8 +93,8 @@ DEFAULT_LULC_ZONES = [
         "max_lat": 30.98,
         "max_lon": 75.95,
         "source": "NRSC Bhuvan Urban Atlas",
-        "confidence": 0.93
-    }
+        "confidence": 0.93,
+    },
 ]
 
 
@@ -119,11 +119,7 @@ class LandUseService:
         """Lists all reference land-use zones."""
         return list(self.db.scalars(select(LandUseRecord)).all())
 
-    def classify_coordinate(
-        self,
-        latitude: float,
-        longitude: float
-    ) -> Dict[str, Any]:
+    def classify_coordinate(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """
         Determines land use class, confidence, and distance to closest cropland.
         """
@@ -157,7 +153,7 @@ class LandUseService:
                 "confidence": matched_zone.confidence,
                 "zone_name": matched_zone.zone_name,
                 "distance_to_cropland_km": dist_to_cropland,
-                "source": matched_zone.source
+                "source": matched_zone.source,
             }
 
         # Outside validated reference zones:
@@ -168,5 +164,5 @@ class LandUseService:
             "confidence": 0.30,
             "zone_name": "Uncalibrated Regional Domain (Pending Full Vector/Raster Ingestion)",
             "distance_to_cropland_km": dist_to_cropland,
-            "source": "Scientific Uncertainty Protocol / Unverified Coordinate"
+            "source": "Scientific Uncertainty Protocol / Unverified Coordinate",
         }

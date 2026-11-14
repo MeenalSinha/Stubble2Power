@@ -46,7 +46,7 @@ def test_baseline_open_burning_emissions_and_air_pollutants(db_session: Session)
         transport_fuel_liters=2400.0,
         processing_fuel_liters=3500.0,
         briquette_fraction_produced=0.70,
-        biochar_fraction_produced=0.20
+        biochar_fraction_produced=0.20,
     )
 
     assessment = svc.conduct_lca(payload)
@@ -73,7 +73,7 @@ def test_project_emissions_diesel_stoichiometry(db_session: Session):
         transport_fuel_liters=2500.0,
         processing_fuel_liters=4000.0,
         briquette_fraction_produced=0.70,
-        biochar_fraction_produced=0.20
+        biochar_fraction_produced=0.20,
     )
 
     assessment = svc.conduct_lca(payload)
@@ -96,7 +96,7 @@ def test_sub_bituminous_coal_displacement_benefits(db_session: Session):
         transport_fuel_liters=2000.0,
         processing_fuel_liters=3000.0,
         briquette_fraction_produced=0.70,
-        biochar_fraction_produced=0.20
+        biochar_fraction_produced=0.20,
     )
 
     assessment = svc.conduct_lca(payload)
@@ -119,7 +119,7 @@ def test_biochar_100_year_permanence_stoichiometry(db_session: Session):
         transport_fuel_liters=2000.0,
         processing_fuel_liters=3000.0,
         briquette_fraction_produced=0.70,
-        biochar_fraction_produced=0.20
+        biochar_fraction_produced=0.20,
     )
 
     assessment = svc.conduct_lca(payload)
@@ -139,7 +139,7 @@ def test_net_environmental_balance_identity(db_session: Session):
         transport_fuel_liters=2500.0,
         processing_fuel_liters=4000.0,
         briquette_fraction_produced=0.70,
-        biochar_fraction_produced=0.20
+        biochar_fraction_produced=0.20,
     )
 
     assessment = svc.conduct_lca(payload)
@@ -165,7 +165,7 @@ def test_carbon_market_credit_separation(db_session: Session):
         transport_fuel_liters=2000.0,
         processing_fuel_liters=3000.0,
         briquette_fraction_produced=0.70,
-        biochar_fraction_produced=0.20
+        biochar_fraction_produced=0.20,
     )
 
     assessment = svc.conduct_lca(payload)

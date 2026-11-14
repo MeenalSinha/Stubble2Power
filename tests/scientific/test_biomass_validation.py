@@ -59,7 +59,7 @@ def test_paddy_residue_mass_balance_and_deductions(db_session: Session):
         harvest_date=date(2025, 10, 20),
         latitude=30.650,
         longitude=75.600,
-        consent_given=True
+        consent_given=True,
     )
     db_session.add(farmer)
     db_session.commit()
@@ -75,7 +75,7 @@ def test_paddy_residue_mass_balance_and_deductions(db_session: Session):
         state="Punjab",
         ownership_status="OWNED",
         soil_type="ALLUVIAL",
-        verification_status="VERIFIED"
+        verification_status="VERIFIED",
     )
     db_session.add(farm)
     db_session.commit()
@@ -89,7 +89,7 @@ def test_paddy_residue_mass_balance_and_deductions(db_session: Session):
         expected_yield_tons_per_acre=2.5,
         sowing_date=date(2025, 6, 15),
         expected_harvest_date=date(2025, 10, 20),
-        cultivation_status="HARVESTED"
+        cultivation_status="HARVESTED",
     )
     db_session.add(crop)
     db_session.commit()
@@ -101,7 +101,7 @@ def test_paddy_residue_mass_balance_and_deductions(db_session: Session):
         moisture_pct=14.0,
         retained_override=0.25,
         competing_override=0.05,
-        persist=True
+        persist=True,
     )
 
     assert est.gross_residue_tons == 75.00
@@ -131,7 +131,7 @@ def test_wheat_competing_fodder_divergence(db_session: Session):
         harvest_date=date(2025, 4, 15),
         latitude=30.830,
         longitude=76.190,
-        consent_given=True
+        consent_given=True,
     )
     db_session.add(farmer)
     db_session.commit()
@@ -147,7 +147,7 @@ def test_wheat_competing_fodder_divergence(db_session: Session):
         state="Punjab",
         ownership_status="OWNED",
         soil_type="ALLUVIAL",
-        verification_status="VERIFIED"
+        verification_status="VERIFIED",
     )
     db_session.add(farm)
     db_session.commit()
@@ -161,7 +161,7 @@ def test_wheat_competing_fodder_divergence(db_session: Session):
         expected_yield_tons_per_acre=2.0,
         sowing_date=date(2024, 11, 10),
         expected_harvest_date=date(2025, 4, 15),
-        cultivation_status="HARVESTED"
+        cultivation_status="HARVESTED",
     )
     db_session.add(crop)
     db_session.commit()
@@ -174,7 +174,7 @@ def test_wheat_competing_fodder_divergence(db_session: Session):
         moisture_pct=10.0,
         retained_override=0.20,
         competing_override=0.45,  # 45% diverted to cattle bhusa
-        persist=False
+        persist=False,
     )
 
     # Gross = 30.0 * 1.30 = 39.0 tons

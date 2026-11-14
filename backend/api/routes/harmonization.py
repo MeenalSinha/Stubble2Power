@@ -20,15 +20,12 @@ def execute_harmonization_run(
     date_start: Optional[date] = None,
     date_end: Optional[date] = None,
     grid_resolution_deg: Optional[float] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Executes the cross-sensor harmonization engine over stored satellite observations."""
     engine = HarmonizationEngine(db)
     result = engine.execute_harmonization(
-        name=name,
-        date_start=date_start,
-        date_end=date_end,
-        grid_resolution_deg=grid_resolution_deg
+        name=name, date_start=date_start, date_end=date_end, grid_resolution_deg=grid_resolution_deg
     )
     return result
 

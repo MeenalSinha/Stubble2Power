@@ -9,7 +9,9 @@ from pydantic import BaseModel, Field
 
 class ConsentCreate(BaseModel):
     farmer_id: int
-    consent_purpose: str = Field(..., description="BIOMASS_AGGREGATION, SATELLITE_FIRE_CORRELATION, LOGISTICS_DISPATCH, DIRECT_PAYMENT")
+    consent_purpose: str = Field(
+        ..., description="BIOMASS_AGGREGATION, SATELLITE_FIRE_CORRELATION, LOGISTICS_DISPATCH, DIRECT_PAYMENT"
+    )
     consent_version: str = Field(default="v1.0")
     notes: Optional[str] = None
 

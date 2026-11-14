@@ -39,7 +39,7 @@ def populated_sat_db():
         confidence_normalized=0.80,
         daynight="D",
         spatial_grid_id="grid_30.8500_75.4000",
-        is_valid=True
+        is_valid=True,
     )
 
     # 2. VIIRS observation (NOAA-20, 10:45 UTC, ~1km away)
@@ -60,7 +60,7 @@ def populated_sat_db():
         confidence_normalized=0.70,
         daynight="D",
         spatial_grid_id="grid_30.8500_75.4000",
-        is_valid=True
+        is_valid=True,
     )
 
     # 3. Another VIIRS observation in same cluster (~700m away)
@@ -81,7 +81,7 @@ def populated_sat_db():
         confidence_normalized=1.00,
         daynight="D",
         spatial_grid_id="grid_30.8500_75.4000",
-        is_valid=True
+        is_valid=True,
     )
 
     session.add_all([obs_modis, obs_viirs_1, obs_viirs_2])
@@ -101,7 +101,7 @@ class TestHarmonizationAndCalendar:
             name="Test Harmonization Run",
             date_start=date(2025, 10, 24),
             date_end=date(2025, 10, 26),
-            grid_resolution_deg=0.05
+            grid_resolution_deg=0.05,
         )
 
         assert run.status == "COMPLETED"

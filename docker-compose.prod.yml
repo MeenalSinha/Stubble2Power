@@ -52,10 +52,15 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 8000
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY environment variable is required in production}
-      NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-}
+      NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-${FIRMS_MAP_KEY:-}}
+      FIRMS_MAP_KEY: ${FIRMS_MAP_KEY:-${NASA_FIRMS_MAP_KEY:-}}
       LOG_LEVEL: INFO
+    # Ingress Security Notice: In hardened production deployments, backend (8000)
+    # should NOT be directly exposed to the public Internet. It should be routed via
+    # an internal reverse proxy / API gateway (e.g. Nginx, Traefik, or Cloud ALB) with TLS termination.
+    # Bind to 127.0.0.1 to prevent external interface exposure unless behind a load balancer.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
       interval: 30s
@@ -79,13 +84,16 @@ services:
       backend:
         condition: service_healthy
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true
+    # Least Privilege Security: Streamlit frontend only receives runtime presentation settings.
+    # High-privilege secrets (JWT_SECRET_KEY, NASA_FIRMS_MAP_KEY, administrative credentials)
+    # are strictly omitted in adherence to Issue 8 least privilege requirements.
     environment:
       APP_ENV: production
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY environment variable is required in production}
-      NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-}
+      BACKEND_API_URL: http://backend:8000
+    # Ingress Security: Frontend bound to localhost or reverse proxy ingress
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8501:8501"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8501/_stcore/health || exit 1"]
       interval: 30s

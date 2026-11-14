@@ -28,7 +28,7 @@ class IngestionService:
         country_code: str = "IND",
         source: str = "VIIRS_NOAA20_NRT",
         day_range: int = 1,
-        date_str: Optional[str] = None
+        date_str: Optional[str] = None,
     ) -> IngestionJobResponse:
         """
         Executes end-to-end ingestion job for a country.
@@ -52,16 +52,13 @@ class IngestionService:
             instrument=source_meta["instrument"],
             source_endpoint=endpoint_repr,
             date_start=d_start,
-            date_end=d_start
+            date_end=d_start,
         )
 
         try:
             self.repo.update_job_status(job.id, "RUNNING")
             raw_records = self.client.fetch_country_fires(
-                country_code=country_code,
-                source=source,
-                day_range=day_range,
-                date_str=date_str
+                country_code=country_code, source=source, day_range=day_range, date_str=date_str
             )
 
             # 1. Immutable raw storage
@@ -72,7 +69,7 @@ class IngestionService:
                     acq_date_str=str(r.get("acq_date")),
                     acq_time_str=str(r.get("acq_time", "0000")),
                     lat=float(r.get("latitude", 0.0)),
-                    lon=float(r.get("longitude", 0.0))
+                    lon=float(r.get("longitude", 0.0)),
                 )
                 self.repo.insert_raw_observation(job.id, rec_hash, source, r)
 
@@ -97,7 +94,7 @@ class IngestionService:
                 status=final_status,
                 records_retrieved=len(raw_records),
                 records_valid=valid_inserted,
-                records_quarantined=quarantined_inserted
+                records_quarantined=quarantined_inserted,
             )
             return IngestionJobResponse.model_validate(updated_job)
 
@@ -105,19 +102,11 @@ class IngestionService:
             self.db.rollback()
             error_msg = str(e)
             logger.error(f"Ingestion job {job_uuid} failed: {error_msg}")
-            updated_job = self.repo.update_job_status(
-                job_id=job.id,
-                status="FAILED",
-                error_message=error_msg
-            )
+            updated_job = self.repo.update_job_status(job_id=job.id, status="FAILED", error_message=error_msg)
             return IngestionJobResponse.model_validate(updated_job)
 
     def run_area_ingestion(
-        self,
-        bbox: List[float],
-        source: str = "VIIRS_NOAA20_NRT",
-        day_range: int = 1,
-        date_str: Optional[str] = None
+        self, bbox: List[float], source: str = "VIIRS_NOAA20_NRT", day_range: int = 1, date_str: Optional[str] = None
     ) -> IngestionJobResponse:
         """Executes bounding-box ingestion job."""
         job_uuid = str(uuid.uuid4())
@@ -133,17 +122,12 @@ class IngestionService:
             instrument=source_meta["instrument"],
             source_endpoint=endpoint_repr,
             date_start=d_start,
-            date_end=d_start
+            date_end=d_start,
         )
 
         try:
             self.repo.update_job_status(job.id, "RUNNING")
-            raw_records = self.client.fetch_area_fires(
-                bbox=bbox,
-                source=source,
-                day_range=day_range,
-                date_str=date_str
-            )
+            raw_records = self.client.fetch_area_fires(bbox=bbox, source=source, day_range=day_range, date_str=date_str)
 
             for r in raw_records:
                 rec_hash = QualityControlService.generate_observation_hash(
@@ -152,7 +136,7 @@ class IngestionService:
                     acq_date_str=str(r.get("acq_date")),
                     acq_time_str=str(r.get("acq_time", "0000")),
                     lat=float(r.get("latitude", 0.0)),
-                    lon=float(r.get("longitude", 0.0))
+                    lon=float(r.get("longitude", 0.0)),
                 )
                 self.repo.insert_raw_observation(job.id, rec_hash, source, r)
 
@@ -175,7 +159,7 @@ class IngestionService:
                 status=final_status,
                 records_retrieved=len(raw_records),
                 records_valid=valid_inserted,
-                records_quarantined=quarantined_inserted
+                records_quarantined=quarantined_inserted,
             )
             return IngestionJobResponse.model_validate(updated_job)
 
@@ -183,9 +167,5 @@ class IngestionService:
             self.db.rollback()
             error_msg = str(e)
             logger.error(f"Ingestion job {job_uuid} failed: {error_msg}")
-            updated_job = self.repo.update_job_status(
-                job_id=job.id,
-                status="FAILED",
-                error_message=error_msg
-            )
+            updated_job = self.repo.update_job_status(job_id=job.id, status="FAILED", error_message=error_msg)
             return IngestionJobResponse.model_validate(updated_job)

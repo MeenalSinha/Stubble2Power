@@ -21,13 +21,7 @@ class SeasonalProfileService:
         self.db = db
 
     def generate_profile(
-        self,
-        region_id: str,
-        year: int,
-        season_name: str,
-        date_start: date,
-        date_end: date,
-        persist: bool = True
+        self, region_id: str, year: int, season_name: str, date_start: date, date_end: date, persist: bool = True
     ) -> SeasonalProfile:
         """
         Derives an empirical seasonal profile from harmonized observations in the date window.
@@ -36,8 +30,7 @@ class SeasonalProfileService:
         # Query harmonized daily observations
         stmt = select(HarmonizedObservation).where(
             and_(
-                HarmonizedObservation.observation_date >= date_start,
-                HarmonizedObservation.observation_date <= date_end
+                HarmonizedObservation.observation_date >= date_start, HarmonizedObservation.observation_date <= date_end
             )
         )
         records = list(self.db.scalars(stmt).all())
@@ -50,7 +43,9 @@ class SeasonalProfileService:
             curr += timedelta(days=1)
 
         for r in records:
-            daily_map[r.observation_date] = daily_map.get(r.observation_date, 0.0) + (r.harmonized_frp_mw or r.harmonized_activity_index or 0.0)
+            daily_map[r.observation_date] = daily_map.get(r.observation_date, 0.0) + (
+                r.harmonized_frp_mw or r.harmonized_activity_index or 0.0
+            )
 
         dates_sorted = sorted(daily_map.keys())
         activity_vals = [daily_map[d] for d in dates_sorted]
@@ -91,7 +86,7 @@ class SeasonalProfileService:
             "dates": [d.isoformat() for d in dates_sorted],
             "daily_activity": [round(float(v), 2) for v in activity_vals],
             "cumulative_activity": [round(float(v), 2) for v in cum_vals],
-            "total_records_processed": len(records)
+            "total_records_processed": len(records),
         }
 
         # Check existing profile
@@ -99,7 +94,7 @@ class SeasonalProfileService:
             and_(
                 SeasonalProfile.region_id == region_id,
                 SeasonalProfile.year == year,
-                SeasonalProfile.season_name == season_name
+                SeasonalProfile.season_name == season_name,
             )
         )
         profile = self.db.scalars(existing_stmt).first()
@@ -123,7 +118,7 @@ class SeasonalProfileService:
                 total_activity=round(total_activity, 2),
                 peak_activity=round(peak_activity, 2),
                 duration_days=duration_days,
-                profile_curve_json=curve_payload
+                profile_curve_json=curve_payload,
             )
             self.db.add(profile)
 

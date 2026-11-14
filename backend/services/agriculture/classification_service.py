@@ -13,18 +13,12 @@ from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_
 
-from backend.models.entities import (
-    AgriculturalContextAssessment,
-    HarmonizedObservation
-)
+from backend.models.entities import AgriculturalContextAssessment, HarmonizedObservation
 from backend.services.agriculture.crop_calendar_service import CropCalendarService
 from backend.services.agriculture.land_use_service import LandUseService
 from backend.core.config.settings import config_manager
 from backend.core.logging.logger import get_logger
-from backend.schemas.agriculture import (
-    AgriculturalContextAssessmentResponse,
-    AgriculturalContextSummary
-)
+from backend.schemas.agriculture import AgriculturalContextAssessmentResponse, AgriculturalContextSummary
 
 logger = get_logger("stubble2power.agriculture.classification")
 
@@ -51,7 +45,7 @@ class AgriculturalClassificationService:
         frp_mw: float = 0.0,
         brightness_k: Optional[float] = None,
         state_name: str = "Punjab",
-        harmonized_id: Optional[int] = None
+        harmonized_id: Optional[int] = None,
     ) -> AgriculturalContextAssessment:
         """
         Classifies an individual fire observation into one of four authoritative categories:
@@ -74,7 +68,7 @@ class AgriculturalClassificationService:
 
         # 3. Thermal Physical Verification
         # Stubble fires typically display FRP <= 250 MW. Very high FRP indicates forest wildfire or industrial flare.
-        is_thermal_compatible = (frp_mw <= self.stubble_max_frp)
+        is_thermal_compatible = frp_mw <= self.stubble_max_frp
 
         # 4. Bayesian Evidence Synthesis & Confidence Scoring
         evidence_factors = []
@@ -105,8 +99,10 @@ class AgriculturalClassificationService:
             score += self.weight_thermal
             evidence_factors.append(f"FRP {frp_mw:.1f} MW is consistent with crop residue flaming/smoldering.")
         elif frp_mw > self.stubble_max_frp:
-            score -= (self.weight_thermal * 2.0)
-            evidence_factors.append(f"FRP {frp_mw:.1f} MW exceeds typical crop residue limit (> {self.stubble_max_frp:.1f} MW).")
+            score -= self.weight_thermal * 2.0
+            evidence_factors.append(
+                f"FRP {frp_mw:.1f} MW exceeds typical crop residue limit (> {self.stubble_max_frp:.1f} MW)."
+            )
 
         confidence_score = max(0.0, min(1.0, round(score, 3)))
 
@@ -117,21 +113,27 @@ class AgriculturalClassificationService:
         elif not is_thermal_compatible:
             classification = "OTHER_LAND_USE_CONTEXT"
             reason = f"Thermal intensity ({frp_mw:.1f} MW) strongly suggests heavy industrial or forest crown fire."
-        elif confidence_score >= self.min_conf_likely and (lu_class == "CROPLAND" or dist_to_crop <= self.cropland_buffer):
+        elif confidence_score >= self.min_conf_likely and (
+            lu_class == "CROPLAND" or dist_to_crop <= self.cropland_buffer
+        ):
             classification = "LIKELY_AGRICULTURAL_CONTEXT"
-            reason = f"High confidence ({confidence_score*100:.1f}%): Confirmed cropland coincident with {matched_crop} harvest window."
+            reason = f"High confidence ({confidence_score * 100:.1f}%): Confirmed cropland coincident with {matched_crop} harvest window."
         elif confidence_score >= self.min_conf_possible:
             classification = "POSSIBLE_AGRICULTURAL_CONTEXT"
-            reason = f"Moderate confidence ({confidence_score*100:.1f}%): Near agricultural boundary or extended harvest window."
+            reason = f"Moderate confidence ({confidence_score * 100:.1f}%): Near agricultural boundary or extended harvest window."
         elif harvest_status == "OFF_SEASON" and dist_to_crop > self.cropland_buffer:
             classification = "OTHER_LAND_USE_CONTEXT"
             reason = "Off-season observation distant from active cropland."
         else:
             classification = "UNKNOWN_OR_INSUFFICIENT_EVIDENCE"
-            reason = f"Insufficient evidence to classify (confidence {confidence_score*100:.1f}%)."
+            reason = f"Insufficient evidence to classify (confidence {confidence_score * 100:.1f}%)."
 
         # Compute stubble risk index (0 to 100)
-        stubble_risk = round(confidence_score * 100.0, 1) if classification in ("LIKELY_AGRICULTURAL_CONTEXT", "POSSIBLE_AGRICULTURAL_CONTEXT") else 0.0
+        stubble_risk = (
+            round(confidence_score * 100.0, 1)
+            if classification in ("LIKELY_AGRICULTURAL_CONTEXT", "POSSIBLE_AGRICULTURAL_CONTEXT")
+            else 0.0
+        )
 
         evidence_payload = {
             "classification_reason": reason,
@@ -144,7 +146,7 @@ class AgriculturalClassificationService:
             "distance_to_cropland_km": dist_to_crop,
             "frp_mw": frp_mw,
             "thermal_compatible": is_thermal_compatible,
-            "confidence_percentage": round(confidence_score * 100.0, 1)
+            "confidence_percentage": round(confidence_score * 100.0, 1),
         }
 
         assessment = AgriculturalContextAssessment(
@@ -161,24 +163,19 @@ class AgriculturalClassificationService:
             confidence_score=confidence_score,
             distance_to_cropland_km=round(dist_to_crop, 2),
             stubble_risk_index=stubble_risk,
-            evidence_json=evidence_payload
+            evidence_json=evidence_payload,
         )
         return assessment
 
     def classify_harmonized_records(
-        self,
-        date_start: date,
-        date_end: date,
-        state_name: str = "Punjab",
-        persist: bool = True
+        self, date_start: date, date_end: date, state_name: str = "Punjab", persist: bool = True
     ) -> List[AgriculturalContextAssessment]:
         """
         Classifies all harmonized fire observations in the specified date range.
         """
         stmt = select(HarmonizedObservation).where(
             and_(
-                HarmonizedObservation.observation_date >= date_start,
-                HarmonizedObservation.observation_date <= date_end
+                HarmonizedObservation.observation_date >= date_start, HarmonizedObservation.observation_date <= date_end
             )
         )
         records = list(self.db.scalars(stmt).all())
@@ -195,7 +192,7 @@ class AgriculturalClassificationService:
                 grid_id=r.grid_id,
                 frp_mw=float(r.harmonized_frp_mw or 0.0),
                 state_name=state_name,
-                harmonized_id=r.id
+                harmonized_id=r.id,
             )
             assessments.append(ass)
 
@@ -204,7 +201,7 @@ class AgriculturalClassificationService:
             self.db.query(AgriculturalContextAssessment).filter(
                 and_(
                     AgriculturalContextAssessment.observation_date >= date_start,
-                    AgriculturalContextAssessment.observation_date <= date_end
+                    AgriculturalContextAssessment.observation_date <= date_end,
                 )
             ).delete()
             self.db.add_all(assessments)
@@ -214,9 +211,7 @@ class AgriculturalClassificationService:
         return assessments
 
     def get_summary(
-        self,
-        date_start: Optional[date] = None,
-        date_end: Optional[date] = None
+        self, date_start: Optional[date] = None, date_end: Optional[date] = None
     ) -> AgriculturalContextSummary:
         """Computes aggregate distribution metrics of agricultural fire context classifications."""
         stmt = select(AgriculturalContextAssessment)
@@ -261,7 +256,7 @@ class AgriculturalClassificationService:
                 distance_to_cropland_km=r.distance_to_cropland_km,
                 stubble_risk_index=r.stubble_risk_index,
                 evidence_json=r.evidence_json,
-                created_at=r.created_at
+                created_at=r.created_at,
             )
             for r in records
         ]
@@ -275,5 +270,5 @@ class AgriculturalClassificationService:
             percent_likely_agricultural=percent_likely,
             crop_breakdown=crop_counts,
             land_use_breakdown=lu_counts,
-            assessments=resp_list
+            assessments=resp_list,
         )

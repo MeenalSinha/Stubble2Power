@@ -42,7 +42,7 @@ def db_session():
         password_hash=hash_password("AdminPass123!"),
         full_name="Platform Administrator",
         role_name="SYSTEM_ADMINISTRATOR",
-        is_active=True
+        is_active=True,
     )
     farmer_rec = Farmer(
         name="Baljit Singh",
@@ -53,7 +53,7 @@ def db_session():
         stubble_tons=12.0,
         harvest_date=date(2025, 10, 20),
         latitude=30.8300,
-        longitude=76.1900
+        longitude=76.1900,
     )
     session.add_all([admin, farmer_rec])
     session.commit()
@@ -84,7 +84,7 @@ def test_auth_registration_and_login_flow(db_session):
         role_name="FARMER",
         organization_id=org1.id,
         farmer_id=farmer_rec.id,
-        phone="+91-9876500000"
+        phone="+91-9876500000",
     )
     user = auth.register_user(reg_payload, req, db=session)
     assert user.id is not None
@@ -96,10 +96,7 @@ def test_auth_registration_and_login_flow(db_session):
         auth.register_user(reg_payload, req, db=session)
 
     # 3. User Login
-    login_payload = UserLoginRequest(
-        username="farmer_baljit",
-        password="SecurePassword123!"
-    )
+    login_payload = UserLoginRequest(username="farmer_baljit", password="SecurePassword123!")
     token_data = auth.login_user(login_payload, req, db=session)
     assert token_data.access_token is not None
     assert token_data.role == "FARMER"
@@ -128,10 +125,7 @@ def test_organizations_isolation_routes(db_session):
 
     # 2. Regular user only sees their own organization
     org_member = User(
-        username="member_alpha",
-        email="alpha@coop.in",
-        role_name="ORGANIZATION_MANAGER",
-        organization_id=org1.id
+        username="member_alpha", email="alpha@coop.in", role_name="ORGANIZATION_MANAGER", organization_id=org1.id
     )
     user_orgs = organizations.list_organizations(db=session, user=org_member)
     assert len(user_orgs) == 1
@@ -156,9 +150,7 @@ def test_user_preferences_api(db_session):
 
     # Update preferences to Punjabi and dark theme
     updated = user_experience.update_user_preferences(
-        UserPreferenceUpdate(preferred_language="pa", theme="dark", default_aoi="Malwa Region"),
-        user=admin,
-        db=session
+        UserPreferenceUpdate(preferred_language="pa", theme="dark", default_aoi="Malwa Region"), user=admin, db=session
     )
     assert updated.preferred_language == "pa"
     assert updated.theme == "dark"
@@ -169,13 +161,9 @@ def test_reports_generation_api(db_session):
 
     # Generate Report
     rep = user_experience.generate_report(
-        SavedReportCreate(
-            report_type="FARMER_DIRECTORY",
-            title="Punjab Harvest Roster",
-            file_format="CSV"
-        ),
+        SavedReportCreate(report_type="FARMER_DIRECTORY", title="Punjab Harvest Roster", file_format="CSV"),
         user=admin,
-        db=session
+        db=session,
     )
     assert rep.id is not None
     assert rep.report_type == "FARMER_DIRECTORY"
@@ -195,7 +183,7 @@ def test_privacy_consent_and_audit_api(db_session):
         role_name="FARMER",
         organization_id=org1.id,
         farmer_id=farmer_rec.id,
-        password_hash=hash_password("Pass123!")
+        password_hash=hash_password("Pass123!"),
     )
     session.add(farmer_user)
     session.commit()
@@ -205,7 +193,7 @@ def test_privacy_consent_and_audit_api(db_session):
     consent = privacy_governance.record_consent(
         ConsentCreate(farmer_id=farmer_rec.id, consent_purpose="BIOMASS_AGGREGATION", consent_version="v1.2"),
         user=farmer_user,
-        db=session
+        db=session,
     )
     assert consent.id is not None
     assert consent.is_granted is True
@@ -218,7 +206,7 @@ def test_privacy_consent_and_audit_api(db_session):
     dsr = privacy_governance.submit_data_subject_request(
         DataSubjectRequestCreate(request_type="ACCESS", details_json={"query": "export my data"}),
         user=farmer_user,
-        db=session
+        db=session,
     )
     assert dsr.id is not None
     assert dsr.status == "SUBMITTED"

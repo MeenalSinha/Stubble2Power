@@ -30,7 +30,7 @@ class HistoricalBaselineService:
         region_id: str = "Punjab",
         analysis_period: str = "OCT_NOV_MULTIYEAR",
         metric_type: str = "harmonized_frp_mw",
-        persist: bool = True
+        persist: bool = True,
     ) -> List[HistoricalBaseline]:
         """
         Computes robust baseline statistics (Mean, Median, Std, MAD, P75, P90)
@@ -50,7 +50,7 @@ class HistoricalBaselineService:
         is_leap = df["date"].dt.is_leap_year
         raw_doy = df["date"].dt.dayofyear
         df["day_of_year"] = np.where(is_leap & (raw_doy > 60), raw_doy - 1, raw_doy)
-        
+
         # Do not convert missing measurements to 0.0 (missing != zero burning)
         df["metric"] = pd.to_numeric(df[metric_type], errors="coerce")
         # Keep coverage flag if supplied
@@ -65,7 +65,7 @@ class HistoricalBaselineService:
             # Exclude missing observations from values
             valid_vals = group["metric"].dropna().values
             n_samples = len(valid_vals)
-            
+
             if n_samples == 0:
                 continue
 
@@ -79,7 +79,7 @@ class HistoricalBaselineService:
             mean_val = float(np.mean(valid_vals))
             median_val = float(np.median(valid_vals))
             std_val = float(np.std(valid_vals, ddof=1)) if n_samples > 1 else 0.0
-            
+
             # Robust Median Absolute Deviation (MAD) scaled by 1.4826 for normal consistency
             abs_devs = np.abs(valid_vals - median_val)
             mad_val = float(1.4826 * np.median(abs_devs))
@@ -116,7 +116,7 @@ class HistoricalBaselineService:
                 max_val=round(max_val, 3),
                 sample_count=n_samples,
                 data_coverage_ratio=round(coverage_ratio, 3),
-                data_sufficiency_status=sufficiency
+                data_sufficiency_status=sufficiency,
             )
             results.append(baseline_record)
 
@@ -126,7 +126,7 @@ class HistoricalBaselineService:
                 and_(
                     HistoricalBaseline.region_id == region_id,
                     HistoricalBaseline.analysis_period == analysis_period,
-                    HistoricalBaseline.metric_type == metric_type
+                    HistoricalBaseline.metric_type == metric_type,
                 )
             ).delete()
             self.db.add_all(results)
@@ -136,11 +136,7 @@ class HistoricalBaselineService:
         return results
 
     def get_baseline_for_day(
-        self,
-        region_id: str,
-        metric_type: str,
-        day_of_year: int,
-        search_window_days: int = 7
+        self, region_id: str, metric_type: str, day_of_year: int, search_window_days: int = 7
     ) -> Optional[HistoricalBaseline]:
         """
         Retrieves baseline profile for a day of year in the given region.
@@ -151,7 +147,7 @@ class HistoricalBaselineService:
             and_(
                 HistoricalBaseline.region_id == region_id,
                 HistoricalBaseline.metric_type == metric_type,
-                HistoricalBaseline.day_of_year == day_of_year
+                HistoricalBaseline.day_of_year == day_of_year,
             )
         )
         baseline = self.db.scalars(stmt).first()
@@ -161,21 +157,23 @@ class HistoricalBaselineService:
         # Nearest day search strictly within search_window_days
         min_doy = max(1, day_of_year - search_window_days)
         max_doy = min(365, day_of_year + search_window_days)
-        stmt_window = select(HistoricalBaseline).where(
-            and_(
-                HistoricalBaseline.region_id == region_id,
-                HistoricalBaseline.metric_type == metric_type,
-                HistoricalBaseline.day_of_year.between(min_doy, max_doy)
+        stmt_window = (
+            select(HistoricalBaseline)
+            .where(
+                and_(
+                    HistoricalBaseline.region_id == region_id,
+                    HistoricalBaseline.metric_type == metric_type,
+                    HistoricalBaseline.day_of_year.between(min_doy, max_doy),
+                )
             )
-        ).order_by(func.abs(HistoricalBaseline.day_of_year - day_of_year))
-        
+            .order_by(func.abs(HistoricalBaseline.day_of_year - day_of_year))
+        )
+
         adjacent = self.db.scalars(stmt_window).first()
         return adjacent
 
     def get_all_baselines(
-        self,
-        region_id: Optional[str] = None,
-        metric_type: Optional[str] = None
+        self, region_id: Optional[str] = None, metric_type: Optional[str] = None
     ) -> List[HistoricalBaseline]:
         """Lists baselines with optional region and metric filtering."""
         stmt = select(HistoricalBaseline)

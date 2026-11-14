@@ -6,11 +6,7 @@ from typing import List, Optional, Dict, Any
 from datetime import date, datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_
-from backend.models.entities import (
-    IngestionJob,
-    RawSatelliteObservation,
-    NormalizedSatelliteObservation
-)
+from backend.models.entities import IngestionJob, RawSatelliteObservation, NormalizedSatelliteObservation
 from backend.schemas.satellite import NormalizedObservationSchema
 
 
@@ -19,13 +15,7 @@ class SatelliteRepository:
         self.db = db
 
     def create_ingestion_job(
-        self,
-        job_uuid: str,
-        satellite: str,
-        instrument: str,
-        source_endpoint: str,
-        date_start: date,
-        date_end: date
+        self, job_uuid: str, satellite: str, instrument: str, source_endpoint: str, date_start: date, date_end: date
     ) -> IngestionJob:
         job = IngestionJob(
             job_uuid=job_uuid,
@@ -34,7 +24,7 @@ class SatelliteRepository:
             source_endpoint=source_endpoint,
             date_start=date_start,
             date_end=date_end,
-            status="PENDING"
+            status="PENDING",
         )
         self.db.add(job)
         self.db.commit()
@@ -48,7 +38,7 @@ class SatelliteRepository:
         records_retrieved: int = 0,
         records_valid: int = 0,
         records_quarantined: int = 0,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
     ) -> IngestionJob:
         job = self.db.get(IngestionJob, job_id)
         if job:
@@ -63,7 +53,9 @@ class SatelliteRepository:
             self.db.refresh(job)
         return job
 
-    def insert_raw_observation(self, ingestion_job_id: int, record_hash: str, satellite: str, raw_payload: dict) -> bool:
+    def insert_raw_observation(
+        self, ingestion_job_id: int, record_hash: str, satellite: str, raw_payload: dict
+    ) -> bool:
         # Idempotent insert
         exists = self.db.scalar(
             select(RawSatelliteObservation.id).where(RawSatelliteObservation.record_hash == record_hash)
@@ -75,7 +67,7 @@ class SatelliteRepository:
             ingestion_job_id=ingestion_job_id,
             record_hash=record_hash,
             source_satellite=satellite,
-            raw_payload=raw_payload
+            raw_payload=raw_payload,
         )
         self.db.add(raw_obs)
         return True
@@ -110,7 +102,7 @@ class SatelliteRepository:
             track=obs.track,
             spatial_grid_id=obs.spatial_grid_id,
             is_valid=obs.is_valid,
-            quarantine_reason=obs.quarantine_reason
+            quarantine_reason=obs.quarantine_reason,
         )
         self.db.add(norm_obs)
         return True
@@ -123,7 +115,7 @@ class SatelliteRepository:
         min_confidence: Optional[float] = None,
         bbox: Optional[List[float]] = None,
         is_valid: bool = True,
-        limit: int = 5000
+        limit: int = 5000,
     ) -> List[NormalizedSatelliteObservation]:
         stmt = select(NormalizedSatelliteObservation).where(NormalizedSatelliteObservation.is_valid == is_valid)
         filters = []
@@ -148,15 +140,30 @@ class SatelliteRepository:
 
     def get_ingestion_summary(self) -> Dict[str, Any]:
         total_norm = self.db.scalar(select(func.count(NormalizedSatelliteObservation.id))) or 0
-        total_valid = self.db.scalar(
-            select(func.count(NormalizedSatelliteObservation.id)).where(NormalizedSatelliteObservation.is_valid == True)
-        ) or 0
-        modis_count = self.db.scalar(
-            select(func.count(NormalizedSatelliteObservation.id)).where(NormalizedSatelliteObservation.instrument == "MODIS")
-        ) or 0
-        viirs_count = self.db.scalar(
-            select(func.count(NormalizedSatelliteObservation.id)).where(NormalizedSatelliteObservation.instrument == "VIIRS")
-        ) or 0
+        total_valid = (
+            self.db.scalar(
+                select(func.count(NormalizedSatelliteObservation.id)).where(
+                    NormalizedSatelliteObservation.is_valid.is_(True)
+                )
+            )
+            or 0
+        )
+        modis_count = (
+            self.db.scalar(
+                select(func.count(NormalizedSatelliteObservation.id)).where(
+                    NormalizedSatelliteObservation.instrument == "MODIS"
+                )
+            )
+            or 0
+        )
+        viirs_count = (
+            self.db.scalar(
+                select(func.count(NormalizedSatelliteObservation.id)).where(
+                    NormalizedSatelliteObservation.instrument == "VIIRS"
+                )
+            )
+            or 0
+        )
         latest_date = self.db.scalar(select(func.max(NormalizedSatelliteObservation.acquisition_date)))
         earliest_date = self.db.scalar(select(func.min(NormalizedSatelliteObservation.acquisition_date)))
 
@@ -166,5 +173,5 @@ class SatelliteRepository:
             "modis_count": modis_count,
             "viirs_count": viirs_count,
             "earliest_date": str(earliest_date) if earliest_date else None,
-            "latest_date": str(latest_date) if latest_date else None
+            "latest_date": str(latest_date) if latest_date else None,
         }

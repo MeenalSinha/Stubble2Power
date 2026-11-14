@@ -18,6 +18,7 @@ load_dotenv()
 
 class ConfigMetadata(BaseModel):
     """Metadata describing the origin, unit, and scientific validity of a configuration parameter."""
+
     name: str
     value: Union[float, int, str, bool, list, dict]
     data_type: str  # float, int, str, bool, json
@@ -34,15 +35,13 @@ class ConfigMetadata(BaseModel):
 
 class AppSettings(BaseModel):
     """Application-level runtime environment configuration."""
+
     app_name: str = "Stubble2Power"
     app_env: str = Field(default_factory=lambda: os.getenv("APP_ENV", "development"))
     api_host: str = Field(default_factory=lambda: os.getenv("API_HOST", "0.0.0.0"))
     api_port: int = Field(default_factory=lambda: int(os.getenv("API_PORT", "8000")))
     database_url: str = Field(
-        default_factory=lambda: os.getenv(
-            "DATABASE_URL",
-            "sqlite:///./database/stubble2power.db"
-        )
+        default_factory=lambda: os.getenv("DATABASE_URL", "sqlite:///./database/stubble2power.db")
     )
     nasa_firms_map_key: Optional[str] = Field(
         default_factory=lambda: os.getenv("NASA_FIRMS_MAP_KEY") or os.getenv("FIRMS_MAP_KEY")
@@ -62,14 +61,23 @@ class AppSettings(BaseModel):
             if not self.database_url or self.database_url.startswith("sqlite"):
                 raise ConfigurationError(
                     message="Production environment requires an enterprise PostgreSQL/PostGIS database. SQLite is forbidden in production.",
-                    parameter="DATABASE_URL"
+                    parameter="DATABASE_URL",
                 )
             # Enforce explicit external JWT secret key in production
             jwt_secret = os.getenv("JWT_SECRET_KEY")
-            if not jwt_secret or jwt_secret == "stubble2power-secure-production-jwt-secret-key-2026-v230":
+            if (
+                not jwt_secret
+                or jwt_secret == "stubble2power-secure-production-jwt-secret-key-2026-v230"
+                or jwt_secret.startswith("REPLACE_WITH_")
+            ):
                 raise ConfigurationError(
                     message="Production environment requires an explicit and non-default JWT_SECRET_KEY injected via secrets management.",
-                    parameter="JWT_SECRET_KEY"
+                    parameter="JWT_SECRET_KEY",
+                )
+            if len(jwt_secret) < 32:
+                raise ConfigurationError(
+                    message="Production JWT_SECRET_KEY must be at least 32 characters long for cryptographic security.",
+                    parameter="JWT_SECRET_KEY",
                 )
         return self
 
@@ -92,7 +100,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.3,
-        validation_max=0.9
+        validation_max=0.9,
     ),
     "scenario.conservative.biochar_yield": ConfigMetadata(
         name="scenario.conservative.biochar_yield",
@@ -105,7 +113,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.05,
-        validation_max=0.4
+        validation_max=0.4,
     ),
     "scenario.conservative.processing_cost_per_ton": ConfigMetadata(
         name="scenario.conservative.processing_cost_per_ton",
@@ -118,7 +126,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=100.0,
-        validation_max=5000.0
+        validation_max=5000.0,
     ),
     "scenario.conservative.briquette_price": ConfigMetadata(
         name="scenario.conservative.briquette_price",
@@ -131,7 +139,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=20.0
+        validation_max=20.0,
     ),
     "scenario.conservative.biochar_price": ConfigMetadata(
         name="scenario.conservative.biochar_price",
@@ -144,7 +152,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=2.0,
-        validation_max=50.0
+        validation_max=50.0,
     ),
     "scenario.conservative.carbon_credit_per_ton": ConfigMetadata(
         name="scenario.conservative.carbon_credit_per_ton",
@@ -157,7 +165,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.0,
-        validation_max=3000.0
+        validation_max=3000.0,
     ),
     "scenario.conservative.farmer_payment_per_ton": ConfigMetadata(
         name="scenario.conservative.farmer_payment_per_ton",
@@ -170,7 +178,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=500.0,
-        validation_max=5000.0
+        validation_max=5000.0,
     ),
     "scenario.conservative.mobile_unit_cost_per_km": ConfigMetadata(
         name="scenario.conservative.mobile_unit_cost_per_km",
@@ -183,7 +191,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=50.0,
-        validation_max=500.0
+        validation_max=500.0,
     ),
     "scenario.conservative.co2_per_ton_stubble": ConfigMetadata(
         name="scenario.conservative.co2_per_ton_stubble",
@@ -196,7 +204,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=3.0
+        validation_max=3.0,
     ),
     "scenario.conservative.coal_replaced_ratio": ConfigMetadata(
         name="scenario.conservative.coal_replaced_ratio",
@@ -209,7 +217,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.2,
-        validation_max=1.5
+        validation_max=1.5,
     ),
     "scenario.conservative.processing_time_per_ton": ConfigMetadata(
         name="scenario.conservative.processing_time_per_ton",
@@ -222,9 +230,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=8.0
+        validation_max=8.0,
     ),
-
     # --- Economic Scenarios: Base Case ---
     "scenario.base_case.briquette_yield": ConfigMetadata(
         name="scenario.base_case.briquette_yield",
@@ -237,7 +244,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.3,
-        validation_max=0.9
+        validation_max=0.9,
     ),
     "scenario.base_case.biochar_yield": ConfigMetadata(
         name="scenario.base_case.biochar_yield",
@@ -250,7 +257,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.05,
-        validation_max=0.4
+        validation_max=0.4,
     ),
     "scenario.base_case.processing_cost_per_ton": ConfigMetadata(
         name="scenario.base_case.processing_cost_per_ton",
@@ -263,7 +270,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=100.0,
-        validation_max=5000.0
+        validation_max=5000.0,
     ),
     "scenario.base_case.briquette_price": ConfigMetadata(
         name="scenario.base_case.briquette_price",
@@ -276,7 +283,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=20.0
+        validation_max=20.0,
     ),
     "scenario.base_case.biochar_price": ConfigMetadata(
         name="scenario.base_case.biochar_price",
@@ -289,7 +296,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=2.0,
-        validation_max=50.0
+        validation_max=50.0,
     ),
     "scenario.base_case.carbon_credit_per_ton": ConfigMetadata(
         name="scenario.base_case.carbon_credit_per_ton",
@@ -302,7 +309,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.0,
-        validation_max=3000.0
+        validation_max=3000.0,
     ),
     "scenario.base_case.farmer_payment_per_ton": ConfigMetadata(
         name="scenario.base_case.farmer_payment_per_ton",
@@ -315,7 +322,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=500.0,
-        validation_max=5000.0
+        validation_max=5000.0,
     ),
     "scenario.base_case.mobile_unit_cost_per_km": ConfigMetadata(
         name="scenario.base_case.mobile_unit_cost_per_km",
@@ -328,7 +335,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=50.0,
-        validation_max=500.0
+        validation_max=500.0,
     ),
     "scenario.base_case.co2_per_ton_stubble": ConfigMetadata(
         name="scenario.base_case.co2_per_ton_stubble",
@@ -341,7 +348,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=3.0
+        validation_max=3.0,
     ),
     "scenario.base_case.coal_replaced_ratio": ConfigMetadata(
         name="scenario.base_case.coal_replaced_ratio",
@@ -354,7 +361,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.2,
-        validation_max=1.5
+        validation_max=1.5,
     ),
     "scenario.base_case.processing_time_per_ton": ConfigMetadata(
         name="scenario.base_case.processing_time_per_ton",
@@ -367,9 +374,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=8.0
+        validation_max=8.0,
     ),
-
     # --- Economic Scenarios: Optimistic ---
     "scenario.optimistic.briquette_yield": ConfigMetadata(
         name="scenario.optimistic.briquette_yield",
@@ -382,7 +388,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.3,
-        validation_max=0.9
+        validation_max=0.9,
     ),
     "scenario.optimistic.biochar_yield": ConfigMetadata(
         name="scenario.optimistic.biochar_yield",
@@ -395,7 +401,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.05,
-        validation_max=0.4
+        validation_max=0.4,
     ),
     "scenario.optimistic.processing_cost_per_ton": ConfigMetadata(
         name="scenario.optimistic.processing_cost_per_ton",
@@ -408,7 +414,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=100.0,
-        validation_max=5000.0
+        validation_max=5000.0,
     ),
     "scenario.optimistic.briquette_price": ConfigMetadata(
         name="scenario.optimistic.briquette_price",
@@ -421,7 +427,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=20.0
+        validation_max=20.0,
     ),
     "scenario.optimistic.biochar_price": ConfigMetadata(
         name="scenario.optimistic.biochar_price",
@@ -434,7 +440,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=2.0,
-        validation_max=50.0
+        validation_max=50.0,
     ),
     "scenario.optimistic.carbon_credit_per_ton": ConfigMetadata(
         name="scenario.optimistic.carbon_credit_per_ton",
@@ -447,7 +453,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.0,
-        validation_max=3000.0
+        validation_max=3000.0,
     ),
     "scenario.optimistic.farmer_payment_per_ton": ConfigMetadata(
         name="scenario.optimistic.farmer_payment_per_ton",
@@ -460,7 +466,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=500.0,
-        validation_max=5000.0
+        validation_max=5000.0,
     ),
     "scenario.optimistic.mobile_unit_cost_per_km": ConfigMetadata(
         name="scenario.optimistic.mobile_unit_cost_per_km",
@@ -473,7 +479,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=50.0,
-        validation_max=500.0
+        validation_max=500.0,
     ),
     "scenario.optimistic.co2_per_ton_stubble": ConfigMetadata(
         name="scenario.optimistic.co2_per_ton_stubble",
@@ -486,7 +492,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=3.0
+        validation_max=3.0,
     ),
     "scenario.optimistic.coal_replaced_ratio": ConfigMetadata(
         name="scenario.optimistic.coal_replaced_ratio",
@@ -499,7 +505,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.2,
-        validation_max=1.5
+        validation_max=1.5,
     ),
     "scenario.optimistic.processing_time_per_ton": ConfigMetadata(
         name="scenario.optimistic.processing_time_per_ton",
@@ -512,9 +518,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=8.0
+        validation_max=8.0,
     ),
-
     # --- Logistics Baseline Assumptions (Centralized Plant Comparison) ---
     "logistics.central_plant.haulage_distance_km": ConfigMetadata(
         name="logistics.central_plant.haulage_distance_km",
@@ -527,7 +532,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=10.0,
-        validation_max=500.0
+        validation_max=500.0,
     ),
     "logistics.central_plant.freight_rate_per_km": ConfigMetadata(
         name="logistics.central_plant.freight_rate_per_km",
@@ -540,7 +545,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=50.0,
-        validation_max=400.0
+        validation_max=400.0,
     ),
     "logistics.central_plant.payload_capacity_tons": ConfigMetadata(
         name="logistics.central_plant.payload_capacity_tons",
@@ -553,9 +558,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=2.0,
-        validation_max=40.0
+        validation_max=40.0,
     ),
-
     # --- Environmental Equivalents (EPA / IPCC conversion standards) ---
     "environmental.equivalents.trees_per_ton_co2": ConfigMetadata(
         name="environmental.equivalents.trees_per_ton_co2",
@@ -568,7 +572,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=10.0,
-        validation_max=100.0
+        validation_max=100.0,
     ),
     "environmental.equivalents.cars_per_ton_co2": ConfigMetadata(
         name="environmental.equivalents.cars_per_ton_co2",
@@ -581,7 +585,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.05,
-        validation_max=1.0
+        validation_max=1.0,
     ),
     "environmental.equivalents.homes_powered_per_ton_coal": ConfigMetadata(
         name="environmental.equivalents.homes_powered_per_ton_coal",
@@ -594,9 +598,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=10.0
+        validation_max=10.0,
     ),
-
     # --- NASA Satellite Harmonization Scientific Parameters ---
     "nasa.harmonization.grid_resolution_deg": ConfigMetadata(
         name="nasa.harmonization.grid_resolution_deg",
@@ -609,7 +612,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.005,
-        validation_max=0.5
+        validation_max=0.5,
     ),
     "nasa.harmonization.cross_sensor_distance_km": ConfigMetadata(
         name="nasa.harmonization.cross_sensor_distance_km",
@@ -622,7 +625,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.1,
-        validation_max=10.0
+        validation_max=10.0,
     ),
     "nasa.harmonization.cross_sensor_time_window_hours": ConfigMetadata(
         name="nasa.harmonization.cross_sensor_time_window_hours",
@@ -635,7 +638,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.1,
-        validation_max=24.0
+        validation_max=24.0,
     ),
     "nasa.harmonization.viirs_frp_calibration_slope": ConfigMetadata(
         name="nasa.harmonization.viirs_frp_calibration_slope",
@@ -648,7 +651,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=2.0
+        validation_max=2.0,
     ),
     "nasa.harmonization.modis_detection_weight": ConfigMetadata(
         name="nasa.harmonization.modis_detection_weight",
@@ -661,7 +664,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=10.0
+        validation_max=10.0,
     ),
     "nasa.harmonization.detection_index_slope": ConfigMetadata(
         name="nasa.harmonization.detection_index_slope",
@@ -674,7 +677,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=20.0
+        validation_max=20.0,
     ),
     "nasa.harmonization.detection_index_cap": ConfigMetadata(
         name="nasa.harmonization.detection_index_cap",
@@ -687,7 +690,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=10.0,
-        validation_max=80.0
+        validation_max=80.0,
     ),
     "nasa.harmonization.frp_index_slope": ConfigMetadata(
         name="nasa.harmonization.frp_index_slope",
@@ -700,7 +703,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=25.0
+        validation_max=25.0,
     ),
     "nasa.harmonization.frp_index_cap": ConfigMetadata(
         name="nasa.harmonization.frp_index_cap",
@@ -713,7 +716,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=10.0,
-        validation_max=60.0
+        validation_max=60.0,
     ),
     "nasa.harmonization.consensus_index_weight": ConfigMetadata(
         name="nasa.harmonization.consensus_index_weight",
@@ -726,7 +729,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.0,
-        validation_max=30.0
+        validation_max=30.0,
     ),
     "nasa.harmonization.consensus_threshold_low": ConfigMetadata(
         name="nasa.harmonization.consensus_threshold_low",
@@ -739,7 +742,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.2,
-        validation_max=0.8
+        validation_max=0.8,
     ),
     "nasa.harmonization.consensus_threshold_high": ConfigMetadata(
         name="nasa.harmonization.consensus_threshold_high",
@@ -752,9 +755,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.7,
-        validation_max=0.99
+        validation_max=0.99,
     ),
-
     # --- Geospatial Defaults ---
     "geospatial.default_map_center_lat": ConfigMetadata(
         name="geospatial.default_map_center_lat",
@@ -767,7 +769,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=8.0,
-        validation_max=38.0
+        validation_max=38.0,
     ),
     "geospatial.default_map_center_lon": ConfigMetadata(
         name="geospatial.default_map_center_lon",
@@ -780,7 +782,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=68.0,
-        validation_max=98.0
+        validation_max=98.0,
     ),
     "geospatial.default_map_zoom": ConfigMetadata(
         name="geospatial.default_map_zoom",
@@ -793,9 +795,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=4.0,
-        validation_max=18.0
+        validation_max=18.0,
     ),
-
     # --- Satellite Quality Control Brightness Thresholds ---
     "fire.qc.min_brightness_kelvin": ConfigMetadata(
         name="fire.qc.min_brightness_kelvin",
@@ -808,7 +809,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=50.0,
-        validation_max=250.0
+        validation_max=250.0,
     ),
     "fire.qc.max_brightness_kelvin": ConfigMetadata(
         name="fire.qc.max_brightness_kelvin",
@@ -821,9 +822,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=400.0,
-        validation_max=800.0
+        validation_max=800.0,
     ),
-
     # --- Phase 8: Seasonal Baseline & Anomaly Detection Parameters ---
     "seasonal.baseline.min_historical_periods": ConfigMetadata(
         name="seasonal.baseline.min_historical_periods",
@@ -836,7 +836,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1,
-        validation_max=30
+        validation_max=30,
     ),
     "seasonal.baseline.rolling_window_days": ConfigMetadata(
         name="seasonal.baseline.rolling_window_days",
@@ -849,7 +849,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=3,
-        validation_max=60
+        validation_max=60,
     ),
     "seasonal.baseline.min_coverage_pct": ConfigMetadata(
         name="seasonal.baseline.min_coverage_pct",
@@ -862,7 +862,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=10.0,
-        validation_max=100.0
+        validation_max=100.0,
     ),
     "anomaly.detection.zscore_threshold": ConfigMetadata(
         name="anomaly.detection.zscore_threshold",
@@ -875,7 +875,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=5.0
+        validation_max=5.0,
     ),
     "anomaly.detection.mad_threshold": ConfigMetadata(
         name="anomaly.detection.mad_threshold",
@@ -888,7 +888,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.5,
-        validation_max=6.0
+        validation_max=6.0,
     ),
     "anomaly.detection.ewma_alpha": ConfigMetadata(
         name="anomaly.detection.ewma_alpha",
@@ -901,7 +901,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.05,
-        validation_max=0.95
+        validation_max=0.95,
     ),
     "anomaly.detection.min_frp_mw": ConfigMetadata(
         name="anomaly.detection.min_frp_mw",
@@ -914,7 +914,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=50.0
+        validation_max=50.0,
     ),
     "anomaly.spatial.cluster_radius_km": ConfigMetadata(
         name="anomaly.spatial.cluster_radius_km",
@@ -927,9 +927,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=5.0,
-        validation_max=100.0
+        validation_max=100.0,
     ),
-
     # --- Phase 9: Agricultural Fire Context Intelligence Parameters ---
     "agriculture.land_use.cropland_buffer_km": ConfigMetadata(
         name="agriculture.land_use.cropland_buffer_km",
@@ -942,7 +941,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.2,
-        validation_max=10.0
+        validation_max=10.0,
     ),
     "agriculture.crop_calendar.extended_window_days": ConfigMetadata(
         name="agriculture.crop_calendar.extended_window_days",
@@ -955,7 +954,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0,
-        validation_max=30
+        validation_max=30,
     ),
     "agriculture.classification.min_confidence_likely": ConfigMetadata(
         name="agriculture.classification.min_confidence_likely",
@@ -968,7 +967,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.50,
-        validation_max=0.95
+        validation_max=0.95,
     ),
     "agriculture.classification.min_confidence_possible": ConfigMetadata(
         name="agriculture.classification.min_confidence_possible",
@@ -981,7 +980,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.20,
-        validation_max=0.60
+        validation_max=0.60,
     ),
     "agriculture.thermal.stubble_max_frp_mw": ConfigMetadata(
         name="agriculture.thermal.stubble_max_frp_mw",
@@ -994,7 +993,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=50.0,
-        validation_max=1000.0
+        validation_max=1000.0,
     ),
     "agriculture.thermal.stubble_min_brightness_k": ConfigMetadata(
         name="agriculture.thermal.stubble_min_brightness_k",
@@ -1007,9 +1006,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=290.0,
-        validation_max=350.0
+        validation_max=350.0,
     ),
-
     # --- Phase 8 Audit Fix: Dynamic Anomaly Fallbacks ---
     "seasonal.baseline.fallback_mean": ConfigMetadata(
         name="seasonal.baseline.fallback_mean",
@@ -1022,7 +1020,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=100.0
+        validation_max=100.0,
     ),
     "seasonal.baseline.fallback_median": ConfigMetadata(
         name="seasonal.baseline.fallback_median",
@@ -1035,7 +1033,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=100.0
+        validation_max=100.0,
     ),
     "seasonal.baseline.fallback_std": ConfigMetadata(
         name="seasonal.baseline.fallback_std",
@@ -1048,7 +1046,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=100.0
+        validation_max=100.0,
     ),
     "seasonal.baseline.fallback_mad": ConfigMetadata(
         name="seasonal.baseline.fallback_mad",
@@ -1061,9 +1059,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=50.0
+        validation_max=50.0,
     ),
-
     # --- Phase 9 Audit Fix: Bayesian Evidence Weights ---
     "agriculture.classification.weight_land_use": ConfigMetadata(
         name="agriculture.classification.weight_land_use",
@@ -1076,7 +1073,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=0.1,
-        validation_max=0.8
+        validation_max=0.8,
     ),
     "agriculture.classification.weight_calendar": ConfigMetadata(
         name="agriculture.classification.weight_calendar",
@@ -1089,7 +1086,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=0.1,
-        validation_max=0.8
+        validation_max=0.8,
     ),
     "agriculture.classification.weight_thermal": ConfigMetadata(
         name="agriculture.classification.weight_thermal",
@@ -1102,9 +1099,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=0.05,
-        validation_max=0.5
+        validation_max=0.5,
     ),
-
     # --- Phase 10: Farmer & Biomass Intelligence Parameters ---
     "biomass.paddy.residue_to_product_ratio": ConfigMetadata(
         name="biomass.paddy.residue_to_product_ratio",
@@ -1117,7 +1113,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.8,
-        validation_max=2.5
+        validation_max=2.5,
     ),
     "biomass.wheat.residue_to_product_ratio": ConfigMetadata(
         name="biomass.wheat.residue_to_product_ratio",
@@ -1130,7 +1126,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.8,
-        validation_max=2.0
+        validation_max=2.0,
     ),
     "biomass.cotton.residue_to_product_ratio": ConfigMetadata(
         name="biomass.cotton.residue_to_product_ratio",
@@ -1143,7 +1139,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.5,
-        validation_max=4.5
+        validation_max=4.5,
     ),
     "biomass.paddy.sustainable_collection_fraction": ConfigMetadata(
         name="biomass.paddy.sustainable_collection_fraction",
@@ -1156,7 +1152,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.30,
-        validation_max=0.90
+        validation_max=0.90,
     ),
     "biomass.wheat.sustainable_collection_fraction": ConfigMetadata(
         name="biomass.wheat.sustainable_collection_fraction",
@@ -1169,7 +1165,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.10,
-        validation_max=0.70
+        validation_max=0.70,
     ),
     "biomass.collection_handling_loss_fraction": ConfigMetadata(
         name="biomass.collection_handling_loss_fraction",
@@ -1182,7 +1178,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.02,
-        validation_max=0.20
+        validation_max=0.20,
     ),
     "biomass.standard_moisture_content_pct": ConfigMetadata(
         name="biomass.standard_moisture_content_pct",
@@ -1195,7 +1191,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=8.0,
-        validation_max=30.0
+        validation_max=30.0,
     ),
     "biomass.paddy.default_grain_yield_tons_per_acre": ConfigMetadata(
         name="biomass.paddy.default_grain_yield_tons_per_acre",
@@ -1208,9 +1204,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=4.5
+        validation_max=4.5,
     ),
-
     # --- Phase 11: Mobile Bio-Refinery & Routing Parameters ---
     "refinery.mobile.default_hourly_capacity_tons": ConfigMetadata(
         name="refinery.mobile.default_hourly_capacity_tons",
@@ -1223,7 +1218,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.5,
-        validation_max=10.0
+        validation_max=10.0,
     ),
     "refinery.mobile.daily_operating_hours": ConfigMetadata(
         name="refinery.mobile.daily_operating_hours",
@@ -1236,7 +1231,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=4.0,
-        validation_max=16.0
+        validation_max=16.0,
     ),
     "refinery.transport.vehicle_payload_capacity_tons": ConfigMetadata(
         name="refinery.transport.vehicle_payload_capacity_tons",
@@ -1249,7 +1244,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=2.0,
-        validation_max=25.0
+        validation_max=25.0,
     ),
     "refinery.transport.road_tortuosity_factor": ConfigMetadata(
         name="refinery.transport.road_tortuosity_factor",
@@ -1262,7 +1257,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.1,
-        validation_max=1.8
+        validation_max=1.8,
     ),
     "refinery.transport.fuel_consumption_liters_per_km": ConfigMetadata(
         name="refinery.transport.fuel_consumption_liters_per_km",
@@ -1275,7 +1270,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.15,
-        validation_max=0.60
+        validation_max=0.60,
     ),
     "refinery.mobile.fuel_consumption_liters_per_ton": ConfigMetadata(
         name="refinery.mobile.fuel_consumption_liters_per_ton",
@@ -1288,9 +1283,8 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=2.0,
-        validation_max=10.0
+        validation_max=10.0,
     ),
-
     # --- Phase 12: Advanced Economics & LCA Environmental Parameters ---
     "economics.diesel_price_inr_per_liter": ConfigMetadata(
         name="economics.diesel_price_inr_per_liter",
@@ -1303,7 +1297,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=60.0,
-        validation_max=150.0
+        validation_max=150.0,
     ),
     "economics.farmer_procurement_price_per_ton": ConfigMetadata(
         name="economics.farmer_procurement_price_per_ton",
@@ -1316,7 +1310,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=500.0,
-        validation_max=3500.0
+        validation_max=3500.0,
     ),
     "economics.discount_rate_wacc_pct": ConfigMetadata(
         name="economics.discount_rate_wacc_pct",
@@ -1329,7 +1323,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=5.0,
-        validation_max=20.0
+        validation_max=20.0,
     ),
     "economics.equipment_depreciation_years": ConfigMetadata(
         name="economics.equipment_depreciation_years",
@@ -1342,7 +1336,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=3.0,
-        validation_max=15.0
+        validation_max=15.0,
     ),
     "environmental.emission_factor_burning_co2_kg_per_ton": ConfigMetadata(
         name="environmental.emission_factor_burning_co2_kg_per_ton",
@@ -1355,7 +1349,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1000.0,
-        validation_max=1800.0
+        validation_max=1800.0,
     ),
     "environmental.emission_factor_burning_ch4_kg_per_ton": ConfigMetadata(
         name="environmental.emission_factor_burning_ch4_kg_per_ton",
@@ -1368,7 +1362,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1.0,
-        validation_max=6.0
+        validation_max=6.0,
     ),
     "environmental.emission_factor_burning_n2o_kg_per_ton": ConfigMetadata(
         name="environmental.emission_factor_burning_n2o_kg_per_ton",
@@ -1381,7 +1375,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.02,
-        validation_max=0.20
+        validation_max=0.20,
     ),
     "environmental.emission_factor_burning_pm25_kg_per_ton": ConfigMetadata(
         name="environmental.emission_factor_burning_pm25_kg_per_ton",
@@ -1394,7 +1388,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=4.0,
-        validation_max=15.0
+        validation_max=15.0,
     ),
     "environmental.diesel_emission_factor_kg_co2_per_liter": ConfigMetadata(
         name="environmental.diesel_emission_factor_kg_co2_per_liter",
@@ -1407,7 +1401,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=2.4,
-        validation_max=3.0
+        validation_max=3.0,
     ),
     "environmental.gwp_ch4_ar6": ConfigMetadata(
         name="environmental.gwp_ch4_ar6",
@@ -1420,7 +1414,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=25.0,
-        validation_max=32.0
+        validation_max=32.0,
     ),
     "environmental.gwp_n2o_ar6": ConfigMetadata(
         name="environmental.gwp_n2o_ar6",
@@ -1433,7 +1427,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=260.0,
-        validation_max=300.0
+        validation_max=300.0,
     ),
     "environmental.coal_displacement_ratio_briquette": ConfigMetadata(
         name="environmental.coal_displacement_ratio_briquette",
@@ -1446,7 +1440,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.6,
-        validation_max=1.1
+        validation_max=1.1,
     ),
     "environmental.coal_emission_factor_kg_co2_per_ton": ConfigMetadata(
         name="environmental.coal_emission_factor_kg_co2_per_ton",
@@ -1459,7 +1453,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=1800.0,
-        validation_max=2500.0
+        validation_max=2500.0,
     ),
     "environmental.biochar_stable_carbon_fraction": ConfigMetadata(
         name="environmental.biochar_stable_carbon_fraction",
@@ -1472,7 +1466,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.0.0",
         validation_min=0.40,
-        validation_max=0.90
+        validation_max=0.90,
     ),
     # --- Phase 10: Biomass Estimation Science Parameters ---
     "biomass.crop_baseline_yields_tons_per_acre": ConfigMetadata(
@@ -1484,7 +1478,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         source="Punjab Agricultural University (PAU) Handbooks of Agriculture 2024",
         source_url_or_ref="https://www.pau.edu",
         effective_date="2025-01-01",
-        version="1.1.0"
+        version="1.1.0",
     ),
     "biomass.crop_retained_fractions": ConfigMetadata(
         name="biomass.crop_retained_fractions",
@@ -1495,7 +1489,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         source="Indian Agricultural Research Institute (IARI) Conservation Agriculture Protocols",
         source_url_or_ref="https://www.iari.res.in",
         effective_date="2025-01-01",
-        version="1.1.0"
+        version="1.1.0",
     ),
     "biomass.crop_competing_fractions": ConfigMetadata(
         name="biomass.crop_competing_fractions",
@@ -1506,7 +1500,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         source="TIFAC / MNRE Agricultural Residue Utilization Study",
         source_url_or_ref="https://tifac.org.in",
         effective_date="2025-01-01",
-        version="1.1.0"
+        version="1.1.0",
     ),
     "biomass.crop_rpr_table": ConfigMetadata(
         name="biomass.crop_rpr_table",
@@ -1517,18 +1511,24 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         source="Devi et al. (2017) / MNRE National Bioenergy Taskforce",
         source_url_or_ref="https://mnre.gov.in",
         effective_date="2025-01-01",
-        version="1.1.0"
+        version="1.1.0",
     ),
     "biomass.confidence_by_source": ConfigMetadata(
         name="biomass.confidence_by_source",
-        value={"MEASURED_ACTUAL": 0.98, "MEASURED_HARVEST": 0.95, "FARMER_REPORTED_HARVEST": 0.88, "FARMER_REPORTED_CROP": 0.85, "REGIONAL_BASELINE": 0.78},
+        value={
+            "MEASURED_ACTUAL": 0.98,
+            "MEASURED_HARVEST": 0.95,
+            "FARMER_REPORTED_HARVEST": 0.88,
+            "FARMER_REPORTED_CROP": 0.85,
+            "REGIONAL_BASELINE": 0.78,
+        },
         data_type="json",
         unit="confidence score (0-1)",
         description="Confidence scores assigned based on empirical evidence provenance.",
         source="Stubble2Power Scientific Quality Assurance Framework",
         source_url_or_ref="docs/BIOMASS_METHODOLOGY.md",
         effective_date="2025-01-01",
-        version="1.1.0"
+        version="1.1.0",
     ),
     "biomass.collection_window_days": ConfigMetadata(
         name="biomass.collection_window_days",
@@ -1541,7 +1541,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=10,
-        validation_max=60
+        validation_max=60,
     ),
     "biomass.allow_current_date_fallback": ConfigMetadata(
         name="biomass.allow_current_date_fallback",
@@ -1552,7 +1552,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         source="Stubble2Power Agronomic Workflow Standards",
         source_url_or_ref="docs/BIOMASS_METHODOLOGY.md",
         effective_date="2025-01-01",
-        version="1.1.0"
+        version="1.1.0",
     ),
     # --- Phase 11: Transport and Logistics Parameters ---
     "refinery.transport.average_speed_kmh": ConfigMetadata(
@@ -1566,7 +1566,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=15.0,
-        validation_max=65.0
+        validation_max=65.0,
     ),
     # --- Phase 12: Techno-Economics Parameters ---
     "economics.default_capex_per_unit_inr": ConfigMetadata(
@@ -1580,7 +1580,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=500000.0,
-        validation_max=10000000.0
+        validation_max=10000000.0,
     ),
     "economics.default_biomass_volume_tons": ConfigMetadata(
         name="economics.default_biomass_volume_tons",
@@ -1593,7 +1593,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=10.0,
-        validation_max=50000.0
+        validation_max=50000.0,
     ),
     "economics.seasonal_processing_capacity_tons": ConfigMetadata(
         name="economics.seasonal_processing_capacity_tons",
@@ -1606,7 +1606,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=50.0,
-        validation_max=1500.0
+        validation_max=1500.0,
     ),
     "economics.default_transport_cost_per_ton_inr": ConfigMetadata(
         name="economics.default_transport_cost_per_ton_inr",
@@ -1619,7 +1619,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=100.0,
-        validation_max=1200.0
+        validation_max=1200.0,
     ),
     "economics.labor_maintenance_cost_per_ton_inr": ConfigMetadata(
         name="economics.labor_maintenance_cost_per_ton_inr",
@@ -1632,7 +1632,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=150.0,
-        validation_max=1500.0
+        validation_max=1500.0,
     ),
     "economics.annual_fixed_overhead_fraction": ConfigMetadata(
         name="economics.annual_fixed_overhead_fraction",
@@ -1645,7 +1645,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=0.01,
-        validation_max=0.20
+        validation_max=0.20,
     ),
     "economics.seasons_per_year_multiplier": ConfigMetadata(
         name="economics.seasons_per_year_multiplier",
@@ -1658,7 +1658,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=1.0,
-        validation_max=3.0
+        validation_max=3.0,
     ),
     # --- Phase 12: Environmental LCA Parameters ---
     "environmental.default_biomass_volume_tons": ConfigMetadata(
@@ -1672,7 +1672,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=1.0,
-        validation_max=50000.0
+        validation_max=50000.0,
     ),
     "environmental.default_briquette_fraction": ConfigMetadata(
         name="environmental.default_briquette_fraction",
@@ -1685,7 +1685,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=0.0,
-        validation_max=1.0
+        validation_max=1.0,
     ),
     "environmental.default_biochar_fraction": ConfigMetadata(
         name="environmental.default_biochar_fraction",
@@ -1698,7 +1698,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=0.0,
-        validation_max=1.0
+        validation_max=1.0,
     ),
     "environmental.transport_fuel_consumption_liters_per_km": ConfigMetadata(
         name="environmental.transport_fuel_consumption_liters_per_km",
@@ -1711,7 +1711,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=0.20,
-        validation_max=0.80
+        validation_max=0.80,
     ),
     # --- Phase 14: Security, Privacy & Governance Settings ---
     "security.jwt_secret_key": ConfigMetadata(
@@ -1723,7 +1723,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         source="Application Environment / Secrets Manager",
         source_url_or_ref="backend/core/security/auth.py",
         effective_date="2025-01-01",
-        version="1.1.0"
+        version="1.1.0",
     ),
     "security.jwt_algorithm": ConfigMetadata(
         name="security.jwt_algorithm",
@@ -1734,7 +1734,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         source="IETF RFC 7519",
         source_url_or_ref="https://tools.ietf.org/html/rfc7519",
         effective_date="2025-01-01",
-        version="1.1.0"
+        version="1.1.0",
     ),
     "security.access_token_expire_minutes": ConfigMetadata(
         name="security.access_token_expire_minutes",
@@ -1747,7 +1747,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=5,
-        validation_max=1440
+        validation_max=1440,
     ),
     "security.refresh_token_expire_days": ConfigMetadata(
         name="security.refresh_token_expire_days",
@@ -1760,7 +1760,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=1,
-        validation_max=30
+        validation_max=30,
     ),
     "security.rate_limit_per_minute": ConfigMetadata(
         name="security.rate_limit_per_minute",
@@ -1773,7 +1773,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=10,
-        validation_max=1000
+        validation_max=1000,
     ),
     "privacy.retention_period_days_audit": ConfigMetadata(
         name="privacy.retention_period_days_audit",
@@ -1786,7 +1786,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=90,
-        validation_max=1825
+        validation_max=1825,
     ),
     "privacy.retention_period_days_user_data": ConfigMetadata(
         name="privacy.retention_period_days_user_data",
@@ -1799,7 +1799,7 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=30,
-        validation_max=1825
+        validation_max=1825,
     ),
     "privacy.location_privacy_decimals": ConfigMetadata(
         name="privacy.location_privacy_decimals",
@@ -1812,13 +1812,14 @@ DEFAULT_CONFIG_REGISTRY: Dict[str, ConfigMetadata] = {
         effective_date="2025-01-01",
         version="1.1.0",
         validation_min=1,
-        validation_max=6
-    )
+        validation_max=6,
+    ),
 }
 
 
 class ConfigManager:
     """Thread-safe, validated configuration manager with runtime parameter retrieval."""
+
     def __init__(self, overrides: Optional[Dict[str, Any]] = None):
         self._registry: Dict[str, ConfigMetadata] = dict(DEFAULT_CONFIG_REGISTRY)
         if overrides:
@@ -1832,19 +1833,13 @@ class ConfigManager:
     def get(self, key: str) -> Any:
         """Retrieve the parameter value."""
         if key not in self._registry:
-            raise ConfigurationError(
-                message=f"Configuration parameter '{key}' not found in registry.",
-                parameter=key
-            )
+            raise ConfigurationError(message=f"Configuration parameter '{key}' not found in registry.", parameter=key)
         return self._registry[key].value
 
     def get_metadata(self, key: str) -> ConfigMetadata:
         """Retrieve full metadata for a parameter."""
         if key not in self._registry:
-            raise ConfigurationError(
-                message=f"Configuration parameter '{key}' not found in registry.",
-                parameter=key
-            )
+            raise ConfigurationError(message=f"Configuration parameter '{key}' not found in registry.", parameter=key)
         return self._registry[key]
 
     def set(self, key: str, value: Any, source_update: Optional[str] = None) -> ConfigMetadata:
@@ -1860,7 +1855,7 @@ class ConfigManager:
             return meta
         raise ConfigurationError(
             message=f"Unknown parameter '{key}'. New parameters must be registered with full ConfigMetadata.",
-            parameter=key
+            parameter=key,
         )
 
     def get_all(self) -> Dict[str, ConfigMetadata]:
@@ -1869,18 +1864,14 @@ class ConfigManager:
 
     def get_scenario_assumptions(self, scenario_name: str) -> Dict[str, float]:
         """Extract scenario dictionary compatible with economics and environmental engines."""
-        key_map = {
-            "Conservative": "conservative",
-            "Base Case": "base_case",
-            "Optimistic": "optimistic"
-        }
+        key_map = {"Conservative": "conservative", "Base Case": "base_case", "Optimistic": "optimistic"}
         normalized = key_map.get(scenario_name, "base_case")
-        
+
         prefix = f"scenario.{normalized}."
         assumptions: Dict[str, float] = {}
         for key, meta in self._registry.items():
             if key.startswith(prefix):
-                param_name = key[len(prefix):]
+                param_name = key[len(prefix) :]
                 assumptions[param_name] = float(meta.value)
         return assumptions
 
@@ -1890,12 +1881,12 @@ class ConfigManager:
             if meta.validation_min is not None and meta.value < meta.validation_min:
                 raise ConfigurationError(
                     message=f"Value {meta.value} for '{meta.name}' is below minimum {meta.validation_min} {meta.unit}",
-                    parameter=meta.name
+                    parameter=meta.name,
                 )
             if meta.validation_max is not None and meta.value > meta.validation_max:
                 raise ConfigurationError(
                     message=f"Value {meta.value} for '{meta.name}' is above maximum {meta.validation_max} {meta.unit}",
-                    parameter=meta.name
+                    parameter=meta.name,
                 )
 
 

@@ -7,9 +7,9 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-PostGIS-336791.svg)](https://postgis.net/)
 [![NASA Space Apps](https://img.shields.io/badge/NASA_Space_Apps-Challenge_09-0B3D91.svg)](https://www.spaceappschallenge.org/)
-[![Test Suite](https://img.shields.io/badge/Tests-144%20Passed%20(100%25)-brightgreen.svg)](docs/SCIENTIFIC_VALIDATION.md)
+[![Test Suite](https://img.shields.io/badge/Tests-145%20Passed%20(100%25)-brightgreen.svg)](docs/SCIENTIFIC_VALIDATION.md)
 [![Security: PBKDF2--SHA256](https://img.shields.io/badge/Security-PBKDF2--SHA256-green.svg)](docs/SECURITY_THREAT_MODEL.md)
-[![Compliance: DPDP Act 2023](https://img.shields.io/badge/Compliance-DPDP_Act_2023-blue.svg)](docs/PRIVACY_GOVERNANCE.md)
+[![Privacy: DPDP Act 2023 Controls](https://img.shields.io/badge/Privacy-DPDP_Act_2023_Controls-blue.svg)](docs/PRIVACY_GOVERNANCE.md)
 [![Release: v2.5.0](https://img.shields.io/badge/Release-v2.5.0-blue.svg)](docs/RELEASE_NOTES_v2.5.0.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -22,7 +22,7 @@
 The platform unites three core pillars:
 1. **NASA Satellite Fire Intelligence**: Harmonizes NASA FIRMS MODIS (Terra & Aqua) and VIIRS (NOAA-20, Suomi-NPP, NOAA-21) active fire observations into a coherent spatial and temporal burning activity calendar with statistical anomaly detection and agricultural context classification.
 2. **Agricultural Waste Management Intelligence**: Connects farm parcel coordinates with on-site mobile bio-refinery routing (2-Opt TSP road routing), crop-specific residue estimation, techno-economic DCF modeling, and cradle-to-grave LCA carbon accounting (Verra VM0044/Puro.earth additionality).
-3. **Enterprise Identity, Governance, DevOps & Testing Platform (Phases 13 to 17)**: Features dedicated role-oriented workspaces (7 standard roles), multi-tenant cooperative isolation, salted PBKDF2-SHA256 authentication, HMAC-SHA256 JWT sessions, fine-grained server-side RBAC, purpose-bound DPDP Act 2023 consent tracking, 144 automated tests with 100% pass rate, multi-stage non-root container deployment, automated database backups with SHA-256 verification, and multilingual localization (English, Hindi, Punjabi).
+3. **Enterprise Identity, Governance, DevOps & Testing Platform (Phases 13 to 17)**: Features dedicated role-oriented workspaces (7 standard roles), multi-tenant cooperative isolation, salted PBKDF2-SHA256 authentication, HMAC-SHA256 JWT sessions, fine-grained server-side RBAC, purpose-bound DPDP Act 2023 consent tracking, 145 automated tests with 100% pass rate, multi-stage non-root container deployment, automated database backups with AES-128-CBC authenticated encryption and SHA-256 verification, and multilingual localization (English, Hindi, Punjabi).
 
 ### Selected NASA Space Apps Challenge
 - **Challenge 09: Harmonization of MODIS and VIIRS Hot Spots**
@@ -74,7 +74,7 @@ Stubble2Power/
 │   └── seeds/               # Reference datasets: benchmark farmers, satellite fire observations, AOIs
 │
 ├── scripts/
-│   ├── backup_db.py         # Automated SQLite & PostgreSQL backup with SHA-256 integrity
+│   ├── backup_db.py         # Automated SQLite & PostgreSQL backup with AES-128-CBC encryption and SHA-256 integrity
 │   └── restore_db.py        # Automated restore utility with cryptographic validation and smoke testing
 │
 ├── .github/workflows/
@@ -127,16 +127,16 @@ Stubble2Power/
 - **Professional Typography**: Strict zero-emoji interface adhering to professional enterprise design guidelines.
 - **Cryptographic Security**: Salted PBKDF2-SHA256 password hashing (100,000 rounds), HMAC-SHA256 JWT access and refresh tokens, and active session management.
 - **Granular RBAC & Tenant Isolation**: 32 distinct permissions, row-level tenant organization partitioning, and object-level ownership guards.
-- **DPDP Act 2023 Compliance**: Purpose-bound consent recording and withdrawal, Data Subject Request (DSR) management, and 2-decimal geospatial location obfuscation (~1.1 km blur for public access).
+- **DPDP Act 2023 Technical Controls**: Purpose-bound consent recording and withdrawal, Data Subject Request (DSR) management, and 2-decimal geospatial location obfuscation (~1.1 km blur for public access). Statutory compliance requires independent legal review.
 - **Immutable Audit Trails**: Relational `audit_logs` and `security_events` with database engine triggers forbidding update and delete operations.
 
 ### System D: Production Quality, DevOps & Release Readiness (Phases 15 to 17)
-- **100% Automated Test Suite**: 144 automated tests across 8 categories (Unit, Integration, Regression, Scientific, Performance, Reliability, and E2E) with 100% pass rate.
+- **100% Automated Test Suite**: 145 automated tests across 8 categories (Unit, Integration, Regression, Scientific, Performance, Reliability, and E2E) with 100% pass rate.
 - **Scientific Validation Report**: Comprehensive documentation in `docs/SCIENTIFIC_VALIDATION.md`.
 - **Hardened Multi-Stage Dockerfile**: Unprivileged non-root user execution (`stubble_app`, UID 10001) with internal healthchecks.
 - **Fail-Closed Production Compose**: Isolated Docker network, zero host database port exposure, and resource quotas.
-- **Automated CI/CD Pipeline**: 5-stage GitHub Actions workflow covering linting, security scanning, testing, container build, and deployment.
-- **Disaster Recovery Subsystem**: Automated database backup and restore utilities (`scripts/backup_db.py`, `scripts/restore_db.py`) with cryptographic SHA-256 verification and retention management.
+- **Automated CI/CD Pipeline**: 6-stage GitHub Actions workflow covering secret scanning, linting, security scanning, testing, container build, and deployment.
+- **Disaster Recovery Subsystem**: Automated database backup and restore utilities (`scripts/backup_db.py`, `scripts/restore_db.py`) with AES-128-CBC/Fernet encryption, cryptographic SHA-256 verification, confirmation-gated destruction prevention, and automated retention management.
 
 ---
 
@@ -215,7 +215,7 @@ docker compose -f docker-compose.prod.yml ps
 
 ## Automated Testing & Scientific Verification
 
-Execute the complete 144-test automated pyramid:
+Execute the complete 145-test automated pyramid:
 
 ```bash
 # Run all test suites

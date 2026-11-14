@@ -9,11 +9,7 @@ from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_
 
-from backend.models.entities import (
-    FireActivityAnomaly,
-    HarmonizedObservation,
-    HistoricalBaseline
-)
+from backend.models.entities import FireActivityAnomaly, HarmonizedObservation, HistoricalBaseline
 from backend.services.seasonal.baseline_service import HistoricalBaselineService
 from backend.services.anomaly.explanation_service import AnomalyExplanationService
 from backend.services.geospatial.service import GeospatialService
@@ -29,6 +25,7 @@ class StatisticalAnomalyDetector:
         self.baseline_svc = HistoricalBaselineService(db)
         self.geo_svc = GeospatialService()
         from backend.services.agriculture.crop_calendar_service import CropCalendarService
+
         self.crop_cal_svc = CropCalendarService(db)
         self.zscore_thresh = float(config_manager.get("anomaly.detection.zscore_threshold"))
         self.mad_thresh = float(config_manager.get("anomaly.detection.mad_threshold"))
@@ -48,7 +45,7 @@ class StatisticalAnomalyDetector:
         zscore_threshold: Optional[float] = None,
         mad_threshold: Optional[float] = None,
         min_frp_mw: Optional[float] = None,
-        persist: bool = True
+        persist: bool = True,
     ) -> List[FireActivityAnomaly]:
         """
         Executes multi-method statistical anomaly detection across all harmonized fire cells
@@ -61,8 +58,7 @@ class StatisticalAnomalyDetector:
         # 1. Fetch harmonized observations in range
         stmt = select(HarmonizedObservation).where(
             and_(
-                HarmonizedObservation.observation_date >= date_start,
-                HarmonizedObservation.observation_date <= date_end
+                HarmonizedObservation.observation_date >= date_start, HarmonizedObservation.observation_date <= date_end
             )
         )
         obs_records = list(self.db.scalars(stmt).all())
@@ -72,7 +68,9 @@ class StatisticalAnomalyDetector:
 
         # 2. Pre-fetch historical baselines
         all_baselines = self.baseline_svc.get_all_baselines(region_id=region_id, metric_type="harmonized_frp_mw")
-        baseline_by_doy: Dict[int, HistoricalBaseline] = {b.day_of_year: b for b in all_baselines if b.day_of_year is not None}
+        baseline_by_doy: Dict[int, HistoricalBaseline] = {
+            b.day_of_year: b for b in all_baselines if b.day_of_year is not None
+        }
         fallback_baseline = all_baselines[0] if all_baselines else None
 
         detected_anomalies: List[FireActivityAnomaly] = []
@@ -127,7 +125,7 @@ class StatisticalAnomalyDetector:
 
             # Check unseasonal burning via authoritative crop calendar harvest windows
             harvest_match = self.crop_cal_svc.match_harvest_window(obs.observation_date, state_name=region_id)
-            is_unseasonal = (harvest_match["status"] == "OFF_SEASON")
+            is_unseasonal = harvest_match["status"] == "OFF_SEASON"
 
             if mad_score >= mad_th or z_score >= z_th:
                 is_anomaly = True
@@ -172,7 +170,7 @@ class StatisticalAnomalyDetector:
                 anomaly_type=anomaly_type,
                 severity_level=severity,
                 data_sufficiency_status=data_sufficiency,
-                co_occurring_count=co_occurring_count
+                co_occurring_count=co_occurring_count,
             )
 
             anomaly_record = FireActivityAnomaly(
@@ -190,7 +188,7 @@ class StatisticalAnomalyDetector:
                 data_sufficiency_flag=sufficiency_flag,
                 explanation_json=explanation,
                 centroid_lat=obs.centroid_lat,
-                centroid_lon=obs.centroid_lon
+                centroid_lon=obs.centroid_lon,
             )
             detected_anomalies.append(anomaly_record)
 
@@ -200,7 +198,7 @@ class StatisticalAnomalyDetector:
                 and_(
                     FireActivityAnomaly.region_id == region_id,
                     FireActivityAnomaly.observation_date >= date_start,
-                    FireActivityAnomaly.observation_date <= date_end
+                    FireActivityAnomaly.observation_date <= date_end,
                 )
             ).delete()
             self.db.add_all(detected_anomalies)
@@ -214,7 +212,7 @@ class StatisticalAnomalyDetector:
         region_id: Optional[str] = None,
         date_start: Optional[date] = None,
         date_end: Optional[date] = None,
-        severity_level: Optional[str] = None
+        severity_level: Optional[str] = None,
     ) -> List[FireActivityAnomaly]:
         """Lists detected fire activity anomalies with flexible filters."""
         stmt = select(FireActivityAnomaly)

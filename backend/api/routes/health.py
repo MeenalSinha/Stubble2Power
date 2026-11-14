@@ -24,5 +24,5 @@ def get_health_status():
         "environment": app_settings.app_env,
         "database_connected": db_ok,
         "nasa_firms_configured": nasa_configured,
-        "api_version": "2.5.0"
+        "api_version": "2.5.0",
     }

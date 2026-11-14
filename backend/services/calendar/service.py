@@ -15,7 +15,7 @@ from backend.schemas.calendar import (
     DailyCalendarEntry,
     WeeklyCalendarSummary,
     MonthlyCalendarSummary,
-    AnnualCalendarSummary
+    AnnualCalendarSummary,
 )
 
 
@@ -24,10 +24,7 @@ class CalendarAggregationService:
         self.db = db
 
     def get_daily_calendar(
-        self,
-        date_start: date,
-        date_end: date,
-        bbox: Optional[List[float]] = None
+        self, date_start: date, date_end: date, bbox: Optional[List[float]] = None
     ) -> List[DailyCalendarEntry]:
         """
         Derives continuous daily calendar entries from harmonized database records.
@@ -36,8 +33,7 @@ class CalendarAggregationService:
         # Query harmonized observations in range
         stmt = select(HarmonizedObservation).where(
             and_(
-                HarmonizedObservation.observation_date >= date_start,
-                HarmonizedObservation.observation_date <= date_end
+                HarmonizedObservation.observation_date >= date_start, HarmonizedObservation.observation_date <= date_end
             )
         )
         if bbox and len(bbox) == 4:
@@ -45,7 +41,7 @@ class CalendarAggregationService:
             stmt = stmt.where(
                 and_(
                     HarmonizedObservation.centroid_lat.between(min_lat, max_lat),
-                    HarmonizedObservation.centroid_lon.between(min_lon, max_lon)
+                    HarmonizedObservation.centroid_lon.between(min_lon, max_lon),
                 )
             )
 
@@ -79,17 +75,19 @@ class CalendarAggregationService:
                 else:
                     status = "ZERO_BURNING"
 
-                calendar_entries.append(DailyCalendarEntry(
-                    date=curr_date,
-                    day_of_week=curr_date.strftime("%A"),
-                    modis_detections=m_count,
-                    viirs_detections=v_count,
-                    total_detections=tot_count,
-                    associated_detections=assoc_count,
-                    harmonized_activity_index=round(mean_activity, 1),
-                    total_frp_mw=round(tot_frp, 1),
-                    coverage_status=status
-                ))
+                calendar_entries.append(
+                    DailyCalendarEntry(
+                        date=curr_date,
+                        day_of_week=curr_date.strftime("%A"),
+                        modis_detections=m_count,
+                        viirs_detections=v_count,
+                        total_detections=tot_count,
+                        associated_detections=assoc_count,
+                        harmonized_activity_index=round(mean_activity, 1),
+                        total_frp_mw=round(tot_frp, 1),
+                        coverage_status=status,
+                    )
+                )
             else:
                 # Distinguish whether normalized data exists on this date within the specified AOI
                 stmt_obs = select(func.count(NormalizedSatelliteObservation.id)).where(
@@ -100,33 +98,31 @@ class CalendarAggregationService:
                     stmt_obs = stmt_obs.where(
                         and_(
                             NormalizedSatelliteObservation.latitude.between(min_lat, max_lat),
-                            NormalizedSatelliteObservation.longitude.between(min_lon, max_lon)
+                            NormalizedSatelliteObservation.longitude.between(min_lon, max_lon),
                         )
                     )
                 obs_count = self.db.scalar(stmt_obs) or 0
 
                 status = "ZERO_BURNING" if obs_count > 0 else "NO_OVERPASS"
-                calendar_entries.append(DailyCalendarEntry(
-                    date=curr_date,
-                    day_of_week=curr_date.strftime("%A"),
-                    modis_detections=0,
-                    viirs_detections=0,
-                    total_detections=0,
-                    associated_detections=0,
-                    harmonized_activity_index=0.0,
-                    total_frp_mw=0.0,
-                    coverage_status=status
-                ))
+                calendar_entries.append(
+                    DailyCalendarEntry(
+                        date=curr_date,
+                        day_of_week=curr_date.strftime("%A"),
+                        modis_detections=0,
+                        viirs_detections=0,
+                        total_detections=0,
+                        associated_detections=0,
+                        harmonized_activity_index=0.0,
+                        total_frp_mw=0.0,
+                        coverage_status=status,
+                    )
+                )
 
             curr_date += delta
 
         return calendar_entries
 
-    def get_weekly_summaries(
-        self,
-        year: int,
-        bbox: Optional[List[float]] = None
-    ) -> List[WeeklyCalendarSummary]:
+    def get_weekly_summaries(self, year: int, bbox: Optional[List[float]] = None) -> List[WeeklyCalendarSummary]:
         """Aggregates weekly burning metrics across all ISO calendar weeks."""
         d_start = date(year, 1, 1)
         d_end = date(year, 12, 31)
@@ -155,26 +151,24 @@ class CalendarAggregationService:
                     peak_count = e.total_detections
                     peak_d = e.date
 
-            summaries.append(WeeklyCalendarSummary(
-                week_number=week_num,
-                year=year,
-                start_date=w_start,
-                end_date=w_end,
-                total_detections=tot_detections,
-                modis_detections=m_detections,
-                viirs_detections=v_detections,
-                mean_daily_activity=round(mean_act, 1),
-                peak_date=peak_d,
-                peak_detections=peak_count
-            ))
+            summaries.append(
+                WeeklyCalendarSummary(
+                    week_number=week_num,
+                    year=year,
+                    start_date=w_start,
+                    end_date=w_end,
+                    total_detections=tot_detections,
+                    modis_detections=m_detections,
+                    viirs_detections=v_detections,
+                    mean_daily_activity=round(mean_act, 1),
+                    peak_date=peak_d,
+                    peak_detections=peak_count,
+                )
+            )
 
         return summaries
 
-    def get_monthly_summaries(
-        self,
-        year: int,
-        bbox: Optional[List[float]] = None
-    ) -> List[MonthlyCalendarSummary]:
+    def get_monthly_summaries(self, year: int, bbox: Optional[List[float]] = None) -> List[MonthlyCalendarSummary]:
         """Aggregates monthly burning metrics for an entire annual cycle."""
         summaries: List[MonthlyCalendarSummary] = []
 
@@ -197,26 +191,24 @@ class CalendarAggregationService:
                     peak_count = d.total_detections
                     peak_d = d.date
 
-            summaries.append(MonthlyCalendarSummary(
-                year=year,
-                month=month,
-                month_name=calendar.month_name[month],
-                total_detections=tot_detections,
-                modis_detections=m_detections,
-                viirs_detections=v_detections,
-                mean_daily_activity=round(mean_act, 1),
-                active_burning_days=active_days,
-                peak_date=peak_d,
-                peak_detections=peak_count
-            ))
+            summaries.append(
+                MonthlyCalendarSummary(
+                    year=year,
+                    month=month,
+                    month_name=calendar.month_name[month],
+                    total_detections=tot_detections,
+                    modis_detections=m_detections,
+                    viirs_detections=v_detections,
+                    mean_daily_activity=round(mean_act, 1),
+                    active_burning_days=active_days,
+                    peak_date=peak_d,
+                    peak_detections=peak_count,
+                )
+            )
 
         return summaries
 
-    def get_annual_summary(
-        self,
-        year: int,
-        bbox: Optional[List[float]] = None
-    ) -> AnnualCalendarSummary:
+    def get_annual_summary(self, year: int, bbox: Optional[List[float]] = None) -> AnnualCalendarSummary:
         """Derives annual trend and detects seasonal burning boundaries (Oct-Nov peak in Punjab)."""
         monthly = self.get_monthly_summaries(year, bbox)
         total_det = sum(m.total_detections for m in monthly)
@@ -241,5 +233,5 @@ class CalendarAggregationService:
             burning_season_start=season_start,
             burning_season_peak=season_peak,
             burning_season_end=season_end,
-            seasonal_total_detections=seasonal_tot
+            seasonal_total_detections=seasonal_tot,
         )

@@ -8,11 +8,7 @@ from backend.core.exceptions.base import AuthorizationError
 
 # Granular Permission Definitions
 PERMISSIONS_MATRIX: Dict[str, Set[str]] = {
-    "PUBLIC_VISITOR": {
-        "fire:view_public",
-        "agriculture:view_public",
-        "report:view_public"
-    },
+    "PUBLIC_VISITOR": {"fire:view_public", "agriculture:view_public", "report:view_public"},
     "FARMER": {
         "fire:view_public",
         "agriculture:view_public",
@@ -23,7 +19,7 @@ PERMISSIONS_MATRIX: Dict[str, Set[str]] = {
         "biomass:view_own",
         "consent:manage_own",
         "privacy:submit_request",
-        "report:view_own"
+        "report:view_own",
     },
     "FIELD_OPERATOR": {
         "fire:view_public",
@@ -32,7 +28,7 @@ PERMISSIONS_MATRIX: Dict[str, Set[str]] = {
         "collection:update",
         "biomass:view_assigned",
         "unit:view_assigned",
-        "report:view_assigned"
+        "report:view_assigned",
     },
     "AGRICULTURAL_ANALYST": {
         "fire:view_public",
@@ -41,7 +37,7 @@ PERMISSIONS_MATRIX: Dict[str, Set[str]] = {
         "agriculture:view_analytics",
         "crop:view_analytics",
         "biomass:view_all",
-        "report:generate_agri"
+        "report:generate_agri",
     },
     "ENVIRONMENTAL_ANALYST": {
         "fire:view_public",
@@ -51,7 +47,7 @@ PERMISSIONS_MATRIX: Dict[str, Set[str]] = {
         "agriculture:view_context",
         "lca:view_assess",
         "lca:conduct_assess",
-        "report:generate_env"
+        "report:generate_env",
     },
     "ORGANIZATION_MANAGER": {
         "fire:view_public",
@@ -73,7 +69,7 @@ PERMISSIONS_MATRIX: Dict[str, Set[str]] = {
         "finance:evaluate_org",
         "lca:view_assess",
         "lca:conduct_assess",
-        "report:generate_all"
+        "report:generate_all",
     },
     "SYSTEM_ADMINISTRATOR": {
         "*",  # Universal administrative wildcard
@@ -122,8 +118,8 @@ PERMISSIONS_MATRIX: Dict[str, Set[str]] = {
         "user:manage_all",
         "security:view_events",
         "retention:execute",
-        "backup:execute"
-    }
+        "backup:execute",
+    },
 }
 
 
@@ -131,7 +127,7 @@ def has_permission(user_role: str, required_permission: str) -> bool:
     """Evaluates whether the given user role possesses the required granular permission."""
     role_key = (user_role or "PUBLIC_VISITOR").upper()
     role_perms = PERMISSIONS_MATRIX.get(role_key, set())
-    
+
     if "*" in role_perms:
         return True
     return required_permission in role_perms
@@ -150,5 +146,5 @@ def assert_permission(user_role: str, required_permission: str) -> None:
         raise AuthorizationError(
             message=f"Access denied: Role '{user_role}' lacks required permission '{required_permission}'.",
             role=user_role,
-            required_permission=required_permission
+            required_permission=required_permission,
         )

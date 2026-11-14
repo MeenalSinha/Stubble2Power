@@ -56,7 +56,10 @@ class NotificationResponse(BaseModel):
 
 
 class SavedReportCreate(BaseModel):
-    report_type: str = Field(..., description="FARMER_DIRECTORY, BIOMASS_INVENTORY, DEPLOYMENT_DISPATCH, FINANCIAL_PROJECTION, LCA_IMPACT, FIRE_INTELLIGENCE")
+    report_type: str = Field(
+        ...,
+        description="FARMER_DIRECTORY, BIOMASS_INVENTORY, DEPLOYMENT_DISPATCH, FINANCIAL_PROJECTION, LCA_IMPACT, FIRE_INTELLIGENCE",
+    )
     title: str = Field(..., max_length=200)
     parameters_json: Optional[Dict[str, Any]] = None
     file_format: str = Field(default="CSV", description="CSV, JSON, SUMMARY")

@@ -36,7 +36,7 @@ def test_revenue_and_production_yield_mathematics(db_session: Session):
         farmer_procurement_price_per_ton=1500.0,
         diesel_price_per_liter=90.0,
         processing_capex_per_unit=2500000.0,
-        wacc_discount_rate_pct=10.5
+        wacc_discount_rate_pct=10.5,
     )
 
     scenario = svc.evaluate_scenario(payload)
@@ -62,7 +62,7 @@ def test_break_even_tonnage_formulation(db_session: Session):
         farmer_procurement_price_per_ton=1500.0,
         diesel_price_per_liter=90.0,
         processing_capex_per_unit=2000000.0,
-        wacc_discount_rate_pct=10.5
+        wacc_discount_rate_pct=10.5,
     )
 
     scenario = svc.evaluate_scenario(payload)
@@ -105,7 +105,7 @@ def test_dcf_npv_discounting_identity(db_session: Session):
         farmer_procurement_price_per_ton=1400.0,
         diesel_price_per_liter=88.0,
         processing_capex_per_unit=2500000.0,
-        wacc_discount_rate_pct=wacc
+        wacc_discount_rate_pct=wacc,
     )
 
     scenario = svc.evaluate_scenario(payload)
@@ -142,11 +142,11 @@ def test_negative_unit_economics_handling(db_session: Session):
         scenario_name="Underwater Scenario",
         biomass_processed_tons=500.0,
         briquette_price_per_ton=500.0,  # Unrealistic low price
-        biochar_price_per_ton=1000.0,   # Unrealistic low price
+        biochar_price_per_ton=1000.0,  # Unrealistic low price
         farmer_procurement_price_per_ton=4000.0,  # Exorbitant cost
         diesel_price_per_liter=150.0,
         processing_capex_per_unit=3000000.0,
-        wacc_discount_rate_pct=12.0
+        wacc_discount_rate_pct=12.0,
     )
 
     scenario = svc.evaluate_scenario(payload)

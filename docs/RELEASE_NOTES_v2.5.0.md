@@ -1,15 +1,15 @@
-# Stubble2Power v2.5.0 — Release Notes & Production Certification
+# Stubble2Power v2.5.0 — Release Notes & Production Readiness Verification
 
 **Release Version:** v2.5.0  
 **Release Date:** November 14, 2026  
-**Build Status:** Certified Production Ready  
+**Build Status:** Production-Ready Release Candidate (Technically Verified)  
 **NASA Challenge:** Space Apps Challenge 09 — Harmonization of MODIS and VIIRS Hot Spots  
 
 ---
 
 ## 1. Product Overview
 
-Stubble2Power v2.5.0 represents the final certified release of the Stubble2Power Earth observation, agricultural logistics, and clean energy decision-support platform. The application provides an integrated technological solution to the annual agricultural residue burning crisis across Northern India.
+Stubble2Power v2.5.0 represents the verified release candidate of the Stubble2Power Earth observation, agricultural logistics, and clean energy decision-support platform. The application provides an integrated technological solution to the annual agricultural residue burning crisis across Northern India.
 
 By bridging NASA FIRMS satellite remote sensing with on-the-ground mobile bio-refineries, the platform transforms an environmental hazard into high-value clean energy (densified briquettes, pellets) and carbon-sequestering biochar, while securing tangible economic incentives for smallholder farmers.
 
@@ -25,13 +25,13 @@ By bridging NASA FIRMS satellite remote sensing with on-the-ground mobile bio-re
   - NRIDA PMGSY rural road network tortuosity modeling ($\tau = 1.350$) and physical fuel consumption equations.
   - Capital budgeting DCF modeling discounted at $10.5\%$ WACC over a 10-year operating horizon.
   - Cradle-to-grave Life Cycle Assessment (LCA) compliant with ISO 14040/14044 and IPCC Sixth Assessment Report (AR6 WG1) GWP100 metrics.
-- Automated testing suite expanded to **144 test cases across 8 suites with a 100% pass rate**.
+- Automated testing suite expanded to **145 test cases across 8 suites with a 100% pass rate**.
 
 ### 2.2 Enterprise DevOps & Container Infrastructure (Phase 16)
 - Hardened multi-stage `Dockerfile` with non-root unprivileged execution (`stubble_app`, UID/GID 10001).
 - Fail-closed production Docker Compose configuration (`docker-compose.prod.yml`) ensuring PostgreSQL/PostGIS (port 5432) has zero public host exposure.
-- 5-stage automated CI/CD pipeline (`.github/workflows/ci-cd.yml`) covering static analysis, security scans (bandit, pip-audit), unit/integration/e2e testing, Docker build, and staging deployment.
-- Automated database backup and disaster recovery utilities (`scripts/backup_db.py`, `scripts/restore_db.py`) featuring streaming cryptographic SHA-256 verification and automated retention management.
+- 6-stage automated CI/CD pipeline (`.github/workflows/ci-cd.yml`) covering secret scanning (trufflehog), static analysis (ruff, black), security scans (bandit, pip-audit), automated tests, Docker build, and staging deployment with fail-closed credential gates.
+- Automated database backup and disaster recovery utilities (`scripts/backup_db.py`, `scripts/restore_db.py`) featuring AES-128-CBC/HMAC-SHA256 (Fernet) archive encryption, streaming cryptographic SHA-256 verification, confirmation-gated destruction prevention, and automated retention management.
 
 ### 2.3 Comprehensive Documentation & Handover (Phase 17)
 - Role-based operational user manuals (`docs/USER_GUIDES.md`) for all 5 enterprise personas.

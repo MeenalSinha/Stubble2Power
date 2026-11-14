@@ -21,7 +21,9 @@ class MobileRefineryService:
 
     def register_unit(self, payload: MobileRefineryCreate) -> MobileBioRefinery:
         """Registers a new mobile bio-refinery unit into the operational fleet."""
-        existing = self.db.scalars(select(MobileBioRefinery).where(MobileBioRefinery.unit_code == payload.unit_code)).first()
+        existing = self.db.scalars(
+            select(MobileBioRefinery).where(MobileBioRefinery.unit_code == payload.unit_code)
+        ).first()
         if existing:
             raise ValidationError(message=f"Unit code '{payload.unit_code}' is already registered.", field="unit_code")
 
@@ -41,7 +43,7 @@ class MobileRefineryService:
             home_latitude=payload.home_latitude,
             home_longitude=payload.home_longitude,
             max_travel_radius_km=payload.max_travel_radius_km,
-            is_active=True
+            is_active=True,
         )
         self.db.add(unit)
         self.db.commit()
@@ -55,12 +57,8 @@ class MobileRefineryService:
             raise NotFoundError(message=f"Mobile unit {unit_id} not found.", entity="MobileBioRefinery")
         return unit
 
-    def list_units(
-        self,
-        status: Optional[str] = None,
-        technology: Optional[str] = None
-    ) -> List[MobileBioRefinery]:
-        stmt = select(MobileBioRefinery).where(MobileBioRefinery.is_active == True)
+    def list_units(self, status: Optional[str] = None, technology: Optional[str] = None) -> List[MobileBioRefinery]:
+        stmt = select(MobileBioRefinery).where(MobileBioRefinery.is_active.is_(True))
         filters = []
         if status and isinstance(status, str):
             filters.append(MobileBioRefinery.current_status == status.upper())

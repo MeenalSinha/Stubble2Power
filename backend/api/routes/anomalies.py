@@ -11,11 +11,7 @@ from sqlalchemy import select
 from backend.models.database import get_db
 from backend.models.entities import FireActivityAnomaly
 from backend.services.anomaly.detector import StatisticalAnomalyDetector
-from backend.schemas.anomaly import (
-    AnomalyDetectRequest,
-    AnomalyResponse,
-    AnomalySummaryResponse
-)
+from backend.schemas.anomaly import AnomalyDetectRequest, AnomalyResponse, AnomalySummaryResponse
 
 router = APIRouter(prefix="/anomalies", tags=["Anomaly Detection"])
 
@@ -26,23 +22,17 @@ def get_anomalies(
     date_start: Optional[date] = None,
     date_end: Optional[date] = None,
     severity_level: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Retrieves detected fire activity anomalies with optional filtering."""
     detector = StatisticalAnomalyDetector(db)
     return detector.get_anomalies(
-        region_id=region_id,
-        date_start=date_start,
-        date_end=date_end,
-        severity_level=severity_level
+        region_id=region_id, date_start=date_start, date_end=date_end, severity_level=severity_level
     )
 
 
 @router.post("/detect", response_model=AnomalySummaryResponse)
-def detect_anomalies(
-    payload: AnomalyDetectRequest,
-    db: Session = Depends(get_db)
-):
+def detect_anomalies(payload: AnomalyDetectRequest, db: Session = Depends(get_db)):
     """Runs statistical anomaly detection across harmonized fire observations."""
     detector = StatisticalAnomalyDetector(db)
     anomalies = detector.detect_anomalies(
@@ -51,7 +41,7 @@ def detect_anomalies(
         region_id=payload.region_id,
         zscore_threshold=payload.zscore_threshold,
         mad_threshold=payload.mad_threshold,
-        min_frp_mw=payload.min_frp_mw
+        min_frp_mw=payload.min_frp_mw,
     )
 
     severity_counts = {
@@ -87,18 +77,15 @@ def detect_anomalies(
                 explanation_json=a.explanation_json,
                 centroid_lat=a.centroid_lat,
                 centroid_lon=a.centroid_lon,
-                created_at=a.created_at
+                created_at=a.created_at,
             )
             for a in anomalies
-        ]
+        ],
     )
 
 
 @router.get("/{anomaly_id}", response_model=AnomalyResponse)
-def get_anomaly_detail(
-    anomaly_id: int,
-    db: Session = Depends(get_db)
-):
+def get_anomaly_detail(anomaly_id: int, db: Session = Depends(get_db)):
     """Retrieves deep diagnostic evidence and explanation for an anomaly."""
     anomaly = db.scalars(select(FireActivityAnomaly).where(FireActivityAnomaly.id == anomaly_id)).first()
     if not anomaly:

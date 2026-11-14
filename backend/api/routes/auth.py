@@ -10,8 +10,11 @@ from sqlalchemy.orm import Session
 from backend.models.database import get_db
 from backend.models.entities import User
 from backend.schemas.auth import (
-    UserRegisterRequest, UserLoginRequest, TokenResponse,
-    UserProfileResponse, RolePermissionResponse
+    UserRegisterRequest,
+    UserLoginRequest,
+    TokenResponse,
+    UserProfileResponse,
+    RolePermissionResponse,
 )
 from backend.services.auth.auth_service import AuthService
 from backend.services.audit.audit_service import AuditService
@@ -26,7 +29,7 @@ def register_user(payload: UserRegisterRequest, request: Request, db: Session = 
     """Registers a new identity with salted password hashing and default personalization."""
     auth_svc = AuthService(db)
     user = auth_svc.register_user(payload)
-    
+
     audit_svc = AuditService(db)
     audit_svc.record_audit(
         action="USER_REGISTRATION",
@@ -36,7 +39,7 @@ def register_user(payload: UserRegisterRequest, request: Request, db: Session = 
         actor_username=user.username,
         organization_id=user.organization_id,
         client_ip=request.client.host if request.client else None,
-        details={"role": user.role_name, "email": user.email}
+        details={"role": user.role_name, "email": user.email},
     )
     return user
 
@@ -47,7 +50,7 @@ def login_user(payload: UserLoginRequest, request: Request, db: Session = Depend
     auth_svc = AuthService(db)
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
-    
+
     try:
         token_res = auth_svc.authenticate_user(payload, client_ip=client_ip, user_agent=user_agent)
         audit_svc = AuditService(db)
@@ -59,7 +62,7 @@ def login_user(payload: UserLoginRequest, request: Request, db: Session = Depend
             organization_id=token_res.organization_id,
             client_ip=client_ip,
             user_agent=user_agent,
-            status_code=200
+            status_code=200,
         )
         return token_res
     except Exception as e:
@@ -68,7 +71,7 @@ def login_user(payload: UserLoginRequest, request: Request, db: Session = Depend
             event_type="LOGIN_FAILURE",
             severity="MEDIUM",
             client_ip=client_ip,
-            details={"username_attempted": payload.username, "error": str(e)}
+            details={"username_attempted": payload.username, "error": str(e)},
         )
         raise
 
@@ -90,12 +93,14 @@ def list_roles_and_permissions():
         "AGRICULTURAL_ANALYST": "Domain scientist analyzing regional crop calendars and biomass availability.",
         "ENVIRONMENTAL_ANALYST": "Remote sensing scientist analyzing satellite observations and LCA carbon accounting.",
         "ORGANIZATION_MANAGER": "Manager of an agricultural cooperative or bioenergy cluster enterprise.",
-        "SYSTEM_ADMINISTRATOR": "Platform administrator with privileged operational and configuration access."
+        "SYSTEM_ADMINISTRATOR": "Platform administrator with privileged operational and configuration access.",
     }
     for role, perms in PERMISSIONS_MATRIX.items():
-        result.append(RolePermissionResponse(
-            role_name=role,
-            description=descriptions.get(role, "Standard platform role"),
-            permissions=sorted(list(perms))
-        ))
+        result.append(
+            RolePermissionResponse(
+                role_name=role,
+                description=descriptions.get(role, "Standard platform role"),
+                permissions=sorted(list(perms)),
+            )
+        )
     return result

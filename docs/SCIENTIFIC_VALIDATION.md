@@ -69,11 +69,11 @@ Crop residue quantities are modeled using empirical Residue-to-Product Ratios es
 
 | Crop Type | Scientific Name | Authoritative RPR | Field Moisture Equilibrium | Fodder / Competing Use | Net Collection Factor |
 |:---|:---|:---:|:---:|:---:|:---:|
-| **Paddy Rice** | *Oryza sativa* | $1.150$ | $14.0\%$ | $10.0\%$ | $85.0\%$ |
+| **Paddy Rice** | *Oryza sativa* | $1.500$ | $14.0\%$ | $5.0\%$ (silica straw) | $70.0\%$ |
 | **Wheat** | *Triticum aestivum* | $1.300$ | $10.0\%$ | $70.0\%$ (animal feed) | $25.0\%$ |
 | **Cotton** | *Gossypium hirsutum* | $2.500$ | $12.0\%$ | $15.0\%$ (fuelwood) | $80.0\%$ |
 | **Maize** | *Zea mays* | $1.200$ | $15.0\%$ | $40.0\%$ (silage) | $55.0\%$ |
-| **Sugarcane Trash** | *Saccharum officinarum* | $0.200$ | $18.0\%$ | $20.0\%$ (mulch) | $75.0\%$ |
+| **Sugarcane Trash** | *Saccharum officinarum* | $0.250$ | $18.0\%$ | $20.0\%$ (mulch) | $75.0\%$ |
 
 ### 3.2 Mass Balance Formulation
 For a cultivated parcel $j$ with grain yield $Y_j$ (metric tons) and area $A_j$ (acres):
@@ -224,7 +224,7 @@ The entire scientific validation suite was executed under strictly isolated envi
 | `test_harmonization_validation.py` | `test_wooster_frp_linear_cross_sensor_scaling` | $\beta = 1.040$ | $46.80\text{ MW}$ | $46.80\text{ MW}$ | **PASSED** |
 | `test_harmonization_validation.py` | `test_nbai_burned_area_index_formulation` | $\text{NBAI} \in [-1.0, 1.0]$ | $0.2000$ | $0.2000$ | **PASSED** |
 | `test_harmonization_validation.py` | `test_spatial_consensus_scoring_weight` | Multi-sensor agreement | $0.8500$ | $0.8500$ | **PASSED** |
-| `test_biomass_validation.py` | `test_crop_rpr_agronomic_reference_values` | PAU RPR Constants | Rice: 1.15, Wheat: 1.30, Cotton: 2.50, Maize: 1.20 | Exact Match | **PASSED** |
+| `test_biomass_validation.py` | `test_crop_rpr_agronomic_reference_values` | PAU RPR Constants | Rice: 1.50, Wheat: 1.30, Cotton: 2.50, Maize: 1.20, Sugarcane: 0.25 | Exact Match | **PASSED** |
 | `test_biomass_validation.py` | `test_biomass_mass_balance_and_moisture_accounting` | Net yield after deductions | $87.975\text{ t}$ | $87.975\text{ t}$ | **PASSED** |
 | `test_biomass_validation.py` | `test_competing_fodder_use_deduction` | Dairy feed retention | $70.0\%$ | $70.0\%$ | **PASSED** |
 | `test_routing_validation.py` | `test_haversine_great_circle_geodesic_accuracy` | Geodesic curvature | $28.32\text{ km}$ | $28.32\text{ km}$ | **PASSED** |

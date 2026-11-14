@@ -16,6 +16,7 @@ logger = get_logger("stubble2power.database")
 
 class Base(DeclarativeBase):
     """Base declarative class for all SQLAlchemy models."""
+
     pass
 
 
@@ -33,11 +34,7 @@ def get_engine():
         db_path = db_url.replace("sqlite:///", "")
         os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
 
-    engine = create_engine(
-        db_url,
-        connect_args=connect_args,
-        pool_pre_ping=True
-    )
+    engine = create_engine(db_url, connect_args=connect_args, pool_pre_ping=True)
     return engine
 
 

@@ -31,41 +31,51 @@ class BiomassInventoryService:
         quantity_tons: Optional[float] = None,
         allocated_unit_id: Optional[int] = None,
         notes: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> BiomassInventoryTransaction:
         """Transitions biomass quantity through an audited lifecycle stage."""
         if isinstance(payload_or_biomass_id, BiomassInventoryTransactionCreate):
             payload = payload_or_biomass_id
         else:
-            est_id = payload_or_biomass_id if isinstance(payload_or_biomass_id, int) else kwargs.get("biomass_estimate_id")
+            est_id = (
+                payload_or_biomass_id if isinstance(payload_or_biomass_id, int) else kwargs.get("biomass_estimate_id")
+            )
             payload = BiomassInventoryTransactionCreate(
                 biomass_estimate_id=est_id,
                 farm_id=farm_id or kwargs.get("farm_id"),
                 stage=stage or kwargs.get("stage", "ALLOCATED"),
                 quantity_tons=quantity_tons if quantity_tons is not None else kwargs.get("quantity_tons", 0.0),
                 allocated_unit_id=allocated_unit_id or kwargs.get("allocated_unit_id"),
-                notes=notes or kwargs.get("notes")
+                notes=notes or kwargs.get("notes"),
             )
 
         stage_str = payload.stage.upper()
         if stage_str not in self.VALID_STAGES:
             raise ValidationError(
-                message=f"Invalid inventory stage '{stage_str}'. Must be one of {self.VALID_STAGES}.",
-                field="stage"
+                message=f"Invalid inventory stage '{stage_str}'. Must be one of {self.VALID_STAGES}.", field="stage"
             )
 
-        estimate = self.db.scalars(select(BiomassEstimate).where(BiomassEstimate.id == payload.biomass_estimate_id)).first()
+        estimate = self.db.scalars(
+            select(BiomassEstimate).where(BiomassEstimate.id == payload.biomass_estimate_id)
+        ).first()
         if not estimate:
-            raise NotFoundError(message=f"Biomass estimate {payload.biomass_estimate_id} not found.", entity="BiomassEstimate")
+            raise NotFoundError(
+                message=f"Biomass estimate {payload.biomass_estimate_id} not found.", entity="BiomassEstimate"
+            )
 
         # Double allocation prevention check
         if stage_str in ("ALLOCATED", "COMMITTED"):
-            existing_allocated = self.db.query(func.sum(BiomassInventoryTransaction.quantity_tons)).filter(
-                and_(
-                    BiomassInventoryTransaction.biomass_estimate_id == payload.biomass_estimate_id,
-                    BiomassInventoryTransaction.stage == "ALLOCATED"
+            existing_allocated = (
+                self.db.query(func.sum(BiomassInventoryTransaction.quantity_tons))
+                .filter(
+                    and_(
+                        BiomassInventoryTransaction.biomass_estimate_id == payload.biomass_estimate_id,
+                        BiomassInventoryTransaction.stage == "ALLOCATED",
+                    )
                 )
-            ).scalar() or 0.0
+                .scalar()
+                or 0.0
+            )
 
             if (existing_allocated + payload.quantity_tons) > estimate.net_usable_biomass_tons:
                 raise ValidationError(
@@ -73,7 +83,7 @@ class BiomassInventoryService:
                         f"Cannot allocate {payload.quantity_tons:.1f}t. Total allocated ({existing_allocated + payload.quantity_tons:.1f}t) "
                         f"would exceed net usable biomass ({estimate.net_usable_biomass_tons:.1f}t)."
                     ),
-                    field="quantity_tons"
+                    field="quantity_tons",
                 )
 
         tx = BiomassInventoryTransaction(
@@ -83,7 +93,7 @@ class BiomassInventoryService:
             stage=stage_str,
             allocated_unit_id=payload.allocated_unit_id,
             transaction_timestamp=datetime.utcnow(),
-            notes=payload.notes
+            notes=payload.notes,
         )
         self.db.add(tx)
         self.db.commit()
@@ -92,13 +102,14 @@ class BiomassInventoryService:
         return tx
 
     def get_availability_summary(
-        self,
-        district: Optional[str] = None,
-        date_start: Optional[date] = None,
-        date_end: Optional[date] = None
+        self, district: Optional[str] = None, date_start: Optional[date] = None, date_end: Optional[date] = None
     ) -> BiomassAvailabilitySummary:
         """Computes reconciled inventory statistics across all registered farms."""
-        stmt = select(BiomassEstimate, Farm, FarmCrop).join(FarmCrop, BiomassEstimate.farm_crop_id == FarmCrop.id).join(Farm, FarmCrop.farm_id == Farm.id)
+        stmt = (
+            select(BiomassEstimate, Farm, FarmCrop)
+            .join(FarmCrop, BiomassEstimate.farm_crop_id == FarmCrop.id)
+            .join(Farm, FarmCrop.farm_id == Farm.id)
+        )
 
         filters = []
         if district:
@@ -132,9 +143,11 @@ class BiomassInventoryService:
         committed = 0.0
         processed = 0.0
         if estimate_ids:
-            tx_stmt = select(BiomassInventoryTransaction.stage, func.sum(BiomassInventoryTransaction.quantity_tons)).where(
-                BiomassInventoryTransaction.biomass_estimate_id.in_(estimate_ids)
-            ).group_by(BiomassInventoryTransaction.stage)
+            tx_stmt = (
+                select(BiomassInventoryTransaction.stage, func.sum(BiomassInventoryTransaction.quantity_tons))
+                .where(BiomassInventoryTransaction.biomass_estimate_id.in_(estimate_ids))
+                .group_by(BiomassInventoryTransaction.stage)
+            )
             tx_res = self.db.execute(tx_stmt).all()
             for stage, qty in tx_res:
                 if stage in ("COMMITTED", "ALLOCATED"):
@@ -155,7 +168,7 @@ class BiomassInventoryService:
             processed_tons=round(processed, 1),
             unallocated_usable_tons=round(unallocated, 1),
             crop_wise_summary=crop_map,
-            district_wise_summary=dist_map
+            district_wise_summary=dist_map,
         )
 
     def get_regional_availability_summary(self, region: Optional[str] = None) -> BiomassAvailabilitySummary:

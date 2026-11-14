@@ -22,7 +22,7 @@ class AnomalyExplanationService:
         anomaly_type: str,
         severity_level: str,
         data_sufficiency_status: str,
-        co_occurring_count: int = 0
+        co_occurring_count: int = 0,
     ) -> Dict[str, Any]:
         """
         Builds a comprehensive diagnostic breakdown for an anomalous fire activity event.
@@ -68,17 +68,22 @@ class AnomalyExplanationService:
             f"Classification severity: {severity_level}."
         )
 
-        spatial_context = (
-            f"Grid cell {grid_id} in {region_id}. "
-            + (f"Co-occurring with {co_occurring_count} neighboring active cells." if co_occurring_count > 0 else "Isolated cell event.")
+        spatial_context = f"Grid cell {grid_id} in {region_id}. " + (
+            f"Co-occurring with {co_occurring_count} neighboring active cells."
+            if co_occurring_count > 0
+            else "Isolated cell event."
         )
 
         if data_sufficiency_status == "SUFFICIENT":
             data_sufficiency_reason = "High confidence: Multi-year baseline has >= 60% observation coverage with verified dual-sensor overpasses."
         elif data_sufficiency_status == "LIMITED_HISTORY":
-            data_sufficiency_reason = "Moderate confidence: Baseline computed with limited multi-year historical depth (< 3 seasons)."
+            data_sufficiency_reason = (
+                "Moderate confidence: Baseline computed with limited multi-year historical depth (< 3 seasons)."
+            )
         else:
-            data_sufficiency_reason = "Cautious interpretation: Satellite overpass coverage was limited or partially cloud-impacted."
+            data_sufficiency_reason = (
+                "Cautious interpretation: Satellite overpass coverage was limited or partially cloud-impacted."
+            )
 
         return {
             "summary": summary,
@@ -92,5 +97,5 @@ class AnomalyExplanationService:
             "spatial_context": spatial_context,
             "data_sufficiency_reason": data_sufficiency_reason,
             "severity_level": severity_level,
-            "anomaly_type": anomaly_type
+            "anomaly_type": anomaly_type,
         }

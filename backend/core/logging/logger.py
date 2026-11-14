@@ -11,11 +11,12 @@ import sys
 
 class SensitiveDataFilter(logging.Filter):
     """Redacts sensitive tokens and secret keys from logs."""
+
     SENSITIVE_PATTERNS = [
-        (re.compile(r'MAP_KEY[=:][a-zA-Z0-9_\-]+', re.IGNORECASE), 'MAP_KEY=[REDACTED]'),
-        (re.compile(r'password[=:][^& \n]+', re.IGNORECASE), 'password=[REDACTED]'),
-        (re.compile(r'key[=:][a-zA-Z0-9_\-]{20,}', re.IGNORECASE), 'key=[REDACTED]'),
-        (re.compile(r'postgres://[^:]+:([^@]+)@', re.IGNORECASE), 'postgres://user:[REDACTED]@'),
+        (re.compile(r"MAP_KEY[=:][a-zA-Z0-9_\-]+", re.IGNORECASE), "MAP_KEY=[REDACTED]"),
+        (re.compile(r"password[=:][^& \n]+", re.IGNORECASE), "password=[REDACTED]"),
+        (re.compile(r"key[=:][a-zA-Z0-9_\-]{20,}", re.IGNORECASE), "key=[REDACTED]"),
+        (re.compile(r"postgres://[^:]+:([^@]+)@", re.IGNORECASE), "postgres://user:[REDACTED]@"),
     ]
 
     def filter(self, record: logging.LogRecord) -> bool:
@@ -37,8 +38,7 @@ def get_logger(name: str = "stubble2power") -> logging.Logger:
         handler.setLevel(level)
 
         formatter = logging.Formatter(
-            fmt="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
+            fmt="%(asctime)s [%(levelname)s] [%(name)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
         handler.setFormatter(formatter)
         handler.addFilter(SensitiveDataFilter())

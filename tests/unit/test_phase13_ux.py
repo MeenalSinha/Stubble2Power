@@ -23,13 +23,7 @@ def db_session():
     session = Session()
 
     # Seed baseline user & farmer
-    user = User(
-        username="test_user_ux",
-        email="ux@test.com",
-        full_name="Test User",
-        role_name="FARMER",
-        is_active=True
-    )
+    user = User(username="test_user_ux", email="ux@test.com", full_name="Test User", role_name="FARMER", is_active=True)
     farmer = Farmer(
         name="Harjit Singh",
         village="Raikot",
@@ -39,7 +33,7 @@ def db_session():
         stubble_tons=16.0,
         harvest_date=date(2025, 10, 28),
         latitude=30.6500,
-        longitude=75.6000
+        longitude=75.6000,
     )
     session.add_all([user, farmer])
     session.commit()
@@ -59,11 +53,9 @@ def test_user_preferences_lifecycle(db_session):
     assert pref.theme == "light"
 
     # Update to Punjabi and dark theme
-    updated = ux_svc.update_preferences(user.id, UserPreferenceUpdate(
-        preferred_language="pa",
-        theme="dark",
-        default_aoi="Malwa Belt"
-    ))
+    updated = ux_svc.update_preferences(
+        user.id, UserPreferenceUpdate(preferred_language="pa", theme="dark", default_aoi="Malwa Belt")
+    )
     assert updated.preferred_language == "pa"
     assert updated.theme == "dark"
     assert updated.default_aoi == "Malwa Belt"
@@ -79,14 +71,14 @@ def test_notification_creation_and_reading(db_session):
         title="Harvest Window Open",
         message="Paddy harvesting has commenced in your district.",
         category="HARVEST",
-        priority="HIGH"
+        priority="HIGH",
     )
     notif2 = ux_svc.create_notification(
         user_id=user.id,
         title="System Maintenance",
         message="Scheduled maintenance on Sunday at 02:00 AM.",
         category="SYSTEM",
-        priority="LOW"
+        priority="LOW",
     )
     assert notif1.id is not None
     assert notif2.id is not None
@@ -108,10 +100,7 @@ def test_report_generation_from_real_records(db_session):
 
     # Generate Farmer Directory report
     rep = ux_svc.generate_and_save_report(
-        user_id=user.id,
-        report_type="FARMER_DIRECTORY",
-        title="Ludhiana Farmer Directory 2025",
-        file_format="CSV"
+        user_id=user.id, report_type="FARMER_DIRECTORY", title="Ludhiana Farmer Directory 2025", file_format="CSV"
     )
     assert rep.id is not None
     assert rep.report_type == "FARMER_DIRECTORY"
@@ -129,7 +118,7 @@ def test_consent_management_and_withdrawal(db_session):
         farmer_id=farmer.id,
         consent_purpose="BIOMASS_AGGREGATION",
         consent_version="v1.2",
-        notes="Agreed to mechanical baling"
+        notes="Agreed to mechanical baling",
     )
     assert c1.id is not None
     assert c1.is_granted is True
@@ -137,9 +126,7 @@ def test_consent_management_and_withdrawal(db_session):
 
     # Grant second distinct purpose
     c2 = priv_svc.record_consent(
-        farmer_id=farmer.id,
-        consent_purpose="SATELLITE_FIRE_CORRELATION",
-        consent_version="v1.2"
+        farmer_id=farmer.id, consent_purpose="SATELLITE_FIRE_CORRELATION", consent_version="v1.2"
     )
     assert c2.id is not None
 

@@ -40,7 +40,7 @@ def test_spatial_temporal_association_window_boundaries(db_session: Session):
         timestamp_utc=base_time,
         acquisition_date=base_time.date(),
         frp=25.0,
-        confidence_normalized=85.0
+        confidence_normalized=85.0,
     )
 
     # 1. Colocated and concurrent VIIRS observation (< 1.5 km, < 3.0 h) -> MUST associate
@@ -53,7 +53,7 @@ def test_spatial_temporal_association_window_boundaries(db_session: Session):
         timestamp_utc=base_time + timedelta(hours=1.5),
         acquisition_date=base_time.date(),
         frp=15.0,
-        confidence_normalized=90.0
+        confidence_normalized=90.0,
     )
 
     # 2. Too far spatially (> 1.5 km), concurrent in time -> MUST NOT associate
@@ -66,7 +66,7 @@ def test_spatial_temporal_association_window_boundaries(db_session: Session):
         timestamp_utc=base_time + timedelta(minutes=30),
         acquisition_date=base_time.date(),
         frp=18.0,
-        confidence_normalized=90.0
+        confidence_normalized=90.0,
     )
 
     # 3. Colocated spatially (< 1.5 km), but exceeds 3.0 h window -> MUST NOT associate
@@ -79,14 +79,14 @@ def test_spatial_temporal_association_window_boundaries(db_session: Session):
         timestamp_utc=base_time + timedelta(hours=3.5),
         acquisition_date=base_time.date(),
         frp=20.0,
-        confidence_normalized=90.0
+        confidence_normalized=90.0,
     )
 
     associations = engine._compute_associations(
         modis_points=[modis_obs],
         viirs_points=[viirs_match, viirs_far_distance, viirs_time_exceeded],
         dist_threshold_km=1.5,
-        time_window_hours=3.0
+        time_window_hours=3.0,
     )
 
     # Exactly one valid match should be discovered: (101, 201)
@@ -136,30 +136,19 @@ def test_normalized_burning_activity_index_formulation(db_session: Session):
     expected_nbai = 35.0 + (math.log1p(45.0) * 7.0) + (0.85 * 15.0)
 
     computed_nbai = engine._compute_activity_index(
-        modis_count=m_count,
-        viirs_count=v_count,
-        calibrated_frp_mw=frp_cal,
-        consensus_score=consensus
+        modis_count=m_count, viirs_count=v_count, calibrated_frp_mw=frp_cal, consensus_score=consensus
     )
 
     assert pytest.approx(expected_nbai, rel=1e-3) == computed_nbai
 
     # Test Case 2: Extreme burning saturation (must cap at 100.0)
     capped_nbai = engine._compute_activity_index(
-        modis_count=50,
-        viirs_count=200,
-        calibrated_frp_mw=50000.0,
-        consensus_score=1.0
+        modis_count=50, viirs_count=200, calibrated_frp_mw=50000.0, consensus_score=1.0
     )
     assert capped_nbai == 100.0
 
     # Test Case 3: Zero activity (must evaluate to 0.0)
-    zero_nbai = engine._compute_activity_index(
-        modis_count=0,
-        viirs_count=0,
-        calibrated_frp_mw=0.0,
-        consensus_score=0.0
-    )
+    zero_nbai = engine._compute_activity_index(modis_count=0, viirs_count=0, calibrated_frp_mw=0.0, consensus_score=0.0)
     assert zero_nbai == 0.0
 
 

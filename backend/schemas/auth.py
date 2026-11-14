@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
 
+
 class UserLoginRequest(BaseModel):
     username: str = Field(..., description="Username or email address")
     password: str = Field(..., min_length=6, description="Plaintext user password")
