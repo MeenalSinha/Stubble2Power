@@ -61,7 +61,13 @@ class QualityControlService:
                 val = float(c_str)
                 return max(0.0, min(1.0, val / 100.0))
             except ValueError:
-                return 0.5  # Nominal fallback if string
+                if c_str in ["h", "high"]:
+                    return 1.0
+                elif c_str in ["n", "nominal"]:
+                    return 0.7
+                elif c_str in ["l", "low"]:
+                    return 0.3
+                return 0.5  # Nominal fallback if unrecognized string
 
         elif instrument == "VIIRS":
             if c_str in ["h", "high"]:
@@ -146,7 +152,9 @@ class QualityControlService:
         if bright_raw is not None:
             try:
                 b_val = float(bright_raw)
-                if 150.0 <= b_val <= 600.0:
+                min_b = float(config_manager.get("fire.qc.min_brightness_kelvin"))
+                max_b = float(config_manager.get("fire.qc.max_brightness_kelvin"))
+                if min_b <= b_val <= max_b:
                     brightness = b_val
                 else:
                     is_valid = False

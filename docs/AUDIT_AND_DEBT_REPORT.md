@@ -136,3 +136,22 @@ Stubble2Power/
 - 10 baseline regression tests created and passing (100% pass rate).
 - Legacy unit economics, environmental calculations, logistics formulas, and clustering behavior verified and captured in executable regression test suite.
 - Phase 0 completion criteria satisfied.
+
+---
+
+## 7. Phases 0–7 Quality Assurance Audit & Verification Signoff (v2.1.0)
+
+| Phase | Scope | Status | Audit Findings & Corrections Applied |
+|---|---|---|---|
+| **Phase 0** | Forensic Audit & Legacy Bug Fixes | **VERIFIED** | All 4 early returns eliminated. Redundant chart call removed. Haversine distance implemented. All 10 legacy regression tests passing. |
+| **Phase 1** | Modular Separation of Concerns | **VERIFIED** | Pure Python service modules cleanly decoupled from Streamlit. FastAPI application configured with complete REST API coverage. |
+| **Phase 2** | Database & Persistence Infrastructure | **VERIFIED** | SQLAlchemy relational models operational. `HarmonizationRun.sensor_breakdown` persisted as JSON. Alembic migration `001_initial_schema.py` upgraded and verified. |
+| **Phase 3** | NASA FIRMS Integration | **VERIFIED (BLOCKED on live credentials)** | `NASAClient` fully implemented with exponential backoff and credential redaction. Handles country and area queries. Marked as BLOCKED for live calls until user sets `NASA_FIRMS_MAP_KEY`. |
+| **Phase 4** | Satellite QC & Normalization | **VERIFIED** | Normalized MODIS and VIIRS schema with SHA-256 deduplication. MODIS string confidence mapping added (`high` $\to 1.0$, `nominal` $\to 0.7$, `low` $\to 0.3$). Physical brightness bounds ($150\text{ K}-600\text{ K}$) enforced via config. |
+| **Phase 5** | Scientific Harmonization Engine | **VERIFIED** | Cross-sensor spatial association ($1.5\text{ km}$, $3.0\text{ hr}$) and Wooster et al. (2021) FRP calibration verified. All NBAI coefficients ($2.5, 3.5, 50.0, 7.0, 35.0, 15.0$) parameterized in `ConfigManager`. |
+| **Phase 6** | Historical Activity Calendar | **VERIFIED** | Daily, weekly (ISO weeks), monthly, and annual calendar aggregations fully implemented. Bounding box filtering added for accurate `ZERO_BURNING` vs `NO_OVERPASS` classification. |
+| **Phase 7** | Geospatial Dashboard & UI | **VERIFIED** | Streamlit multi-system app (`app.py`) verified across all 5 navigation modes. Centroid and grid bounding boxes sourced from `ConfigManager`. |
+
+**Automated Test Suite Status:**
+- Total tests: **44 passed in ~14 seconds (100% passing)**.
+- Integration test coverage includes FastAPI route handlers, database lifecycle, CSV ingestion, harmonization pipeline, and calendar aggregation.

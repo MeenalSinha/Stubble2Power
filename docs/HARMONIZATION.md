@@ -81,20 +81,42 @@ $$S_{\text{consensus}} =
 \end{cases}$$
 
 ### 3.5 Normalized Burning Activity Index (NBAI)
-To provide an operational index (0 to 100) reflecting burning intensity independent of sensor quirks:
-$$N_{\text{effective}} = 2.5 \times N_{\text{MODIS}} + N_{\text{VIIRS}}$$
-$$\text{DetectionTerm} = \min(50.0, N_{\text{effective}} \times 3.5)$$
-$$\text{EnergyTerm} = \min(35.0, \ln(1 + \text{FRP}_{\text{calibrated}}) \times 7.0)$$
-$$\text{ConsensusTerm} = S_{\text{consensus}} \times 15.0$$
+To provide an operational index ($0$ to $100$) reflecting burning intensity independent of sensor quirks:
+$$N_{\text{effective}} = w_{\text{MODIS}} \times N_{\text{MODIS}} + N_{\text{VIIRS}}$$
+$$\text{DetectionTerm} = \min(C_{\text{det}}, N_{\text{effective}} \times s_{\text{det}})$$
+$$\text{EnergyTerm} = \min(C_{\text{FRP}}, \ln(1 + \text{FRP}_{\text{calibrated}}) \times s_{\text{FRP}})$$
+$$\text{ConsensusTerm} = S_{\text{consensus}} \times W_{\text{consensus}}$$
 $$\text{NBAI} = \min(100.0, \text{DetectionTerm} + \text{EnergyTerm} + \text{ConsensusTerm})$$
+
+**Authoritative Parameters (ConfigManager Registry):**
+All parameters carry scientific provenance and are configurable at runtime without code modification:
+- $w_{\text{MODIS}} = 2.5$ (`nasa.harmonization.modis_detection_weight`): Footprint area weighting accounting for the ~7x larger area of 1km MODIS pixels relative to 375m VIIRS pixels.
+- $s_{\text{det}} = 3.5$ (`nasa.harmonization.detection_index_slope`): Sensitivity scaling per effective detection.
+- $C_{\text{det}} = 50.0$ (`nasa.harmonization.detection_index_cap`): Detection term saturation limit.
+- $s_{\text{FRP}} = 7.0$ (`nasa.harmonization.frp_index_slope`): Logarithmic energy scaling slope.
+- $C_{\text{FRP}} = 35.0$ (`nasa.harmonization.frp_index_cap`): Energy term saturation limit.
+- $W_{\text{consensus}} = 15.0$ (`nasa.harmonization.consensus_index_weight`): Inter-sensor consensus maximum contribution.
+
+### 3.6 Grid Geometry & Coordinate Projection Caveat
+At mid-latitudes such as Punjab ($30^\circ\text{N}$):
+- $1^\circ \text{ latitude} \approx 111.0\text{ km} \implies 0.05^\circ \approx 5.55\text{ km}$
+- $1^\circ \text{ longitude} \approx 111.0 \times \cos(30^\circ) \approx 96.1\text{ km} \implies 0.05^\circ \approx 4.81\text{ km}$
+Each $0.05^\circ \times 0.05^\circ$ grid cell forms a rectangle of approximately $5.55\text{ km} \times 4.81\text{ km} \approx 26.7\text{ km}^2$. All spatial distance tests within cells use true geodesic Haversine distance rather than planar approximations.
 
 ---
 
 ## 4. Uncertainty & Coverage Categorization
 
-The engine distinguishes:
-- `DUAL_SENSOR`: Both sensors confirmed active burning; lowest uncertainty.
-- `VIIRS_ONLY`: Active fire detected exclusively by VIIRS (small/cool sub-pixel agricultural residue fire).
+The engine rigorously distinguishes satellite observation coverage from burning activity:
+- `DUAL_SENSOR`: Both MODIS and VIIRS detected active fire in the same grid cell and time window; lowest uncertainty ($S_{\text{consensus}} \ge 0.85$).
+- `VIIRS_ONLY`: Active fire detected exclusively by VIIRS (typically small or cool agricultural residue fires below MODIS sensitivity).
 - `MODIS_ONLY`: Detected exclusively by MODIS (often indicating cloud obstruction during VIIRS overpass or edge-of-swath scan divergence).
-- `ZERO_DETECTED`: Clear satellite overpass with zero detected fires.
-- `NO_OVERPASS`: Incomplete satellite swath coverage or thick persistent cloud cover preventing observation.
+- `ZERO_BURNING`: Observations were ingested within the bounding box on that date, but no active fires were detected in the cell.
+- `NO_OVERPASS`: No satellite observations were recorded in the database for the given date and spatial bounding box.
+
+### 4.1 Temporal Aggregation Granularities
+The Activity Calendar aggregates harmonized records across four continuous granularities:
+1. **Daily**: Continuous sequence of calendar dates with day-of-week, detections breakdown, and coverage status.
+2. **Weekly**: Continuous ISO-8601 weeks (1–52/53) with total detections, peak dates, and mean activity index.
+3. **Monthly**: Calendar months (January–December) with active burning days and peak detection counts.
+4. **Annual**: Full annual cycle with automatic detection of the Kharif burning season boundaries (October 1 – November 30) and season peak date.

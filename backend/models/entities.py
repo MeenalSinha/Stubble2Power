@@ -197,6 +197,7 @@ class HarmonizationRun(Base):
     algorithm_version: Mapped[str] = mapped_column(String(50), default="1.0.0-scientific")
     status: Mapped[str] = mapped_column(String(50), default="COMPLETED")
     parameters_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    sensor_breakdown: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     harmonized_observations: Mapped[List["HarmonizedObservation"]] = relationship(

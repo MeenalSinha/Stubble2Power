@@ -109,6 +109,22 @@ class TestHarmonizationAndCalendar:
         assert run.harmonized_cells_count == 1
         assert run.associated_pairs_count >= 1
         assert run.mean_consensus_score >= 0.70
+        assert run.sensor_breakdown == {"MODIS": 1, "VIIRS": 2}
+
+    def test_calendar_weekly_aggregation(self, populated_sat_db):
+        engine = HarmonizationEngine(populated_sat_db)
+        engine.execute_harmonization(date_start=date(2025, 10, 24), date_end=date(2025, 10, 26))
+
+        cal_svc = CalendarAggregationService(populated_sat_db)
+        weekly = cal_svc.get_weekly_summaries(year=2025)
+        assert len(weekly) >= 50
+
+        # Find week containing Oct 25, 2025 (ISO week 43)
+        oct25_week = next(w for w in weekly if w.start_date <= date(2025, 10, 25) <= w.end_date)
+        assert oct25_week.total_detections == 3
+        assert oct25_week.modis_detections == 1
+        assert oct25_week.viirs_detections == 2
+        assert oct25_week.peak_date == date(2025, 10, 25)
 
     def test_calendar_daily_and_monthly(self, populated_sat_db):
         engine = HarmonizationEngine(populated_sat_db)

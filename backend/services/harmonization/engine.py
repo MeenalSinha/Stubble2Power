@@ -104,7 +104,8 @@ class HarmonizationEngine:
                 cells_count=0,
                 associated_pairs=0,
                 mean_consensus=0.0,
-                status="COMPLETED_EMPTY"
+                status="COMPLETED_EMPTY",
+                sensor_breakdown={"MODIS": 0, "VIIRS": 0}
             )
             resp = HarmonizationRunResponse.model_validate(completed_run)
             resp.sensor_breakdown = {"MODIS": 0, "VIIRS": 0}
@@ -158,10 +159,12 @@ class HarmonizationEngine:
             consensus = self._compute_consensus_score(m_count, v_count, len(associated_pairs))
             consensus_scores.append(consensus)
 
-            # Uncertainty Level
-            if consensus >= 0.85:
+            # Uncertainty Level (Thresholds managed in Configuration Registry)
+            thresh_high = float(config_manager.get("nasa.harmonization.consensus_threshold_high"))
+            thresh_low = float(config_manager.get("nasa.harmonization.consensus_threshold_low"))
+            if consensus >= thresh_high:
                 uncertainty = "LOW"
-            elif consensus >= 0.60:
+            elif consensus >= thresh_low:
                 uncertainty = "MODERATE"
             else:
                 uncertainty = "HIGH"
@@ -207,19 +210,21 @@ class HarmonizationEngine:
         self.harm_repo.bulk_insert_harmonized(run_record.id, harmonized_schemas)
 
         mean_consensus = float(np.mean(consensus_scores)) if consensus_scores else 0.0
+        sensor_breakdown_dict = {
+            "MODIS": sum(1 for o in raw_obs_list if o.instrument == "MODIS"),
+            "VIIRS": sum(1 for o in raw_obs_list if o.instrument == "VIIRS")
+        }
         completed_run = self.harm_repo.complete_run(
             run_id=run_record.id,
             total_inputs=len(raw_obs_list),
             cells_count=len(harmonized_schemas),
             associated_pairs=total_associated_pairs,
             mean_consensus=round(mean_consensus, 3),
-            status="COMPLETED"
+            status="COMPLETED",
+            sensor_breakdown=sensor_breakdown_dict
         )
         resp = HarmonizationRunResponse.model_validate(completed_run)
-        resp.sensor_breakdown = {
-            "MODIS": sum(1 for o in raw_obs_list if o.instrument == "MODIS"),
-            "VIIRS": sum(1 for o in raw_obs_list if o.instrument == "VIIRS")
-        }
+        resp.sensor_breakdown = sensor_breakdown_dict
         return resp
 
     def _compute_associations(
@@ -278,15 +283,22 @@ class HarmonizationEngine:
     ) -> float:
         """
         Derives Normalized Burning Activity Index (0.0 to 100.0).
-        Mathematical formula:
-        Activity = min(100, (effective_detections * 5.0 + log(calibrated_frp + 1) * 12.0) * consensus_weight)
+        All empirical slopes, footprint weights, and term limits are retrieved
+        from the Configuration Registry to prevent hardcoding.
         """
-        # Effective detections: MODIS pixels count 3x because of 1km vs 375m footprint (~7x area)
-        effective_detections = (modis_count * 2.5) + viirs_count
-        detection_term = min(50.0, effective_detections * 3.5)
+        modis_weight = float(config_manager.get("nasa.harmonization.modis_detection_weight"))
+        det_slope = float(config_manager.get("nasa.harmonization.detection_index_slope"))
+        det_cap = float(config_manager.get("nasa.harmonization.detection_index_cap"))
+        frp_slope = float(config_manager.get("nasa.harmonization.frp_index_slope"))
+        frp_cap = float(config_manager.get("nasa.harmonization.frp_index_cap"))
+        consensus_weight = float(config_manager.get("nasa.harmonization.consensus_index_weight"))
 
-        frp_term = min(35.0, math.log1p(calibrated_frp_mw) * 7.0)
-        consensus_term = consensus_score * 15.0
+        # Effective detections: footprint area weighting
+        effective_detections = (modis_count * modis_weight) + viirs_count
+        detection_term = min(det_cap, effective_detections * det_slope)
+
+        frp_term = min(frp_cap, math.log1p(calibrated_frp_mw) * frp_slope)
+        consensus_term = consensus_score * consensus_weight
 
         raw_index = detection_term + frp_term + consensus_term
         return min(100.0, max(0.0, raw_index))

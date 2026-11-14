@@ -15,10 +15,14 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+from backend.models.database import Base
+import backend.models.entities  # Ensure all entity models are loaded
+
 def upgrade() -> None:
-    # Schema creation handled through Base.metadata.create_all() or op statements
-    pass
+    bind = op.get_bind()
+    Base.metadata.create_all(bind=bind)
 
 
 def downgrade() -> None:
-    pass
+    bind = op.get_bind()
+    Base.metadata.drop_all(bind=bind)

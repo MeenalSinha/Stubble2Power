@@ -92,12 +92,19 @@ class CalendarAggregationService:
                     coverage_status=status
                 ))
             else:
-                # Distinguish whether normalized data exists on this date
-                obs_count = self.db.scalar(
-                    select(func.count(NormalizedSatelliteObservation.id)).where(
-                        NormalizedSatelliteObservation.acquisition_date == curr_date
+                # Distinguish whether normalized data exists on this date within the specified AOI
+                stmt_obs = select(func.count(NormalizedSatelliteObservation.id)).where(
+                    NormalizedSatelliteObservation.acquisition_date == curr_date
+                )
+                if bbox and len(bbox) == 4:
+                    min_lon, min_lat, max_lon, max_lat = bbox
+                    stmt_obs = stmt_obs.where(
+                        and_(
+                            NormalizedSatelliteObservation.latitude.between(min_lat, max_lat),
+                            NormalizedSatelliteObservation.longitude.between(min_lon, max_lon)
+                        )
                     )
-                ) or 0
+                obs_count = self.db.scalar(stmt_obs) or 0
 
                 status = "ZERO_BURNING" if obs_count > 0 else "NO_OVERPASS"
                 calendar_entries.append(DailyCalendarEntry(
@@ -115,6 +122,54 @@ class CalendarAggregationService:
             curr_date += delta
 
         return calendar_entries
+
+    def get_weekly_summaries(
+        self,
+        year: int,
+        bbox: Optional[List[float]] = None
+    ) -> List[WeeklyCalendarSummary]:
+        """Aggregates weekly burning metrics across all ISO calendar weeks."""
+        d_start = date(year, 1, 1)
+        d_end = date(year, 12, 31)
+        daily = self.get_daily_calendar(d_start, d_end, bbox)
+
+        week_groups: Dict[int, List[DailyCalendarEntry]] = {}
+        for d in daily:
+            iso_year, iso_week, _ = d.date.isocalendar()
+            if iso_year == year:
+                week_groups.setdefault(iso_week, []).append(d)
+
+        summaries: List[WeeklyCalendarSummary] = []
+        for week_num in sorted(week_groups.keys()):
+            w_entries = week_groups[week_num]
+            w_start = min(e.date for e in w_entries)
+            w_end = max(e.date for e in w_entries)
+            tot_detections = sum(e.total_detections for e in w_entries)
+            m_detections = sum(e.modis_detections for e in w_entries)
+            v_detections = sum(e.viirs_detections for e in w_entries)
+            mean_act = float(sum(e.harmonized_activity_index for e in w_entries) / len(w_entries)) if w_entries else 0.0
+
+            peak_d = None
+            peak_count = 0
+            for e in w_entries:
+                if e.total_detections > peak_count:
+                    peak_count = e.total_detections
+                    peak_d = e.date
+
+            summaries.append(WeeklyCalendarSummary(
+                week_number=week_num,
+                year=year,
+                start_date=w_start,
+                end_date=w_end,
+                total_detections=tot_detections,
+                modis_detections=m_detections,
+                viirs_detections=v_detections,
+                mean_daily_activity=round(mean_act, 1),
+                peak_date=peak_d,
+                peak_detections=peak_count
+            ))
+
+        return summaries
 
     def get_monthly_summaries(
         self,

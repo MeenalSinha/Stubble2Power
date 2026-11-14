@@ -46,7 +46,8 @@ class HarmonizationRepository:
         cells_count: int,
         associated_pairs: int,
         mean_consensus: float,
-        status: str = "COMPLETED"
+        status: str = "COMPLETED",
+        sensor_breakdown: Optional[dict] = None
     ) -> HarmonizationRun:
         run = self.db.get(HarmonizationRun, run_id)
         if run:
@@ -55,6 +56,8 @@ class HarmonizationRepository:
             run.associated_pairs_count = associated_pairs
             run.mean_consensus_score = mean_consensus
             run.status = status
+            if sensor_breakdown is not None:
+                run.sensor_breakdown = sensor_breakdown
             self.db.commit()
             self.db.refresh(run)
         return run

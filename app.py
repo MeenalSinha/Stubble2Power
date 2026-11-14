@@ -841,9 +841,11 @@ def main():
             m_lat = float(np.mean([o.latitude for o in norm_obs]))
             m_lon = float(np.mean([o.longitude for o in norm_obs]))
         else:
-            m_lat, m_lon = 30.7333, 76.7794
+            m_lat = float(config_manager.get("geospatial.default_map_center_lat"))
+            m_lon = float(config_manager.get("geospatial.default_map_center_lon"))
 
-        geo_map = folium.Map(location=[m_lat, m_lon], zoom_start=8)
+        zoom_val = int(config_manager.get("geospatial.default_map_zoom"))
+        geo_map = folium.Map(location=[m_lat, m_lon], zoom_start=zoom_val)
 
         # 1. MODIS Observations Layer
         if show_modis:
@@ -878,6 +880,8 @@ def main():
         # 3. Harmonized Activity Grid Cells Layer
         if show_harmonized:
             harm_fg = folium.FeatureGroup(name="Harmonized Activity Grid")
+            grid_res = float(config_manager.get("nasa.harmonization.grid_resolution_deg"))
+            half_res = grid_res / 2.0
             for c in harm_cells:
                 # Color code by Activity Index
                 if c.harmonized_activity_index > 60:
@@ -889,8 +893,8 @@ def main():
 
                 folium.Rectangle(
                     bounds=[
-                        [c.centroid_lat - 0.025, c.centroid_lon - 0.025],
-                        [c.centroid_lat + 0.025, c.centroid_lon + 0.025]
+                        [c.centroid_lat - half_res, c.centroid_lon - half_res],
+                        [c.centroid_lat + half_res, c.centroid_lon + half_res]
                     ],
                     popup=f"<b>Harmonized Cell {c.grid_id}</b><br>Activity Index: {c.harmonized_activity_index:.1f}/100<br>Consensus: {c.consensus_score*100:.0f}%<br>MODIS: {c.modis_count} | VIIRS: {c.viirs_count}<br>Calibrated FRP: {c.harmonized_frp_mw:.1f} MW<br>Uncertainty: {c.uncertainty_level}",
                     color=c_color,

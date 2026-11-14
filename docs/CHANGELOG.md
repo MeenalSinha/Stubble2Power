@@ -1,5 +1,29 @@
 # Stubble2Power - Engineering Changelog
 
+## [2.1.0] - 2026-11-14
+
+### Comprehensive Quality Assurance & Scientific Audit Fixes
+
+#### Scientific Calibration & Domain Config Architecture
+- **NBAI Formula Parameterization**: Replaced all hardcoded coefficients ($2.5, 3.5, 50.0, 7.0, 35.0, 15.0$) in `HarmonizationEngine._compute_activity_index` with validated parameters in `backend/core/config/settings.py` (`nasa.harmonization.modis_detection_weight`, `nasa.harmonization.detection_index_slope`, `nasa.harmonization.detection_index_cap`, `nasa.harmonization.frp_index_slope`, `nasa.harmonization.frp_index_cap`, `nasa.harmonization.consensus_index_weight`).
+- **Uncertainty Classification**: Bound consensus score thresholds ($0.85$ and $0.60$) to versioned configuration entries (`nasa.harmonization.consensus_threshold_high`, `nasa.harmonization.consensus_threshold_low`).
+- **Geospatial Centroid Fallbacks**: Added `geospatial.default_map_center_lat` ($30.7333$), `geospatial.default_map_center_lon` ($76.7794$), and `geospatial.default_map_zoom` ($8$) to `ConfigManager` to eliminate hardcoded coordinates in map initialization.
+- **Physical Brightness Bounds**: Extracted satellite thermal IR bounds ($150\text{ K} - 600\text{ K}$) into `fire.qc.min_brightness_kelvin` and `fire.qc.max_brightness_kelvin`.
+
+#### Database & Persistence Fixes
+- **Harmonization Run Sensor Breakdown**: Added `sensor_breakdown: Mapped[dict] = mapped_column(JSON)` to the `HarmonizationRun` entity and repository, enabling permanent multi-session storage of sensor observation counts.
+- **Alembic Migration Integrity**: Upgraded `database/migrations/versions/001_initial_schema.py` from empty pass stubs to explicit `Base.metadata.create_all` and `drop_all` bindings, enabling automated CLI migrations via `alembic upgrade head`.
+
+#### Quality Control & Remote Sensing Enhancements
+- **MODIS String Confidence**: Added explicit mapping in `QualityControlService.normalize_confidence` for categorical MODIS confidence strings (`high` $\to 1.0$, `nominal` $\to 0.7$, `low` $\to 0.3$), preventing inaccurate fallback to $0.5$.
+- **Zero FRP Normalization**: Validated non-rejection of genuine zero-FRP detections.
+- **Spatial Bounding-Box Coverage**: Fixed `CalendarAggregationService.get_daily_calendar` to filter normalized observation counts by bounding box before assigning `ZERO_BURNING` vs `NO_OVERPASS`.
+
+#### Activity Calendar & API Endpoints
+- **Weekly Activity Calendar**: Implemented `get_weekly_summaries(year, bbox)` in `CalendarAggregationService` and registered `GET /api/calendar/weekly` endpoint, aggregating ISO-8601 weeks with total detections, peak dates, and mean activity.
+- **API Test Suite**: Added `tests/integration/test_api_routes.py` covering health, configuration, farmer CRUD, spatial clustering, economics, NASA status, harmonization, and daily/weekly/monthly/annual calendar routes.
+- **Test Suite Expansion**: Grew verified automated test suite from 32 to 44 passing tests ($100\%$ pass rate).
+
 ## [2.0.0] - 2026-11-14
 
 ### Completed Across Phases 0–7

@@ -25,9 +25,9 @@ def create_farmer(farmer_in: FarmerCreate, db: Session = Depends(get_db)):
 
 @router.get("/", response_model=List[FarmerResponse])
 def list_farmers(
-    district: Optional[str] = Query(None),
-    village: Optional[str] = Query(None),
-    min_stubble: Optional[float] = Query(None),
+    district: Optional[str] = None,
+    village: Optional[str] = None,
+    min_stubble: Optional[float] = None,
     db: Session = Depends(get_db)
 ):
     """Lists enrolled farmers with dynamic filtering."""

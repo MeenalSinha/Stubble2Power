@@ -124,3 +124,25 @@ class TestQualityControlService:
         norm = QualityControlService.process_raw_record(raw)
         assert norm.is_valid is False
         assert "Invalid coordinates" in norm.quarantine_reason
+
+    def test_modis_string_confidence_mapping(self):
+        conf_h = QualityControlService.normalize_confidence("high", "MODIS")
+        conf_n = QualityControlService.normalize_confidence("nominal", "MODIS")
+        conf_l = QualityControlService.normalize_confidence("low", "MODIS")
+        assert conf_h == 1.0
+        assert conf_n == 0.7
+        assert conf_l == 0.3
+
+    def test_zero_frp_handling(self):
+        raw = {
+            "latitude": 30.85,
+            "longitude": 75.40,
+            "acq_date": "2025-10-25",
+            "acq_time": "0830",
+            "confidence": "80",
+            "frp": 0.0,
+            "_instrument": "MODIS"
+        }
+        norm = QualityControlService.process_raw_record(raw)
+        assert norm.is_valid is True
+        assert norm.frp == 0.0

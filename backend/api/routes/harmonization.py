@@ -16,10 +16,10 @@ router = APIRouter(prefix="/harmonization", tags=["Scientific Harmonization"])
 
 @router.post("/run", response_model=HarmonizationRunResponse)
 def execute_harmonization_run(
-    name: str = Query("Manual Harmonization Run"),
-    date_start: Optional[date] = Query(None),
-    date_end: Optional[date] = Query(None),
-    grid_resolution_deg: Optional[float] = Query(None, ge=0.01, le=0.5),
+    name: str = "Manual Harmonization Run",
+    date_start: Optional[date] = None,
+    date_end: Optional[date] = None,
+    grid_resolution_deg: Optional[float] = None,
     db: Session = Depends(get_db)
 ):
     """Executes the cross-sensor harmonization engine over stored satellite observations."""
