@@ -28,6 +28,13 @@ class NASAClient:
         "VIIRS_NOAA21_NRT": {"instrument": "VIIRS", "satellite": "NOAA-21", "resolution_m": 375},
     }
 
+    COUNTRY_BOUNDING_BOXES = {
+        "IND": [68.0, 8.0, 97.0, 37.0],        # India
+        "USA": [-125.0, 24.0, -66.5, 49.5],    # United States
+        "CAN": [-141.0, 41.7, -52.6, 83.1],    # Canada
+        "PUNJAB": [73.8, 29.5, 76.9, 32.5]     # Punjab Regional AOI
+    }
+
     def __init__(self, map_key: Optional[str] = None, base_url: Optional[str] = None):
         self.map_key = map_key or app_settings.nasa_firms_map_key
         self.base_url = (base_url or app_settings.nasa_firms_base_url).rstrip("/")
@@ -80,13 +87,25 @@ class NASAClient:
         country_code = country_code.upper()
         day_range = max(1, min(day_range, 10))
 
-        if date_str:
-            url = f"{self.base_url}/api/country/csv/{self.map_key}/{source}/{country_code}/{day_range}/{date_str}"
-        else:
-            url = f"{self.base_url}/api/country/csv/{self.map_key}/{source}/{country_code}/{day_range}"
+        try:
+            if date_str:
+                url = f"{self.base_url}/api/country/csv/{self.map_key}/{source}/{country_code}/{day_range}/{date_str}"
+            else:
+                url = f"{self.base_url}/api/country/csv/{self.map_key}/{source}/{country_code}/{day_range}"
 
-        csv_data = self._execute_request(url)
-        return self._parse_csv_response(csv_data, source)
+            csv_data = self._execute_request(url)
+            return self._parse_csv_response(csv_data, source)
+        except NASAAPIError as e:
+            # NASA FIRMS occasionally marks /api/country deprecated in favor of Area API with country bounds
+            if country_code in self.COUNTRY_BOUNDING_BOXES:
+                logger.info(f"Country endpoint unavailable for {country_code}; falling back to Area API with country bounding box.")
+                return self.fetch_area_fires(
+                    bbox=self.COUNTRY_BOUNDING_BOXES[country_code],
+                    source=source,
+                    day_range=day_range,
+                    date_str=date_str
+                )
+            raise
 
     def fetch_area_fires(
         self,
