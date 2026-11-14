@@ -36,7 +36,7 @@ class NASAClient:
     }
 
     def __init__(self, map_key: Optional[str] = None, base_url: Optional[str] = None):
-        self.map_key = map_key or app_settings.nasa_firms_map_key
+        self.map_key = map_key if map_key is not None else app_settings.nasa_firms_map_key
         self.base_url = (base_url or app_settings.nasa_firms_base_url).rstrip("/")
         self.timeout_seconds = 30
         self.max_retries = 3
