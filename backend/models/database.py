@@ -22,6 +22,10 @@ class Base(DeclarativeBase):
 def get_engine():
     """Builds and returns the SQLAlchemy engine."""
     db_url = app_settings.database_url
+    # Support postgresql+psycopg2 driver compatibility
+    if db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
     connect_args = {}
     if db_url.startswith("sqlite"):
         connect_args["check_same_thread"] = False

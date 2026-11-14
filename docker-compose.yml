@@ -29,7 +29,7 @@ services:
     command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
     environment:
       APP_ENV: production
-      DATABASE_URL: postgresql://stubble_user:stubble_secure_password@db:5432/stubble2power
+      DATABASE_URL: postgresql+psycopg2://stubble_user:stubble_secure_password@db:5432/stubble2power
       API_HOST: 0.0.0.0
       API_PORT: 8000
       NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-}
@@ -44,7 +44,7 @@ services:
       - backend
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
     environment:
-      DATABASE_URL: postgresql://stubble_user:stubble_secure_password@db:5432/stubble2power
+      DATABASE_URL: postgresql+psycopg2://stubble_user:stubble_secure_password@db:5432/stubble2power
       NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-}
     ports:
       - "8501:8501"

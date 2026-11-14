@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from backend.models.database import SessionLocal, init_db
 from backend.models.entities import (
     Farmer, AdministrativeRegion, AreaOfInterest, SatelliteProduct,
-    NormalizedSatelliteObservation, HarmonizationRun, HarmonizedObservation
+    IngestionJob, NormalizedSatelliteObservation, HarmonizationRun, HarmonizedObservation
 )
 from backend.services.geospatial.service import GeospatialService
 from backend.services.harmonization.engine import HarmonizationEngine
@@ -85,6 +85,25 @@ def seed_database():
 
         # 4. Seed Verified Satellite Observations (Overlapping MODIS & VIIRS from harvest fire clusters)
         if not db.query(NormalizedSatelliteObservation).first():
+            # Ensure a parent IngestionJob exists for foreign key constraint
+            seed_job = db.query(IngestionJob).first()
+            if not seed_job:
+                seed_job = IngestionJob(
+                    job_uuid="seed-job-harvest-2025",
+                    satellite="Terra/Aqua/NOAA-20",
+                    instrument="MODIS/VIIRS",
+                    source_endpoint="/api/area/csv/seed",
+                    date_start=date(2025, 10, 25),
+                    date_end=date(2025, 11, 3),
+                    status="COMPLETED",
+                    records_retrieved=135,
+                    records_valid=135,
+                    records_quarantined=0
+                )
+                db.add(seed_job)
+                db.commit()
+                db.refresh(seed_job)
+
             observations = []
             seed_dates = [
                 date(2025, 10, 25), date(2025, 10, 26), date(2025, 10, 27),
@@ -107,7 +126,7 @@ def seed_database():
                     grid_id = GeospatialService.compute_grid_id(c_lat, c_lon, 0.05)
                     m_obs = NormalizedSatelliteObservation(
                         source_record_hash=f"seed_modis_{obs_id}",
-                        ingestion_job_id=1,
+                        ingestion_job_id=seed_job.id,
                         satellite="Aqua",
                         instrument="MODIS",
                         product_version="6.1NRT",
@@ -130,7 +149,7 @@ def seed_database():
                     # Coincident VIIRS detection 1 (~500m away, 375m resolution)
                     v_obs1 = NormalizedSatelliteObservation(
                         source_record_hash=f"seed_viirs_{obs_id}",
-                        ingestion_job_id=1,
+                        ingestion_job_id=seed_job.id,
                         satellite="NOAA-20",
                         instrument="VIIRS",
                         product_version="2.0NRT",
@@ -153,7 +172,7 @@ def seed_database():
                     # Coincident VIIRS detection 2 (~800m away, secondary fire front)
                     v_obs2 = NormalizedSatelliteObservation(
                         source_record_hash=f"seed_viirs_{obs_id}",
-                        ingestion_job_id=1,
+                        ingestion_job_id=seed_job.id,
                         satellite="NOAA-20",
                         instrument="VIIRS",
                         product_version="2.0NRT",
