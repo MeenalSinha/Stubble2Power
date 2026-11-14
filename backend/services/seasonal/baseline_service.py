@@ -52,35 +52,47 @@ class HistoricalBaselineService:
         is_leap = df["date"].dt.is_leap_year
         raw_doy = df["date"].dt.dayofyear
         df["day_of_year"] = np.where(is_leap & (raw_doy > 60), raw_doy - 1, raw_doy)
-        df["metric"] = pd.to_numeric(df[metric_type], errors="coerce").fillna(0.0)
+        
+        # Do not convert missing measurements to 0.0 (missing != zero burning)
+        df["metric"] = pd.to_numeric(df[metric_type], errors="coerce")
+        # Keep coverage flag if supplied
+        has_coverage_col = "coverage_ratio" in df.columns or "data_coverage_ratio" in df.columns
+        cov_col = "coverage_ratio" if "coverage_ratio" in df.columns else "data_coverage_ratio"
 
         results: List[HistoricalBaseline] = []
 
         # Group by day of year for seasonal cycle baseline
         grouped = df.groupby("day_of_year")
         for doy, group in grouped:
-            vals = group["metric"].values
-            n_samples = len(vals)
-            coverage_ratio = min(1.0, n_samples / max(1, self.min_periods))
-
+            # Exclude missing observations from values
+            valid_vals = group["metric"].dropna().values
+            n_samples = len(valid_vals)
+            
             if n_samples == 0:
                 continue
 
-            mean_val = float(np.mean(vals))
-            median_val = float(np.median(vals))
-            std_val = float(np.std(vals, ddof=1)) if n_samples > 1 else 0.0
+            # Genuine coverage measurement
+            if has_coverage_col:
+                coverage_ratio = float(group[cov_col].mean())
+            else:
+                total_expected_slots = len(group)
+                coverage_ratio = n_samples / max(1, total_expected_slots)
+
+            mean_val = float(np.mean(valid_vals))
+            median_val = float(np.median(valid_vals))
+            std_val = float(np.std(valid_vals, ddof=1)) if n_samples > 1 else 0.0
             
             # Robust Median Absolute Deviation (MAD) scaled by 1.4826 for normal consistency
-            abs_devs = np.abs(vals - median_val)
+            abs_devs = np.abs(valid_vals - median_val)
             mad_val = float(1.4826 * np.median(abs_devs))
             if mad_val < 1e-4:
                 # If median absolute deviation is near zero, fallback to standard deviation or minimum floor
                 mad_val = max(std_val * 0.6745, 0.5)
 
-            p75_val = float(np.percentile(vals, 75))
-            p90_val = float(np.percentile(vals, 90))
-            min_val = float(np.min(vals))
-            max_val = float(np.max(vals))
+            p75_val = float(np.percentile(valid_vals, 75))
+            p90_val = float(np.percentile(valid_vals, 90))
+            min_val = float(np.min(valid_vals))
+            max_val = float(np.max(valid_vals))
 
             # Data sufficiency evaluation
             if n_samples < self.min_periods:
@@ -129,9 +141,14 @@ class HistoricalBaselineService:
         self,
         region_id: str,
         metric_type: str,
-        day_of_year: int
+        day_of_year: int,
+        search_window_days: int = 7
     ) -> Optional[HistoricalBaseline]:
-        """Retrieves closest baseline profile for a day of year in the given region."""
+        """
+        Retrieves baseline profile for a day of year in the given region.
+        Searches exact day first; if absent, searches nearest adjacent day within search_window_days.
+        Never silently returns an arbitrary unrelated day.
+        """
         stmt = select(HistoricalBaseline).where(
             and_(
                 HistoricalBaseline.region_id == region_id,
@@ -140,18 +157,22 @@ class HistoricalBaselineService:
             )
         )
         baseline = self.db.scalars(stmt).first()
-        if not baseline:
-            # Fallback to general average across all available days in the region
-            stmt_general = select(HistoricalBaseline).where(
-                and_(
-                    HistoricalBaseline.region_id == region_id,
-                    HistoricalBaseline.metric_type == metric_type
-                )
+        if baseline:
+            return baseline
+
+        # Nearest day search strictly within search_window_days
+        min_doy = max(1, day_of_year - search_window_days)
+        max_doy = min(365, day_of_year + search_window_days)
+        stmt_window = select(HistoricalBaseline).where(
+            and_(
+                HistoricalBaseline.region_id == region_id,
+                HistoricalBaseline.metric_type == metric_type,
+                HistoricalBaseline.day_of_year.between(min_doy, max_doy)
             )
-            all_b = list(self.db.scalars(stmt_general).all())
-            if all_b:
-                return all_b[0]
-        return baseline
+        ).order_by(func.abs(HistoricalBaseline.day_of_year - day_of_year))
+        
+        adjacent = self.db.scalars(stmt_window).first()
+        return adjacent
 
     def get_all_baselines(
         self,

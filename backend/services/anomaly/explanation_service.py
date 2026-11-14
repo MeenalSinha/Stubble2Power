@@ -28,13 +28,18 @@ class AnomalyExplanationService:
         Builds a comprehensive diagnostic breakdown for an anomalous fire activity event.
         """
         diff = observed_val - baseline_val
-        pct_increase = (diff / max(1.0, baseline_val)) * 100.0
+        if baseline_val > 0.0:
+            pct_increase = (diff / baseline_val) * 100.0
+            pct_str = f"+{pct_increase:.1f}%"
+        else:
+            pct_increase = 0.0
+            pct_str = "new emergence over zero baseline"
 
         # Construct clear summary narrative
         if anomaly_type == "SPIKE":
             summary = (
                 f"Severe fire activity spike detected in {grid_id} ({region_id}) on {observation_date.isoformat()}. "
-                f"Observed {metric_name} of {observed_val:.1f} exceeds historical median {baseline_val:.1f} by {diff:.1f} (+{pct_increase:.1f}%)."
+                f"Observed {metric_name} of {observed_val:.1f} exceeds historical median {baseline_val:.1f} by {diff:.1f} ({pct_str})."
             )
         elif anomaly_type == "UNSEASONAL_TIMING":
             summary = (

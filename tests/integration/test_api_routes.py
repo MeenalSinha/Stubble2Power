@@ -24,8 +24,19 @@ from backend.api.routes import (
     calendar,
     seasonal,
     anomalies,
-    agriculture
+    agriculture,
+    farms,
+    biomass,
+    mobile_units,
+    deployments,
+    advanced_economics,
+    environmental_lca
 )
+from backend.schemas.farm import FarmCreate, FarmCropCreate
+from backend.schemas.biomass import BiomassEstimationRequest
+from backend.schemas.deployment import MobileRefineryCreate
+from backend.schemas.advanced_economics import FinancialScenarioCreate
+from backend.schemas.environmental_lca import EnvironmentalAssessmentCreate
 
 
 @pytest.fixture
@@ -225,3 +236,125 @@ class TestAPIRouteHandlers:
         # 3. Get summary
         summary = agriculture.get_agricultural_summary(db=db_session)
         assert summary.total_assessed >= 0
+
+    def test_farms_routes(self, db_session):
+        farmer = farmers.create_farmer(FarmerCreate(
+            name="Paramjit Singh",
+            phone="9812345678",
+            district="Sangrur",
+            village="Sunam",
+            acres=25.0,
+            stubble_tons=50.0,
+            latitude=30.1300,
+            longitude=75.8000,
+            harvest_date=date(2024, 10, 20)
+        ), db=db_session)
+
+        farm = farms.create_farm(FarmCreate(
+            farmer_id=farmer.id,
+            farm_name="Sunam Parcel A",
+            total_acres=25.0,
+            village="Sunam",
+            district="Sangrur",
+            latitude=30.1300,
+            longitude=75.8000
+        ), db=db_session)
+        assert farm.id is not None
+
+        farm_list = farms.list_farms(district="Sangrur", db=db_session)
+        assert len(farm_list) >= 1
+
+        single_farm = farms.get_farm(farm.id, db=db_session)
+        assert single_farm.farm_name == "Sunam Parcel A"
+
+    def test_biomass_routes(self, db_session):
+        farmer = farmers.create_farmer(FarmerCreate(
+            name="Dalbir Singh",
+            phone="9812345679",
+            district="Patiala",
+            village="Nabha",
+            acres=20.0,
+            stubble_tons=40.0,
+            latitude=30.3700,
+            longitude=76.1500,
+            harvest_date=date(2024, 10, 22)
+        ), db=db_session)
+
+        farm = farms.create_farm(FarmCreate(
+            farmer_id=farmer.id,
+            farm_name="Nabha Field 1",
+            total_acres=20.0,
+            village="Nabha",
+            district="Patiala",
+            latitude=30.3700,
+            longitude=76.1500
+        ), db=db_session)
+
+        crop = farms.add_crop_cultivation(farm.id, FarmCropCreate(
+            farm_id=farm.id,
+            crop_type="PADDY",
+            cultivated_acres=20.0,
+            crop_season="Kharif",
+            crop_year=2024
+        ), db=db_session)
+
+        estimate = biomass.generate_biomass_estimate(BiomassEstimationRequest(
+            farm_crop_id=crop.id,
+            actual_grain_yield_tons=52.0
+        ), db=db_session)
+        assert estimate.net_usable_biomass_tons > 0.0
+
+        est_detail = biomass.get_biomass_estimate(estimate.id, db=db_session)
+        assert est_detail.id == estimate.id
+
+        est_crops = biomass.list_estimates_for_crop(crop.id, db=db_session)
+        assert len(est_crops) >= 1
+
+    def test_mobile_units_routes(self, db_session):
+        unit = mobile_units.register_mobile_unit(MobileRefineryCreate(
+            unit_code="MBR-RT-01",
+            name="Route Test Unit",
+            technology="BRIQUETTING",
+            hourly_capacity_tons=2.5,
+            daily_operating_hours=10.0,
+            home_latitude=30.9000,
+            home_longitude=75.8500
+        ), db=db_session)
+        assert unit.unit_code == "MBR-RT-01"
+
+        unit_list = mobile_units.list_mobile_units(db=db_session)
+        assert len(unit_list) >= 1
+
+        retrieved = mobile_units.get_mobile_unit(unit.id, db=db_session)
+        assert retrieved.name == "Route Test Unit"
+
+    def test_deployments_routes(self, db_session):
+        dep_list = deployments.list_deployments(db=db_session)
+        assert isinstance(dep_list, list)
+
+    def test_advanced_economics_routes(self, db_session):
+        sc = advanced_economics.evaluate_financial_scenario(FinancialScenarioCreate(
+            scenario_name="Base Case",
+            biomass_processed_tons=300.0
+        ), db=db_session)
+        assert sc.id is not None
+        assert sc.total_revenue_inr > 0.0
+
+        sc_list = advanced_economics.list_financial_scenarios(db=db_session)
+        assert len(sc_list) >= 1
+
+        sc_detail = advanced_economics.get_financial_scenario(sc.id, db=db_session)
+        assert sc_detail.id == sc.id
+
+    def test_environmental_lca_routes(self, db_session):
+        lca = environmental_lca.conduct_life_cycle_assessment(EnvironmentalAssessmentCreate(
+            biomass_diverted_tons=300.0
+        ), db=db_session)
+        assert lca.id is not None
+        assert lca.baseline_total_co2e_tons > 0.0
+
+        lca_list = environmental_lca.list_environmental_assessments(db=db_session)
+        assert len(lca_list) >= 1
+
+        system_b = environmental_lca.get_lca_system_boundary()
+        assert "Open-Field" in system_b.baseline_pathway

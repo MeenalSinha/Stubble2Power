@@ -62,8 +62,15 @@ class Farmer(Base):
     harvest_date: Mapped[date] = mapped_column(Date, nullable=False)
     latitude: Mapped[float] = mapped_column(Float, index=True, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, index=True, nullable=False)
+    phone_masked: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    consent_given: Mapped[bool] = mapped_column(Boolean, default=True)
+    verification_status: Mapped[str] = mapped_column(String(50), default="VERIFIED")
+    status: Mapped[str] = mapped_column(String(50), default="ACTIVE")
+    address_line: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    farms: Mapped[List["Farm"]] = relationship("Farm", back_populates="farmer", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("idx_farmer_coords", "latitude", "longitude"),
@@ -425,3 +432,253 @@ class AgriculturalContextAssessment(Base):
     __table_args__ = (
         Index("idx_agri_ctx_date_class", "observation_date", "context_classification"),
     )
+
+
+# ============================================================================
+# PHASE 10: FARM & BIOMASS MANAGEMENT ENTITIES
+# ============================================================================
+
+class Farm(Base):
+    __tablename__ = "farms"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    farmer_id: Mapped[int] = mapped_column(Integer, ForeignKey("farmers.id"), index=True, nullable=False)
+    farm_name: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
+    total_acres: Mapped[float] = mapped_column(Float, nullable=False)
+    village: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
+    district: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
+    state: Mapped[str] = mapped_column(String(150), default="Punjab", index=True, nullable=False)
+    latitude: Mapped[float] = mapped_column(Float, index=True, nullable=False)
+    longitude: Mapped[float] = mapped_column(Float, index=True, nullable=False)
+    boundary_geojson: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    ownership_status: Mapped[str] = mapped_column(String(50), default="OWNED")  # OWNED, LEASED, OPERATED
+    soil_type: Mapped[str] = mapped_column(String(50), default="ALLUVIAL")
+    verification_status: Mapped[str] = mapped_column(String(50), default="VERIFIED")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    farmer: Mapped["Farmer"] = relationship("Farmer", back_populates="farms")
+    crops: Mapped[List["FarmCrop"]] = relationship("FarmCrop", back_populates="farm", cascade="all, delete-orphan")
+
+
+class FarmCrop(Base):
+    __tablename__ = "farm_crops"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    farm_id: Mapped[int] = mapped_column(Integer, ForeignKey("farms.id"), index=True, nullable=False)
+    crop_type: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # PADDY, WHEAT, COTTON, SUGARCANE, MAIZE
+    cultivated_acres: Mapped[float] = mapped_column(Float, nullable=False)
+    crop_season: Mapped[str] = mapped_column(String(50), nullable=False)  # Kharif, Rabi, Zaid, Perennial
+    crop_year: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
+    sowing_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    expected_harvest_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    actual_harvest_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    expected_yield_tons_per_acre: Mapped[float] = mapped_column(Float, default=2.60)
+    actual_yield_tons_per_acre: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    cultivation_status: Mapped[str] = mapped_column(String(50), default="ACTIVE")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    farm: Mapped[Farm] = relationship("Farm", back_populates="crops")
+    harvests: Mapped[List["HarvestRecord"]] = relationship("HarvestRecord", back_populates="crop", cascade="all, delete-orphan")
+    biomass_estimates: Mapped[List["BiomassEstimate"]] = relationship("BiomassEstimate", back_populates="crop", cascade="all, delete-orphan")
+
+
+class HarvestRecord(Base):
+    __tablename__ = "harvest_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    farm_crop_id: Mapped[int] = mapped_column(Integer, ForeignKey("farm_crops.id"), index=True, nullable=False)
+    harvest_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
+    actual_grain_yield_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    grain_moisture_pct: Mapped[float] = mapped_column(Float, default=14.0)
+    harvest_method: Mapped[str] = mapped_column(String(50), default="COMBINE_HARVESTER")
+    is_measured: Mapped[bool] = mapped_column(Boolean, default=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    crop: Mapped[FarmCrop] = relationship("FarmCrop", back_populates="harvests")
+
+
+class BiomassEstimate(Base):
+    __tablename__ = "biomass_estimates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    farm_crop_id: Mapped[int] = mapped_column(Integer, ForeignKey("farm_crops.id"), index=True, nullable=False)
+    harvest_record_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("harvest_records.id"), nullable=True)
+    gross_residue_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    retained_residue_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    competing_demand_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    collectable_residue_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    handling_loss_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    net_usable_biomass_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    moisture_content_pct: Mapped[float] = mapped_column(Float, default=14.0)
+    dry_matter_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    estimation_source: Mapped[str] = mapped_column(String(50), default="SCIENTIFIC_MODEL")  # MEASURED, FARMER_REPORTED, OFFICIAL_STATISTICS, SCIENTIFIC_MODEL
+    confidence_score: Mapped[float] = mapped_column(Float, default=0.90)
+    availability_start_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
+    availability_end_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
+    methodology_notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    crop: Mapped[FarmCrop] = relationship("FarmCrop", back_populates="biomass_estimates")
+    transactions: Mapped[List["BiomassInventoryTransaction"]] = relationship(
+        "BiomassInventoryTransaction", back_populates="biomass_estimate", cascade="all, delete-orphan"
+    )
+
+
+class BiomassInventoryTransaction(Base):
+    __tablename__ = "biomass_inventory_transactions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    biomass_estimate_id: Mapped[int] = mapped_column(Integer, ForeignKey("biomass_estimates.id"), index=True, nullable=False)
+    farm_id: Mapped[int] = mapped_column(Integer, ForeignKey("farms.id"), index=True, nullable=False)
+    quantity_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    stage: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # ESTIMATED, CONFIRMED, COMMITTED, COLLECTED, STORED, ALLOCATED, PROCESSED
+    allocated_unit_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    transaction_timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    biomass_estimate: Mapped[BiomassEstimate] = relationship("BiomassEstimate", back_populates="transactions")
+
+
+# ============================================================================
+# PHASE 11: MOBILE BIO-REFINERY & ROUTE OPTIMIZATION ENTITIES
+# ============================================================================
+
+class MobileBioRefinery(Base):
+    __tablename__ = "mobile_bio_refineries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    unit_code: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    equipment_type: Mapped[str] = mapped_column(String(50), default="TRAILER_MOUNTED_DENSIFIER")
+    technology: Mapped[str] = mapped_column(String(50), default="BRIQUETTING")  # BRIQUETTING, SLOW_PYROLYSIS
+    hourly_capacity_tons: Mapped[float] = mapped_column(Float, default=2.5)
+    daily_operating_hours: Mapped[float] = mapped_column(Float, default=10.0)
+    daily_capacity_tons: Mapped[float] = mapped_column(Float, default=25.0)
+    fuel_consumption_liters_per_ton: Mapped[float] = mapped_column(Float, default=4.5)
+    operating_cost_per_hour_inr: Mapped[float] = mapped_column(Float, default=750.0)
+    current_status: Mapped[str] = mapped_column(String(50), default="AVAILABLE")  # AVAILABLE, DEPLOYED, MAINTENANCE, STANDBY
+    home_depot_name: Mapped[str] = mapped_column(String(150), default="Ludhiana Central Depot")
+    home_latitude: Mapped[float] = mapped_column(Float, default=30.9010)
+    home_longitude: Mapped[float] = mapped_column(Float, default=75.8573)
+    max_travel_radius_km: Mapped[float] = mapped_column(Float, default=60.0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class DeploymentPlan(Base):
+    __tablename__ = "deployment_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    plan_code: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    region: Mapped[str] = mapped_column(String(100), default="Punjab")
+    date_start: Mapped[date] = mapped_column(Date, index=True, nullable=False)
+    date_end: Mapped[date] = mapped_column(Date, index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(50), default="OPTIMIZED")  # DRAFT, OPTIMIZED, APPROVED, EXECUTED, REJECTED
+    total_biomass_assigned_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    total_units_deployed: Mapped[int] = mapped_column(Integer, default=0)
+    total_route_distance_km: Mapped[float] = mapped_column(Float, default=0.0)
+    estimated_transport_cost_inr: Mapped[float] = mapped_column(Float, default=0.0)
+    unserved_farms_count: Mapped[int] = mapped_column(Integer, default=0)
+    capacity_utilization_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    parameters_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    assignments: Mapped[List["DeploymentAssignment"]] = relationship("DeploymentAssignment", back_populates="deployment_plan", cascade="all, delete-orphan")
+    routes: Mapped[List["RoutePlan"]] = relationship("RoutePlan", back_populates="deployment_plan", cascade="all, delete-orphan")
+
+
+class DeploymentAssignment(Base):
+    __tablename__ = "deployment_assignments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    deployment_plan_id: Mapped[int] = mapped_column(Integer, ForeignKey("deployment_plans.id"), index=True, nullable=False)
+    mobile_unit_id: Mapped[int] = mapped_column(Integer, ForeignKey("mobile_bio_refineries.id"), index=True, nullable=False)
+    farm_id: Mapped[int] = mapped_column(Integer, ForeignKey("farms.id"), index=True, nullable=False)
+    assigned_biomass_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    scheduled_date: Mapped[date] = mapped_column(Date, nullable=False)
+    collection_status: Mapped[str] = mapped_column(String(50), default="SCHEDULED")  # SCHEDULED, PICKED_UP, PROCESSED, CANCELLED
+
+    deployment_plan: Mapped[DeploymentPlan] = relationship("DeploymentPlan", back_populates="assignments")
+    mobile_unit: Mapped[MobileBioRefinery] = relationship("MobileBioRefinery")
+    farm: Mapped[Farm] = relationship("Farm")
+
+
+class RoutePlan(Base):
+    __tablename__ = "route_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    deployment_plan_id: Mapped[int] = mapped_column(Integer, ForeignKey("deployment_plans.id"), index=True, nullable=False)
+    mobile_unit_id: Mapped[int] = mapped_column(Integer, ForeignKey("mobile_bio_refineries.id"), index=True, nullable=False)
+    route_date: Mapped[date] = mapped_column(Date, nullable=False)
+    total_distance_km: Mapped[float] = mapped_column(Float, nullable=False)
+    road_tortuosity_ratio: Mapped[float] = mapped_column(Float, default=1.35)
+    estimated_duration_hours: Mapped[float] = mapped_column(Float, default=0.0)
+    fuel_consumed_liters: Mapped[float] = mapped_column(Float, default=0.0)
+    total_payload_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    stops_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    route_geometry_geojson: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    deployment_plan: Mapped[DeploymentPlan] = relationship("DeploymentPlan", back_populates="routes")
+    mobile_unit: Mapped[MobileBioRefinery] = relationship("MobileBioRefinery")
+
+
+# ============================================================================
+# PHASE 12: ADVANCED ECONOMICS & LCA ENVIRONMENTAL ENTITIES
+# ============================================================================
+
+class FinancialScenario(Base):
+    __tablename__ = "financial_scenarios"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    deployment_plan_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("deployment_plans.id"), nullable=True, index=True)
+    scenario_name: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # Conservative, Base Case, Optimistic, Custom
+    briquette_price_per_ton: Mapped[float] = mapped_column(Float, default=5000.0)
+    biochar_price_per_ton: Mapped[float] = mapped_column(Float, default=12000.0)
+    farmer_procurement_price_per_ton: Mapped[float] = mapped_column(Float, default=1500.0)
+    diesel_price_per_liter: Mapped[float] = mapped_column(Float, default=89.50)
+    processing_capex_per_unit: Mapped[float] = mapped_column(Float, default=2500000.0)
+    wacc_discount_rate_pct: Mapped[float] = mapped_column(Float, default=10.5)
+    total_biomass_processed_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    total_revenue_inr: Mapped[float] = mapped_column(Float, default=0.0)
+    total_opex_inr: Mapped[float] = mapped_column(Float, default=0.0)
+    total_farmer_payments_inr: Mapped[float] = mapped_column(Float, default=0.0)
+    total_transport_costs_inr: Mapped[float] = mapped_column(Float, default=0.0)
+    total_processing_costs_inr: Mapped[float] = mapped_column(Float, default=0.0)
+    gross_profit_inr: Mapped[float] = mapped_column(Float, default=0.0)
+    net_margin_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    cost_per_ton_processed_inr: Mapped[float] = mapped_column(Float, default=0.0)
+    break_even_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    roi_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    payback_period_years: Mapped[float] = mapped_column(Float, default=0.0)
+    npv_inr: Mapped[float] = mapped_column(Float, default=0.0)
+    irr_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    assumptions_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class EnvironmentalAssessment(Base):
+    __tablename__ = "environmental_assessments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    deployment_plan_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("deployment_plans.id"), nullable=True, index=True)
+    biomass_diverted_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    baseline_burning_co2_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    baseline_burning_ch4_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    baseline_burning_n2o_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    baseline_burning_pm25_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    baseline_total_co2e_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    project_transport_emissions_co2_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    project_processing_emissions_co2_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    project_total_emissions_co2e_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    coal_displaced_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    avoided_coal_co2e_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    biochar_stable_carbon_stored_co2e_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    net_avoided_co2e_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    net_benefit_ratio: Mapped[float] = mapped_column(Float, default=0.0)
+    carbon_credit_eligible_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    methodology_provenance: Mapped[str] = mapped_column(String(255), default="IPCC 2006 / AR6 WG1 / CEA CO2 Baseline v19.0")
+    evidence_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

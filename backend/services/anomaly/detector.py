@@ -31,11 +31,17 @@ class StatisticalAnomalyDetector:
         self.db = db
         self.baseline_svc = HistoricalBaselineService(db)
         self.geo_svc = GeospatialService()
+        from backend.services.agriculture.crop_calendar_service import CropCalendarService
+        self.crop_cal_svc = CropCalendarService(db)
         self.zscore_thresh = float(config_manager.get("anomaly.detection.zscore_threshold"))
         self.mad_thresh = float(config_manager.get("anomaly.detection.mad_threshold"))
         self.ewma_alpha = float(config_manager.get("anomaly.detection.ewma_alpha"))
         self.min_frp = float(config_manager.get("anomaly.detection.min_frp_mw"))
         self.cluster_radius_km = float(config_manager.get("anomaly.spatial.cluster_radius_km"))
+        self.fallback_mean = float(config_manager.get("seasonal.baseline.fallback_mean"))
+        self.fallback_median = float(config_manager.get("seasonal.baseline.fallback_median"))
+        self.fallback_std = float(config_manager.get("seasonal.baseline.fallback_std"))
+        self.fallback_mad = float(config_manager.get("seasonal.baseline.fallback_mad"))
 
     def detect_anomalies(
         self,
@@ -94,11 +100,11 @@ class StatisticalAnomalyDetector:
                 mad_val = max(0.5, baseline.mad_val)
                 data_sufficiency = baseline.data_sufficiency_status
             else:
-                # Default baseline approximation if no historical baseline available
-                exp_mean = 15.0
-                exp_median = 10.0
-                std_val = 12.0
-                mad_val = 8.0
+                # Evidence-based baseline priors loaded from ConfigManager
+                exp_mean = self.fallback_mean
+                exp_median = self.fallback_median
+                std_val = max(1.0, self.fallback_std)
+                mad_val = max(0.5, self.fallback_mad)
                 data_sufficiency = "LIMITED_HISTORY"
 
             # Compute parametric Z-score and robust MAD score
@@ -122,19 +128,19 @@ class StatisticalAnomalyDetector:
             is_anomaly = False
             anomaly_type = "SPIKE"
 
-            # Check for unseasonal burning (e.g. outside Oct-Nov Kharif and Apr-May Rabi in Punjab)
-            month = obs.observation_date.month
-            is_unseasonal_month = month not in (10, 11, 4, 5)
+            # Check unseasonal burning via authoritative crop calendar harvest windows
+            harvest_match = self.crop_cal_svc.match_harvest_window(obs.observation_date, state_name=region_id)
+            is_unseasonal = (harvest_match["status"] == "OFF_SEASON")
 
             if mad_score >= mad_th or z_score >= z_th:
                 is_anomaly = True
-                if is_unseasonal_month:
+                if is_unseasonal:
                     anomaly_type = "UNSEASONAL_TIMING"
                 elif co_occurring_count >= 5:
                     anomaly_type = "SPATIAL_CLUSTER"
                 else:
                     anomaly_type = "SPIKE"
-            elif is_unseasonal_month and activity_val >= (frp_floor * 2.0):
+            elif is_unseasonal and activity_val >= (frp_floor * 2.0):
                 is_anomaly = True
                 anomaly_type = "UNSEASONAL_TIMING"
             elif co_occurring_count >= 8:

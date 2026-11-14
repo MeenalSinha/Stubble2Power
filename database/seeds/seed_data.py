@@ -242,6 +242,188 @@ def seed_database():
         )
         logger.info("Phase 8 & Phase 9 reference datasets, seasonal profiles, anomalies, and classifications seeded.")
 
+        # ====================================================================
+        # 8. Seed Phase 10: Farms, Cultivations, Harvests & Biomass Estimates
+        # ====================================================================
+        from backend.models.entities import (
+            Farm, FarmCrop, HarvestRecord, BiomassEstimate, MobileBioRefinery
+        )
+        from backend.services.farms.farm_service import FarmService
+        from backend.services.biomass.estimation_service import BiomassEstimationService
+        from backend.services.deployment.refinery_service import MobileRefineryService
+        from backend.services.deployment.planner_service import DeploymentPlannerService
+        from backend.services.economics.financial_engine import FinancialEngineService
+        from backend.services.environmental.lca_engine import LifeCycleAssessmentService
+        from backend.schemas.deployment import DeploymentPlanCreate
+        from backend.schemas.advanced_economics import FinancialScenarioCreate
+        from backend.schemas.environmental_lca import EnvironmentalAssessmentCreate
+
+        if not db.query(Farm).first():
+            farmers = db.query(Farmer).all()
+            if farmers:
+                f1 = farmers[0]
+                farm1 = Farm(
+                    farmer_id=f1.id,
+                    farm_name="Ludhiana Agro Pioneer Farm",
+                    total_acres=25.0,
+                    village=f1.village,
+                    district=f1.district,
+                    state="Punjab",
+                    latitude=f1.latitude,
+                    longitude=f1.longitude,
+                    soil_type="Alluvial Loam"
+                )
+                db.add(farm1)
+                db.flush()
+
+                crop1 = FarmCrop(
+                    farm_id=farm1.id,
+                    crop_type="PADDY",
+                    cultivated_acres=22.0,
+                    crop_season="Kharif",
+                    crop_year=2024,
+                    sowing_date=date(2024, 6, 18),
+                    expected_harvest_date=date(2024, 10, 26),
+                    expected_yield_tons_per_acre=2.70,
+                    actual_harvest_date=date(2024, 10, 26),
+                    actual_yield_tons_per_acre=2.85,
+                    cultivation_status="HARVESTED"
+                )
+                db.add(crop1)
+                db.flush()
+
+                harvest1 = HarvestRecord(
+                    farm_crop_id=crop1.id,
+                    harvest_date=date(2024, 10, 26),
+                    actual_grain_yield_tons=62.7,
+                    grain_moisture_pct=14.0,
+                    harvest_method="COMBINE_HARVESTER_SUPER_SMS",
+                    is_measured=True,
+                    notes="Official calibration farm harvest record"
+                )
+                db.add(harvest1)
+                db.flush()
+
+                biomass_svc = BiomassEstimationService(db)
+                biomass_svc.estimate_crop_biomass(farm_crop_id=crop1.id)
+
+                if len(farmers) > 1:
+                    f2 = farmers[1]
+                    farm2 = Farm(
+                        farmer_id=f2.id,
+                        farm_name="Sangrur Precision Agro Parcel",
+                        total_acres=35.0,
+                        village=f2.village,
+                        district=f2.district,
+                        state="Punjab",
+                        latitude=f2.latitude,
+                        longitude=f2.longitude,
+                        soil_type="Clay Loam"
+                    )
+                    db.add(farm2)
+                    db.flush()
+
+                    crop2 = FarmCrop(
+                        farm_id=farm2.id,
+                        crop_type="PADDY",
+                        cultivated_acres=30.0,
+                        crop_season="Kharif",
+                        crop_year=2024,
+                        actual_harvest_date=date(2024, 10, 28),
+                        actual_yield_tons_per_acre=2.90,
+                        cultivation_status="HARVESTED"
+                    )
+                    db.add(crop2)
+                    db.flush()
+
+                    harvest2 = HarvestRecord(
+                        farm_crop_id=crop2.id,
+                        harvest_date=date(2024, 10, 28),
+                        actual_grain_yield_tons=87.0,
+                        grain_moisture_pct=14.5,
+                        harvest_method="COMBINE_HARVESTER_SUPER_SMS",
+                        is_measured=True
+                    )
+                    db.add(harvest2)
+                    db.flush()
+                    biomass_svc.estimate_crop_biomass(farm_crop_id=crop2.id)
+
+                db.commit()
+                logger.info("Phase 10 farms, crops, harvests, and biomass estimates seeded.")
+
+        # ====================================================================
+        # 9. Seed Phase 11: Mobile Bio-Refineries & Deployment Plan
+        # ====================================================================
+        if not db.query(MobileBioRefinery).first():
+            units = [
+                MobileBioRefinery(
+                    unit_code="MBR-PB-01",
+                    name="Ludhiana Mobile Densifier Alpha",
+                    equipment_type="TRAILER_MOUNTED_DENSIFIER",
+                    technology="BRIQUETTING",
+                    hourly_capacity_tons=2.5,
+                    daily_operating_hours=10.0,
+                    daily_capacity_tons=25.0,
+                    fuel_consumption_liters_per_ton=4.5,
+                    operating_cost_per_hour_inr=750.0,
+                    current_status="AVAILABLE",
+                    home_depot_name="Ludhiana Central Agro Hub",
+                    home_latitude=30.9010,
+                    home_longitude=75.8573,
+                    max_travel_radius_km=60.0,
+                    is_active=True
+                ),
+                MobileBioRefinery(
+                    unit_code="MBR-PB-02",
+                    name="Sangrur Mobile Pyrolysis Rig Beta",
+                    equipment_type="TRAILER_MOUNTED_PYROLYZER",
+                    technology="SLOW_PYROLYSIS",
+                    hourly_capacity_tons=1.5,
+                    daily_operating_hours=10.0,
+                    daily_capacity_tons=15.0,
+                    fuel_consumption_liters_per_ton=3.8,
+                    operating_cost_per_hour_inr=900.0,
+                    current_status="AVAILABLE",
+                    home_depot_name="Sangrur Agricultural Logistics Depot",
+                    home_latitude=30.2458,
+                    home_longitude=75.8421,
+                    max_travel_radius_km=50.0,
+                    is_active=True
+                )
+            ]
+            db.add_all(units)
+            db.commit()
+            logger.info("Phase 11 mobile bio-refineries seeded.")
+
+            # Plan a baseline deployment
+            try:
+                planner = DeploymentPlannerService(db)
+                plan = planner.plan_deployment(DeploymentPlanCreate(
+                    name="Punjab Autumn Stubble Densification Campaign",
+                    region="Punjab",
+                    date_start=date(2024, 10, 25),
+                    date_end=date(2024, 11, 5)
+                ), strategy="BALANCED")
+
+                # ====================================================================
+                # 10. Seed Phase 12: Financial Scenario & LCA Environmental Assessment
+                # ====================================================================
+                econ_engine = FinancialEngineService(db)
+                econ_engine.evaluate_scenario(FinancialScenarioCreate(
+                    deployment_plan_id=plan.id,
+                    scenario_name="Base Case",
+                    biomass_processed_tons=plan.total_biomass_assigned_tons
+                ))
+
+                lca_engine = LifeCycleAssessmentService(db)
+                lca_engine.conduct_lca(EnvironmentalAssessmentCreate(
+                    deployment_plan_id=plan.id,
+                    biomass_diverted_tons=plan.total_biomass_assigned_tons
+                ))
+                logger.info("Phase 12 financial scenario and LCA environmental assessment seeded.")
+            except Exception as e:
+                logger.warning(f"Deployment auto-plan during seed skipped: {e}")
+
     finally:
         db.close()
 

@@ -150,6 +150,106 @@ Derived spatial grid cell observations combining MODIS and VIIRS records.
 - `uncertainty_level` (VARCHAR(20)) - `LOW`, `MODERATE`, `HIGH`
 - `data_coverage_flag` (VARCHAR(50)) - `DUAL_SENSOR`, `VIIRS_ONLY`, `MODIS_ONLY`, `ZERO_DETECTED`
 
+### 3.7 `farms` (Phase 10)
+Spatially bounded farm parcels belonging to enrolled farmers.
+- `id` (INTEGER, PK)
+- `farmer_id` (FK -> `farmers.id`)
+- `farm_name` (VARCHAR(150))
+- `total_acres` (FLOAT)
+- `village`, `district`, `state` (VARCHAR(150))
+- `latitude`, `longitude` (FLOAT, Indexed)
+- `ownership_status`, `soil_type`, `verification_status` (VARCHAR(50))
+- `boundary_geojson` (JSON, Optional)
+
+### 3.8 `farm_crops` (Phase 10)
+Seasonal cultivation cycles on a farm parcel.
+- `id` (INTEGER, PK)
+- `farm_id` (FK -> `farms.id`)
+- `crop_type` (VARCHAR(50), e.g. PADDY, WHEAT)
+- `cultivated_acres` (FLOAT)
+- `crop_season`, `crop_year` (VARCHAR/INTEGER)
+- `sowing_date`, `expected_harvest_date`, `actual_harvest_date` (DATE)
+- `expected_yield_tons_per_acre`, `actual_yield_tons_per_acre` (FLOAT)
+- `cultivation_status` (VARCHAR(50))
+
+### 3.9 `harvest_records` (Phase 10)
+Empirical measured harvest events.
+- `id` (INTEGER, PK)
+- `farm_crop_id` (FK -> `farm_crops.id`)
+- `harvest_date` (DATE)
+- `actual_grain_yield_tons` (FLOAT)
+- `grain_moisture_pct` (FLOAT)
+- `harvest_method` (VARCHAR(50))
+- `is_measured` (BOOLEAN)
+
+### 3.10 `biomass_estimates` (Phase 10)
+Mathematical residue deductions and net usable biomass.
+- `id` (INTEGER, PK)
+- `farm_crop_id` (FK -> `farm_crops.id`)
+- `gross_residue_tons`, `retained_residue_tons`, `competing_demand_tons` (FLOAT)
+- `collectable_residue_tons`, `handling_loss_tons`, `net_usable_biomass_tons` (FLOAT)
+- `dry_matter_tons`, `moisture_content_pct` (FLOAT)
+- `estimation_source` (VARCHAR(50))
+- `confidence_score` (FLOAT)
+- `availability_start_date`, `availability_end_date` (DATE)
+
+### 3.11 `biomass_inventory_transactions` (Phase 10)
+Audited lifecycle ledger transitions.
+- `id` (INTEGER, PK)
+- `biomass_estimate_id` (FK -> `biomass_estimates.id`)
+- `farm_id` (FK -> `farms.id`)
+- `quantity_tons` (FLOAT)
+- `stage` (VARCHAR(50): ESTIMATED, CONFIRMED, COMMITTED, COLLECTED, STORED, ALLOCATED, PROCESSED)
+- `allocated_unit_id` (INTEGER, Optional)
+- `transaction_timestamp` (DATETIME)
+
+### 3.12 `mobile_bio_refineries` (Phase 11)
+Fleet specifications and home depot registry.
+- `id` (INTEGER, PK)
+- `unit_code` (VARCHAR(50), Unique Index)
+- `name` (VARCHAR(150))
+- `technology` (VARCHAR(50): BRIQUETTING, SLOW_PYROLYSIS)
+- `hourly_capacity_tons`, `daily_operating_hours`, `daily_capacity_tons` (FLOAT)
+- `fuel_consumption_liters_per_ton`, `operating_cost_per_hour_inr` (FLOAT)
+- `home_depot_name` (VARCHAR(150))
+- `home_latitude`, `home_longitude` (FLOAT)
+- `max_travel_radius_km` (FLOAT)
+- `current_status` (VARCHAR(50))
+
+### 3.13 `deployment_plans` & `deployment_assignments` (Phase 11)
+Capacity-constrained multi-unit operational deployments.
+- `deployment_plans`: `plan_code`, `date_start`, `date_end`, `status`, `total_biomass_assigned_tons`, `total_units_deployed`, `total_route_distance_km`, `estimated_transport_cost_inr`, `unserved_farms_count`, `capacity_utilization_pct`, `parameters_json`.
+- `deployment_assignments`: `deployment_plan_id`, `mobile_unit_id`, `farm_id`, `assigned_biomass_tons`, `scheduled_date`, `collection_status`.
+
+### 3.14 `route_plans` (Phase 11)
+Sequenced vehicle collection stops with road tortuosity modeling.
+- `id` (INTEGER, PK)
+- `deployment_plan_id` (FK -> `deployment_plans.id`)
+- `mobile_unit_id` (FK -> `mobile_bio_refineries.id`)
+- `total_distance_km`, `road_tortuosity_ratio` (FLOAT)
+- `estimated_duration_hours`, `fuel_consumed_liters`, `total_payload_tons` (FLOAT)
+- `stops_json` (JSON list of sequenced stops: DEPOT_START, FARM_COLLECTION, DEPOT_END)
+
+### 3.15 `financial_scenarios` (Phase 12)
+Techno-economic capital budgeting evaluations.
+- `id` (INTEGER, PK)
+- `deployment_plan_id` (FK -> `deployment_plans.id`, Optional)
+- `scenario_name` (VARCHAR(50))
+- `briquette_price_per_ton`, `biochar_price_per_ton`, `farmer_procurement_price_per_ton`, `diesel_price_per_liter` (FLOAT)
+- `total_biomass_processed_tons`, `total_revenue_inr`, `total_opex_inr`, `gross_profit_inr`, `net_margin_pct` (FLOAT)
+- `break_even_tons`, `roi_pct`, `payback_period_years`, `npv_inr`, `irr_pct` (FLOAT)
+
+### 3.16 `environmental_assessments` (Phase 12)
+Cradle-to-grave life cycle assessments.
+- `id` (INTEGER, PK)
+- `biomass_diverted_tons` (FLOAT)
+- `baseline_total_co2e_tons`, `project_total_emissions_co2e_tons` (FLOAT)
+- `coal_displaced_tons`, `avoided_coal_co2e_tons` (FLOAT)
+- `biochar_stable_carbon_stored_co2e_tons` (FLOAT)
+- `net_avoided_co2e_tons`, `net_benefit_ratio` (FLOAT)
+- `carbon_credit_eligible_tons` (FLOAT)
+- `methodology_provenance` (VARCHAR(255))
+
 ---
 
 ## 4. Migrations & Seed Management

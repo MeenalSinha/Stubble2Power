@@ -1,5 +1,46 @@
 # Stubble2Power - Engineering Changelog
 
+## [2.3.0] - 2026-11-14
+
+### Phase 10, 11 & 12 Master Release: Full Biomass Supply Chain, Fleet Logistics, Techno-Economics & LCA Environmental Intelligence
+
+#### Phase 10: Farmer, Farm & Biomass Intelligence
+- **Farm Entity Architecture**: Created `Farm` (spatial parcel, centroid coordinates, boundary GeoJSON, soil classification, ownership status) and `FarmCrop` (seasonal crop tracking, sowing/harvest dates, acreage conservation guard).
+- **Empirical Harvest Tracking**: Implemented `HarvestRecord` capturing empirical grain harvest yields (combine harvester, Super SMS, manual) and grain moisture content.
+- **Mathematical Biomass Estimation Engine**: Implemented `BiomassEstimationService` incorporating literature-calibrated Residue-to-Product Ratios (Paddy 1.50, Wheat 1.30, Cotton 2.80), mandatory 25% soil organic carbon retention, 55-60% competing dairy fodder deduction for wheat, and 8% mechanical handling loss.
+- **Audited Inventory Lifecycle**: Implemented `BiomassInventoryService` tracking transitions across `ESTIMATED`, `CONFIRMED`, `COMMITTED`, `COLLECTED`, `STORED`, `ALLOCATED`, and `PROCESSED`.
+- **Double-Allocation Guard**: Engineered a database-level transaction guard preventing over-allocation of biomass across deployment plans.
+- **REST APIs**: Mounted `/api/farms/`, `/api/farms/{id}/crops`, `/api/farms/crops/{id}/harvest`, `/api/biomass/estimate`, `/api/biomass/estimates/{id}`, `/api/biomass/inventory/transaction`, and `/api/biomass/summary`.
+- **UI Dashboard**: Built Streamlit modules `Farm & Cultivation Intelligence` and `Biomass Availability & Inventory` with Folium parcel map and lifecycle funnel.
+
+#### Phase 11: Mobile Bio-Refinery & Fleet Logistics Intelligence
+- **Fleet Registry & Capability Management**: Implemented `MobileRefineryService` managing trailer-mounted briquetters ($2.5\text{ t/h}$, $25\text{ t/day}$) and slow pyrolysis rigs ($1.5\text{ t/h}$, $15\text{ t/day}$), auxiliary generator diesel consumption ($4.5\text{ L/t}$), hourly operating costs, and home depot coordinates.
+- **NRIDA Rural Road Network Routing**: Implemented `RoadNetworkService` with PMGSY calibrated rural road tortuosity factor ($\tau = 1.35\times\text{geodesic}$), $35\text{ km/h}$ average tractor transit speed, and $0.32\text{ L/km}$ diesel consumption rate.
+- **Multi-Unit Deployment Planner**: Implemented `DeploymentPlannerService` solving capacity-constrained vehicle dispatch across target farm clusters respecting daily throughput, campaign days, and maximum operating radii.
+- **Vehicle Routing Problem (CVRP)**: Implemented nearest-neighbor 2-opt vehicle routing with multi-stop sequencing starting and returning to regional depots.
+- **Transparent Unserved Audit**: Implemented transparent logging and UI reporting for any farms that cannot be serviced due to fleet capacity limits or radius constraints.
+- **REST APIs**: Mounted `/api/mobile-units/`, `/api/mobile-units/{id}/status`, `/api/deployments/plan`, `/api/deployments/`, `/api/deployments/{id}`, `/api/deployments/{id}/cancel`, and `/api/deployments/{id}/routes`.
+- **UI Dashboard**: Built Streamlit module `Mobile Bio-Refinery & Fleet Logistics` with fleet registry, interactive deployment planner, and Folium route sequencing visualizer.
+
+#### Phase 12: Advanced Techno-Economics & LCA Environmental Impact Intelligence
+- **Techno-Economic Modeling Engine**: Implemented `FinancialEngineService` calculating CAPEX ($25\text{ Lakhs/unit}$, 7-year straight-line depreciation), OPEX, farmer procurement incentive payments ($\text{INR } 1,500\text{/ton}$), logistics transport costs, and auxiliary processing fuel/labor.
+- **Physical Revenue Separation**: Strictly isolated operational cash revenue from physical product sales (briquettes at $\text{INR } 6,000\text{/t}$ and biochar at $\text{INR } 15,000\text{/t}$), prohibiting speculative carbon credit dependence.
+- **Capital Budgeting Metrics**: Derived break-even tonnage, gross profit, net margin %, simple payback period, ROI %, NPV (using $10.5\%$ IREDA WACC discount rate), and Internal Rate of Return (IRR).
+- **Sensitivity Tornado Analysis**: Automated parameter elasticity calculations across briquette price, biochar price, farmer payout, and retail diesel price ($\pm 10\%$ and $\pm 20\%$).
+- **Cradle-to-Grave Life Cycle Assessment (LCA)**: Implemented `LifeCycleAssessmentService` with IPCC AR6 WG1 100-year GWP metrics ($\text{CH}_4=27.9, \text{N}_2\text{O}=273$) comparing open-field burning against mobile densification.
+- **Fossil Coal Displacement**: Modeled industrial boiler thermal substitution ($0.82\text{ kg coal/kg briquette}$) displacing sub-bituminous coal ($2,120\text{ kg CO}_2\text{/ton}$) based on CEA Database v19.0.
+- **Biochar 100-Year Carbon Permanence**: Modeled $72.0\%$ persistent soil carbon storage in slow pyrolysis biochar.
+- **Net Benefit Ratio**: Verified $>1.8\times\text{--}2.2\times$ net environmental benefit ratio relative to baseline burning.
+- **Carbon-Credit Eligibility Separation**: Explicitly separated biogenic short-cycle burning $\text{CO}_2$ from verifiable additionality (avoided non-$\text{CO}_2$ gases, coal displacement, and biochar permanence minus project fossil emissions) conforming to Verra VM0044 and Puro.earth.
+- **REST APIs**: Mounted `/api/economics/scenario`, `/api/economics/scenarios`, `/api/economics/compare`, `/api/economics/scenarios/{id}/sensitivity`, `/api/environmental/lca`, `/api/environmental/assessments`, and `/api/environmental/system-boundary`.
+- **UI Dashboards**: Built Streamlit modules `Techno-Economic Decision Support` and `LCA Environmental Impact Assessment` with financial waterfall, scenario comparisons, sensitivity tornado chart, and GHG balance bar visualizers.
+
+#### Automated Test Suite & Quality Verification
+- Total automated tests expanded to **81 passing tests** (100% pass rate in 12.42s).
+- Verified full Docker Compose stack with PostGIS database, FastAPI backend, and Streamlit frontend.
+
+---
+
 ## [2.2.0] - 2026-11-14
 
 ### Phase 8 & Phase 9 Implementation: Advanced Fire Intelligence & Agricultural Context

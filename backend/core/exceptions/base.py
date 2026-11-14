@@ -35,12 +35,18 @@ class ValidationError(Stubble2PowerException):
 
 class DataNotFoundError(Stubble2PowerException):
     """Raised when an entity or resource is not found."""
-    def __init__(self, entity: str, identifier: Any):
+    def __init__(self, entity: str = "Resource", identifier: Any = None, message: Optional[str] = None):
+        msg = message or f"{entity} with identifier '{identifier}' was not found."
         super().__init__(
-            message=f"{entity} with identifier '{identifier}' was not found.",
+            message=msg,
             code="NOT_FOUND",
-            details={"entity": entity, "identifier": str(identifier)}
+            details={"entity": entity, "identifier": str(identifier) if identifier is not None else ""}
         )
+
+
+class NotFoundError(DataNotFoundError):
+    """Alias for DataNotFoundError."""
+    pass
 
 
 class NASAAPIError(Stubble2PowerException):

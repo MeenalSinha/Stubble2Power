@@ -150,7 +150,7 @@ class LandUseService:
                     min_cropland_dist_km = dist
 
         if matched_zone:
-            # Explicit match with a reference zone
+            # Explicit match with a curated calibration reference zone
             dist_to_cropland = 0.0 if matched_zone.land_use_class == "CROPLAND" else round(min_cropland_dist_km, 2)
             return {
                 "land_use_class": matched_zone.land_use_class,
@@ -160,23 +160,13 @@ class LandUseService:
                 "source": matched_zone.source
             }
 
-        # Fallback spatial assessment for Punjab agricultural landscape:
-        # Punjab is >82% net sown cropland. If within general Punjab coordinates, default to CROPLAND with 0.85 confidence
-        is_punjab_general = (29.5 <= latitude <= 32.5) and (73.8 <= longitude <= 76.9)
-        if is_punjab_general:
-            return {
-                "land_use_class": "CROPLAND",
-                "confidence": 0.85,
-                "zone_name": "Punjab Agrarian Basin (General)",
-                "distance_to_cropland_km": 0.0,
-                "source": "State Agriculture Census / General Land Use Statistics"
-            }
-
-        # Outside known cropland bounds
+        # Outside validated reference zones:
+        # Transparent scientific classification: Do not fabricate a confirmed cropland assignment
+        dist_to_cropland = round(min_cropland_dist_km, 2) if min_cropland_dist_km < 900.0 else 999.0
         return {
-            "land_use_class": "OTHER_LAND_USE_CONTEXT",
-            "confidence": 0.50,
-            "zone_name": "Undetermined LULC Region",
-            "distance_to_cropland_km": round(min_cropland_dist_km, 2),
-            "source": "Global Regional Baseline"
+            "land_use_class": "UNKNOWN_OR_INSUFFICIENT_EVIDENCE",
+            "confidence": 0.30,
+            "zone_name": "Uncalibrated Regional Domain (Pending Full Vector/Raster Ingestion)",
+            "distance_to_cropland_km": dist_to_cropland,
+            "source": "Scientific Uncertainty Protocol / Unverified Coordinate"
         }

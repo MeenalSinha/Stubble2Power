@@ -122,3 +122,127 @@ Returns monthly aggregations and burning patterns for a given year.
 ### `GET /api/calendar/annual`
 Returns annual burning summaries and detected peak burning dates.
 - **Parameters**: `year`.
+
+---
+
+## 8. Seasonal & Anomaly Intelligence Endpoints
+
+### `GET /api/seasonal/profiles`
+Returns seasonal fire activity profiles (onset, peak, decay, duration, profile curve).
+
+### `GET /api/seasonal/baselines`
+Returns historical parametric ($\mu, \sigma$) and robust ($\text{Median}, \text{MAD}$) baselines.
+
+### `GET /api/anomalies`
+Returns detected statistical fire anomalies with severity levels and JSON diagnostic rationales.
+
+---
+
+## 9. Agricultural Fire Context Intelligence Endpoints
+
+### `GET /api/agriculture/calendars`
+Returns official state and district crop calendars.
+
+### `GET /api/agriculture/assessments`
+Returns Bayesian agricultural context assessments for satellite observations.
+
+### `POST /api/agriculture/classify`
+Triggers evidence synthesis context classification across temporal, spatial LULC, and thermal domains.
+
+---
+
+## 10. Farm & Cultivation Intelligence Endpoints
+
+### `POST /api/farms/`
+Registers a new agricultural farm parcel linked to an enrolled farmer.
+
+### `GET /api/farms/`
+Lists registered farm parcels with optional district, state, and soil type filtering.
+
+### `GET /api/farms/{farm_id}`
+Retrieves farm details, acreage, and centroid coordinates.
+
+### `POST /api/farms/{farm_id}/crops`
+Registers a seasonal crop cultivation cycle on a parcel.
+
+### `GET /api/farms/{farm_id}/crops`
+Lists all cultivation cycles for a specific farm parcel.
+
+### `POST /api/farms/crops/{crop_id}/harvest`
+Records an empirical grain harvest yield event and moisture content.
+
+---
+
+## 11. Biomass Estimation & Inventory Endpoints
+
+### `POST /api/biomass/estimate`
+Calculates net usable crop residue with crop-specific RPR, 25% soil retention, fodder deduction, and handling losses.
+
+### `GET /api/biomass/estimates/{estimate_id}`
+Retrieves a specific biomass estimate record.
+
+### `GET /api/biomass/estimates/crop/{crop_id}`
+Lists biomass estimates for a crop cultivation cycle.
+
+### `POST /api/biomass/inventory/transaction`
+Transitions biomass through audited lifecycle stages (`COMMITTED`, `ALLOCATED`, `PROCESSED`) with double-allocation guard.
+
+### `GET /api/biomass/summary`
+Returns aggregate regional biomass availability, commitments, and allocations.
+
+---
+
+## 12. Mobile Bio-Refinery Fleet & Deployment Endpoints
+
+### `POST /api/mobile-units/`
+Registers a trailer-mounted densification or pyrolysis unit in the active fleet.
+
+### `GET /api/mobile-units/`
+Lists mobile bio-refineries with optional status and technology filters.
+
+### `GET /api/mobile-units/{unit_id}`
+Retrieves operational specifications and depot location for a unit.
+
+### `PATCH /api/mobile-units/{unit_id}/status`
+Updates unit operational status (`AVAILABLE`, `DEPLOYED`, `MAINTENANCE`).
+
+### `POST /api/deployments/plan`
+Generates a multi-unit capacity-constrained deployment plan with road network routing.
+
+### `GET /api/deployments/`
+Lists existing deployment plans with utilization metrics.
+
+### `GET /api/deployments/{plan_id}`
+Retrieves deployment plan details, farm assignments, and unserved farm audits.
+
+### `GET /api/deployments/{plan_id}/routes`
+Retrieves vehicle route plans with sequenced stops, road distance (1.35x tortuosity), duration, and fuel consumption.
+
+---
+
+## 13. Advanced Techno-Economics Endpoints
+
+### `POST /api/economics/scenario`
+Evaluates CAPEX, OPEX, farmer incentive payments, product revenues (briquettes + biochar), break-even tonnage, ROI, payback, NPV, and IRR.
+
+### `GET /api/economics/scenarios`
+Lists evaluated financial scenarios.
+
+### `GET /api/economics/compare`
+Runs Conservative, Base Case, and Optimistic models side-by-side.
+
+### `GET /api/economics/scenarios/{id}/sensitivity`
+Generates sensitivity tornado factors across briquette price, biochar price, farmer payout, and retail diesel price.
+
+---
+
+## 14. Life Cycle Assessment (LCA) Endpoints
+
+### `POST /api/environmental/lca`
+Computes cradle-to-grave net GHG benefits (baseline burning vs project diesel vs coal displacement vs biochar sequestration).
+
+### `GET /api/environmental/assessments`
+Lists completed life cycle assessments.
+
+### `GET /api/environmental/system-boundary`
+Returns official LCA system boundary, IPCC AR6 GWP metrics, and CEA India emissions factor provenance.

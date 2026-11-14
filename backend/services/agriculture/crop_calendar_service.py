@@ -132,10 +132,28 @@ class CropCalendarService:
                 h_start_m, h_start_d = map(int, cal.harvest_start_month_day.split("-"))
                 h_end_m, h_end_d = map(int, cal.harvest_end_month_day.split("-"))
 
-                peak_start = date(year, p_start_m, p_start_d)
-                peak_end = date(year, p_end_m, p_end_d)
-                harvest_start = date(year, h_start_m, h_start_d)
-                harvest_end = date(year, h_end_m, h_end_d)
+                # Support cross-year windows (e.g. Dec to Feb, Nov to March)
+                if p_end_m < p_start_m:
+                    if obs_date.month <= p_end_m:
+                        peak_start = date(year - 1, p_start_m, p_start_d)
+                        peak_end = date(year, p_end_m, p_end_d)
+                    else:
+                        peak_start = date(year, p_start_m, p_start_d)
+                        peak_end = date(year + 1, p_end_m, p_end_d)
+                else:
+                    peak_start = date(year, p_start_m, p_start_d)
+                    peak_end = date(year, p_end_m, p_end_d)
+
+                if h_end_m < h_start_m:
+                    if obs_date.month <= h_end_m:
+                        harvest_start = date(year - 1, h_start_m, h_start_d)
+                        harvest_end = date(year, h_end_m, h_end_d)
+                    else:
+                        harvest_start = date(year, h_start_m, h_start_d)
+                        harvest_end = date(year + 1, h_end_m, h_end_d)
+                else:
+                    harvest_start = date(year, h_start_m, h_start_d)
+                    harvest_end = date(year, h_end_m, h_end_d)
 
                 ext_start = harvest_start - timedelta(days=self.extended_days)
                 ext_end = harvest_end + timedelta(days=self.extended_days)

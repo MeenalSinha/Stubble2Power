@@ -39,6 +39,9 @@ class AgriculturalClassificationService:
         self.min_conf_possible = float(config_manager.get("agriculture.classification.min_confidence_possible"))
         self.stubble_max_frp = float(config_manager.get("agriculture.thermal.stubble_max_frp_mw"))
         self.cropland_buffer = float(config_manager.get("agriculture.land_use.cropland_buffer_km"))
+        self.weight_land_use = float(config_manager.get("agriculture.classification.weight_land_use"))
+        self.weight_calendar = float(config_manager.get("agriculture.classification.weight_calendar"))
+        self.weight_thermal = float(config_manager.get("agriculture.classification.weight_thermal"))
 
     def assess_observation(
         self,
@@ -78,32 +81,32 @@ class AgriculturalClassificationService:
         evidence_factors = []
         score = 0.0
 
-        # Cropland spatial factor (weight: 0.45)
+        # Cropland spatial factor
         if lu_class == "CROPLAND":
-            score += 0.45 * lu_conf
+            score += self.weight_land_use * lu_conf
             evidence_factors.append(f"Located directly within confirmed agricultural land ({lulc['zone_name']}).")
         elif dist_to_crop <= self.cropland_buffer:
-            score += 0.25 * lu_conf
+            score += (self.weight_land_use * 0.55) * lu_conf
             evidence_factors.append(f"Located within {dist_to_crop:.2f} km of agricultural cropland.")
         else:
             evidence_factors.append(f"Located in non-agricultural land ({lu_class}).")
 
-        # Temporal harvest calendar factor (weight: 0.40)
+        # Temporal harvest calendar factor
         if harvest_status == "IN_PEAK_HARVEST_WINDOW":
-            score += 0.40
+            score += self.weight_calendar
             evidence_factors.append(f"Active date falls within peak harvest burn window for {matched_crop}.")
         elif harvest_status == "IN_EXTENDED_HARVEST_WINDOW":
-            score += 0.25
+            score += self.weight_calendar * 0.625
             evidence_factors.append(f"Active date falls in extended harvest season for {matched_crop}.")
         else:
             evidence_factors.append("Active date is off-season for major crop residue burning.")
 
-        # Thermal signature factor (weight: 0.15)
+        # Thermal signature factor
         if is_thermal_compatible and frp_mw > 0:
-            score += 0.15
+            score += self.weight_thermal
             evidence_factors.append(f"FRP {frp_mw:.1f} MW is consistent with crop residue flaming/smoldering.")
         elif frp_mw > self.stubble_max_frp:
-            score -= 0.30
+            score -= (self.weight_thermal * 2.0)
             evidence_factors.append(f"FRP {frp_mw:.1f} MW exceeds typical crop residue limit (> {self.stubble_max_frp:.1f} MW).")
 
         confidence_score = max(0.0, min(1.0, round(score, 3)))

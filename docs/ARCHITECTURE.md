@@ -82,6 +82,15 @@ The platform unites two previously isolated intelligence domains:
 - `clustering/service.py`: Performs K-Means clustering using great-circle Haversine distances rather than planar degree approximations.
 - `economics/service.py`: Computes unit economics, breakeven tonnage, and decentralized logistics savings.
 - `environmental/service.py`: Converts avoided residue burning into EPA/IPCC emissions and social equivalencies.
+- `seasonal/`: Derives multi-year parametric & robust historical baselines and empirical seasonal activity curves (Phase 8).
+- `anomaly/`: Detects statistical surges using Z-Score, robust MAD, and EWMA with diagnostic explanation JSON (Phase 8).
+- `agriculture/`: Implements PAU/ICAR crop calendars, ESA/Bhuvan LULC zones, and Bayesian context classification (Phase 9).
+- `farms/`: Manages spatial parcel boundaries, acreage conservation, crop cycles, and measured harvest records (Phase 10).
+- `biomass/`: Executes mathematical residue deductions (RPR, 25% soil retention, fodder, handling loss) and inventory lifecycle auditing (Phase 10).
+- `deployment/`: Manages mobile bio-refinery fleet readiness, capacity-constrained dispatch, and unserved farm audits (Phase 11).
+- `routing/`: Implements NRIDA rural road network tortuosity modeling (1.35x) and multi-stop vehicle routing (Phase 11).
+- `economics/financial_engine.py`: Comprehensive capital budgeting, break-even, multi-year DCF (NPV/IRR), sensitivity tornado modeling, and separated physical revenues (Phase 12).
+- `environmental/lca_engine.py`: Cradle-to-grave Life Cycle Assessment using IPCC AR6 GWP, CEA India coal displacement, biochar 100-year carbon permanence, and carbon-credit eligibility separation (Phase 12).
 
 ---
 

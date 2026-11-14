@@ -145,9 +145,9 @@ PYTHONPATH=. python database/seeds/seed_data.py
 
 ### 4. Run Automated Test Suite
 ```bash
-pytest
+pytest -v
 ```
-*Executes all 32 unit, regression, and integration tests.*
+*Executes all 81 automated unit, integration, regression, and pipeline tests across Phases 0 through 12 with 100% pass rate.*
 
 ### 5. Launch Application
 
@@ -165,22 +165,37 @@ Access interactive OpenAPI documentation at [http://localhost:8000/docs](http://
 
 #### Option C: Production Docker Compose
 ```bash
-docker-compose up --build
+docker compose up -d --build
 ```
 Provisions PostgreSQL 16 with PostGIS 3.4, FastAPI backend on port 8000, and Streamlit on port 8501.
 
 ---
 
-## 📚 Technical Documentation
+## 📚 Technical Documentation Directory
 
+### Architecture & Schemas
 - [System Architecture](docs/ARCHITECTURE.md)
-- [Database Schema & PostGIS Support](docs/DATABASE.md)
-- [NASA FIRMS Data Integration](docs/NASA_DATA.md)
-- [Scientific Harmonization Methodology](docs/HARMONIZATION.md)
-- [REST API Reference](docs/API.md)
-- [Configuration Registry & Parameter Directory](docs/CONFIGURATION.md)
-- [Audit & Technical Debt Report](docs/AUDIT_AND_DEBT_REPORT.md)
+- [Database Schema & Entity Models](docs/DATABASE.md)
+- [REST API Reference (OpenAPI 3.0)](docs/API.md)
+- [Configuration Registry & Parameter Provenance](docs/CONFIGURATION.md)
+- [Master Emission Factors Registry](docs/EMISSION_FACTORS.md)
 - [Engineering Changelog](docs/CHANGELOG.md)
+
+### Earth Observation & Remote Sensing
+- [NASA FIRMS Data Integration](docs/NASA_DATA.md)
+- [MODIS & VIIRS Scientific Harmonization](docs/HARMONIZATION.md)
+- [Seasonal Intelligence & Empirical Fire Profiles](docs/SEASONAL_INTELLIGENCE.md)
+- [Statistical Anomaly Detection & Diagnostics](docs/ANOMALY_DETECTION.md)
+- [Agricultural Crop Calendars & Phenology](docs/CROP_CALENDAR_METHODOLOGY.md)
+- [Land Use Land Cover (LULC) Classification](docs/AGRICULTURAL_DATA_SOURCES.md)
+
+### Agricultural Intelligence & Supply Chain (Phases 10–12)
+- [Farmer & Farm Management Architecture](docs/FARMER_AND_FARM_MANAGEMENT.md)
+- [Biomass Estimation & Inventory Methodology](docs/BIOMASS_METHODOLOGY.md)
+- [Mobile Bio-Refinery Fleet & Technology](docs/MOBILE_BIOREFINERY.md)
+- [Rural Road Network Routing & Tortuosity Optimization](docs/ROUTE_OPTIMIZATION.md)
+- [Techno-Economic Feasibility & Financial Methodology](docs/ECONOMIC_METHODOLOGY.md)
+- [Life Cycle Assessment (LCA) & Net Climate Accounting](docs/ENVIRONMENTAL_METHODOLOGY.md)
 
 ---
 

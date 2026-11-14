@@ -20,7 +20,10 @@ from streamlit_folium import folium_static
 from backend.models.database import SessionLocal, init_db, check_db_health
 from backend.models.entities import (
     Farmer, NormalizedSatelliteObservation, HarmonizedObservation, HarmonizationRun,
-    HistoricalBaseline, SeasonalProfile, FireActivityAnomaly, CropCalendar, AgriculturalContextAssessment
+    HistoricalBaseline, SeasonalProfile, FireActivityAnomaly, CropCalendar, AgriculturalContextAssessment,
+    Farm, FarmCrop, HarvestRecord, BiomassEstimate, BiomassInventoryTransaction,
+    MobileBioRefinery, DeploymentPlan, DeploymentAssignment, RoutePlan,
+    FinancialScenario, EnvironmentalAssessment
 )
 from backend.services.farmers.service import FarmerService
 from backend.services.clustering.service import ClusteringService
@@ -37,6 +40,17 @@ from backend.services.anomaly.detector import StatisticalAnomalyDetector
 from backend.services.agriculture.crop_calendar_service import CropCalendarService
 from backend.services.agriculture.land_use_service import LandUseService
 from backend.services.agriculture.classification_service import AgriculturalClassificationService
+from backend.services.farms.farm_service import FarmService
+from backend.services.biomass.estimation_service import BiomassEstimationService
+from backend.services.biomass.inventory_service import BiomassInventoryService
+from backend.services.deployment.refinery_service import MobileRefineryService
+from backend.services.deployment.planner_service import DeploymentPlannerService
+from backend.services.economics.financial_engine import FinancialEngineService
+from backend.services.environmental.lca_engine import LifeCycleAssessmentService
+from backend.services.routing.road_network_service import RoadNetworkService
+from backend.schemas.deployment import DeploymentPlanCreate
+from backend.schemas.advanced_economics import FinancialScenarioCreate
+from backend.schemas.environmental_lca import EnvironmentalAssessmentCreate
 from backend.repositories.satellite_repository import SatelliteRepository
 from backend.repositories.harmonization_repository import HarmonizationRepository
 from backend.core.config.settings import config_manager, app_settings
@@ -109,13 +123,18 @@ def main():
         nav_mode = st.radio(
             "Select Platform Module",
             [
-                "🌾 Agricultural Waste & Bio-Refineries",
-                "🛰️ NASA Fire Intelligence & Harmonization",
-                "📅 Burning Activity Calendar",
-                "📈 Seasonal & Anomaly Intelligence",
-                "🌱 Agricultural Fire Context Intelligence",
-                "🌍 Geospatial Intelligence Map",
-                "⚙️ Configuration Registry"
+                "Farm & Cultivation Intelligence",
+                "Biomass Availability & Inventory",
+                "Mobile Bio-Refinery & Fleet Logistics",
+                "Techno-Economic Decision Support",
+                "LCA Environmental Impact Assessment",
+                "Agricultural Waste & Bio-Refineries",
+                "NASA Fire Intelligence & Harmonization",
+                "Burning Activity Calendar",
+                "Seasonal & Anomaly Intelligence",
+                "Agricultural Fire Context Intelligence",
+                "Geospatial Intelligence Map",
+                "Configuration Registry"
             ],
             index=0
         )
@@ -147,9 +166,562 @@ def main():
     assumptions = config_manager.get_scenario_assumptions(scenario_choice)
 
     # ========================================================================
+    # PHASE 10: FARM & CULTIVATION INTELLIGENCE
+    # ========================================================================
+    if nav_mode == "Farm & Cultivation Intelligence":
+        st.markdown("## Farm & Cultivation Intelligence")
+        st.caption("Spatial farm boundaries, cultivation tracking, crop seasons, and empirical harvest yields.")
+
+        farm_tab1, farm_tab2, farm_tab3 = st.tabs([
+            "Farm Registry & Map", "Cultivation Records", "Harvest Yield Logs"
+        ])
+
+        with farm_tab1:
+            farms_list = db.query(Farm).all()
+            st.metric("Total Registered Farms", len(farms_list))
+            if farms_list:
+                farm_map = folium.Map(location=[30.70, 75.60], zoom_start=9, tiles="CartoDB positron")
+                for f in farms_list:
+                    folium.Marker(
+                        location=[f.latitude, f.longitude],
+                        popup=f"<b>{f.farm_name}</b><br>Acres: {f.total_acres}<br>Soil: {f.soil_type}<br>Farmer ID: {f.farmer_id}",
+                        tooltip=f"{f.farm_name} ({f.total_acres} ac)",
+                        icon=folium.Icon(color="green", icon="leaf")
+                    ).add_to(farm_map)
+                folium_static(farm_map, width=1100, height=450)
+
+                farm_data = [{
+                    "ID": f.id,
+                    "Farm Name": f.farm_name,
+                    "Farmer ID": f.farmer_id,
+                    "Acres": f.total_acres,
+                    "District": f.district,
+                    "Village": f.village,
+                    "Soil Type": f.soil_type,
+                    "Verification": f.verification_status,
+                    "Coordinates": f"{f.latitude:.4f}, {f.longitude:.4f}"
+                } for f in farms_list]
+                st.dataframe(pd.DataFrame(farm_data), use_container_width=True, height=250)
+            else:
+                st.info("No farm parcels currently registered.")
+
+        with farm_tab2:
+            crops_list = db.query(FarmCrop).all()
+            st.metric("Active Cultivations", len(crops_list))
+            if crops_list:
+                crop_data = [{
+                    "ID": c.id,
+                    "Farm ID": c.farm_id,
+                    "Crop": c.crop_type,
+                    "Cultivated Acres": c.cultivated_acres,
+                    "Season": c.crop_season,
+                    "Year": c.crop_year,
+                    "Expected Yield (t/ac)": c.expected_yield_tons_per_acre,
+                    "Actual Yield (t/ac)": c.actual_yield_tons_per_acre or "Pending",
+                    "Status": c.cultivation_status
+                } for c in crops_list]
+                st.dataframe(pd.DataFrame(crop_data), use_container_width=True, height=300)
+            else:
+                st.info("No crop cultivation records recorded.")
+
+        with farm_tab3:
+            harvests = db.query(HarvestRecord).all()
+            st.metric("Logged Harvest Events", len(harvests))
+            if harvests:
+                harvest_data = [{
+                    "ID": h.id,
+                    "Crop ID": h.farm_crop_id,
+                    "Harvest Date": str(h.harvest_date),
+                    "Grain Yield (Tons)": h.actual_grain_yield_tons,
+                    "Moisture %": f"{h.grain_moisture_pct:.1f}%",
+                    "Harvest Method": h.harvest_method,
+                    "Measurement Type": "Field Measured" if h.is_measured else "Farmer Reported",
+                    "Notes": h.notes or ""
+                } for h in harvests]
+                st.dataframe(pd.DataFrame(harvest_data), use_container_width=True, height=300)
+            else:
+                st.info("No harvest yield records found.")
+
+    # ========================================================================
+    # PHASE 10: BIOMASS AVAILABILITY & INVENTORY
+    # ========================================================================
+    elif nav_mode == "Biomass Availability & Inventory":
+        st.markdown("## Biomass Availability & Inventory Tracking")
+        st.caption("Evidence-based residue estimation accounting for 25% soil retention, competing fodder demand, handling losses, and audited lifecycle stages.")
+
+        inv_svc = BiomassInventoryService(db)
+        summary = inv_svc.get_regional_availability_summary()
+
+        col1, col2, col3, col4, col5 = st.columns(5)
+        col1.metric("Gross Generated", f"{summary.total_gross_residue_tons:.1f}t")
+        col2.metric("Soil Retention", f"{summary.total_retained_soil_tons:.1f}t")
+        col3.metric("Competing Fodder", f"{summary.total_competing_fodder_tons:.1f}t")
+        col4.metric("Collectable Residue", f"{summary.total_collectable_tons:.1f}t")
+        col5.metric("Net Usable Available", f"{summary.total_net_usable_tons:.1f}t")
+
+        b_tab1, b_tab2, b_tab3 = st.tabs([
+            "Availability Breakdown", "Lifecycle & Allocation Funnel", "Mathematical Calculator"
+        ])
+
+        with b_tab1:
+            c1, c2 = st.columns(2)
+            with c1:
+                if summary.crop_wise_summary:
+                    fig_crop = px.pie(
+                        names=list(summary.crop_wise_summary.keys()),
+                        values=list(summary.crop_wise_summary.values()),
+                        title="Available Residue by Crop Type",
+                        hole=0.4
+                    )
+                    st.plotly_chart(fig_crop, use_container_width=True)
+            with c2:
+                if summary.district_wise_summary:
+                    fig_dist = px.bar(
+                        x=list(summary.district_wise_summary.keys()),
+                        y=list(summary.district_wise_summary.values()),
+                        title="Available Biomass by District (Tons)",
+                        labels={"x": "District", "y": "Net Usable (Tons)"}
+                    )
+                    st.plotly_chart(fig_dist, use_container_width=True)
+
+        with b_tab2:
+            st.markdown("### Biomass Lifecycle Funnel")
+            funnel_data = {
+                "Lifecycle Stage": ["Total Net Usable", "Committed to Logistics", "Allocated to Units", "Processed into Energy"],
+                "Volume (Tons)": [
+                    summary.total_net_usable_tons,
+                    summary.committed_to_processing_tons,
+                    summary.committed_to_processing_tons,
+                    summary.processed_tons
+                ]
+            }
+            fig_funnel = px.bar(
+                pd.DataFrame(funnel_data),
+                x="Lifecycle Stage",
+                y="Volume (Tons)",
+                color="Lifecycle Stage",
+                title="Residue Commitment and Conversion Pipeline"
+            )
+            st.plotly_chart(fig_funnel, use_container_width=True)
+
+            txs = db.query(BiomassInventoryTransaction).order_by(BiomassInventoryTransaction.transaction_timestamp.desc()).limit(50).all()
+            if txs:
+                st.markdown("#### Recent Inventory Audit Trail")
+                tx_df = pd.DataFrame([{
+                    "ID": t.id,
+                    "Timestamp": str(t.transaction_timestamp),
+                    "Farm ID": t.farm_id,
+                    "Quantity (Tons)": t.quantity_tons,
+                    "Lifecycle Stage": t.stage,
+                    "Assigned Unit ID": t.allocated_unit_id or "-",
+                    "Notes": t.notes or ""
+                } for t in txs])
+                st.dataframe(tx_df, use_container_width=True, height=250)
+
+        with b_tab3:
+            st.markdown("### Residue Estimation Formula Simulator")
+            st.info("Residue = Grain Yield * RPR | Collectable = Gross * Collectable Fraction | Net = Collectable * (1 - 8% Handling Loss)")
+            calc_c1, calc_c2, calc_c3 = st.columns(3)
+            with calc_c1:
+                calc_crop = st.selectbox("Crop", ["PADDY", "WHEAT", "COTTON"], index=0)
+            with calc_c2:
+                calc_grain = st.number_input("Grain Yield (Tons)", min_value=1.0, max_value=5000.0, value=100.0)
+            with calc_c3:
+                calc_moist = st.slider("Moisture Content %", 10.0, 25.0, 14.0, step=0.5)
+
+            if calc_crop == "PADDY":
+                rpr = float(config_manager.get("biomass.paddy.residue_to_product_ratio"))
+                coll_frac = float(config_manager.get("biomass.paddy.sustainable_collection_fraction"))
+            elif calc_crop == "WHEAT":
+                rpr = float(config_manager.get("biomass.wheat.residue_to_product_ratio"))
+                coll_frac = float(config_manager.get("biomass.wheat.sustainable_collection_fraction"))
+            else:
+                rpr = float(config_manager.get("biomass.cotton.residue_to_product_ratio"))
+                coll_frac = 0.80
+
+            gross = calc_grain * rpr
+            retained = gross * (1.0 - coll_frac)
+            collectable = gross * coll_frac
+            handling_loss = collectable * 0.08
+            net_usable = collectable - handling_loss
+
+            r_col1, r_col2, r_col3, r_col4 = st.columns(4)
+            r_col1.metric("Gross Residue", f"{gross:.2f}t")
+            r_col2.metric("Soil Retention/Fodder", f"{retained:.2f}t")
+            r_col3.metric("Handling Loss (8%)", f"{handling_loss:.2f}t")
+            r_col4.metric("Net Usable Biomass", f"{net_usable:.2f}t", delta=f"{net_usable/gross*100:.1f}% Recovery")
+
+    # ========================================================================
+    # PHASE 11: MOBILE BIO-REFINERY & FLEET LOGISTICS
+    # ========================================================================
+    elif nav_mode == "Mobile Bio-Refinery & Fleet Logistics":
+        st.markdown("## Mobile Bio-Refinery & Fleet Logistics")
+        st.caption("Fleet readiness, NRIDA rural road network routing with 1.35x tortuosity, capacity-constrained vehicle dispatch, and unserved farm auditing.")
+
+        ref_svc = MobileRefineryService(db)
+        planner_svc = DeploymentPlannerService(db)
+        units = ref_svc.list_units()
+
+        m_tab1, m_tab2, m_tab3, m_tab4 = st.tabs([
+            "Active Fleet Registry", "Deployment Optimization", "Route Plan & Geometry", "Unserved Farms Audit"
+        ])
+
+        with m_tab1:
+            st.metric("Registered Mobile Units", len(units))
+            if units:
+                fleet_data = [{
+                    "Unit Code": u.unit_code,
+                    "Name": u.name,
+                    "Technology": u.technology,
+                    "Hourly Throughput": f"{u.hourly_capacity_tons} t/h",
+                    "Daily Operating Hours": f"{u.daily_operating_hours} h",
+                    "Daily Capacity": f"{u.daily_capacity_tons} t/day",
+                    "Operating Cost": f"INR {u.operating_cost_per_hour_inr}/h",
+                    "Home Depot": u.home_depot_name,
+                    "Max Radius": f"{u.max_travel_radius_km} km",
+                    "Status": u.current_status
+                } for u in units]
+                st.dataframe(pd.DataFrame(fleet_data), use_container_width=True, height=250)
+            else:
+                st.info("No mobile units currently registered in the fleet.")
+
+        with m_tab2:
+            st.markdown("### Multi-Unit Deployment Planner")
+            dp_c1, dp_c2, dp_c3 = st.columns(3)
+            with dp_c1:
+                p_region = st.selectbox("Target Region", ["Punjab", "Ludhiana", "Sangrur", "Patiala", "ALL"], index=0)
+            with dp_c2:
+                p_start = st.date_input("Campaign Start Date", date(2024, 10, 25))
+            with dp_c3:
+                p_end = st.date_input("Campaign End Date", date(2024, 11, 5))
+
+            strat_c1, strat_c2 = st.columns(2)
+            with strat_c1:
+                p_strategy = st.selectbox("Optimization Strategy", ["BALANCED", "MAX_BIOMASS", "MIN_COST"], index=0)
+            with strat_c2:
+                sel_unit_ids = st.multiselect(
+                    "Select Mobile Units to Deploy",
+                    options=[u.id for u in units],
+                    default=[u.id for u in units],
+                    format_func=lambda x: next((f"{u.unit_code} - {u.name}" for u in units if u.id == x), str(x))
+                )
+
+            if st.button("Generate Optimized Fleet Deployment Plan"):
+                try:
+                    plan = planner_svc.plan_deployment(
+                        DeploymentPlanCreate(
+                            name=f"{p_region} Optimized Deployment",
+                            region=p_region,
+                            date_start=p_start,
+                            date_end=p_end,
+                            unit_ids=sel_unit_ids or None
+                        ),
+                        strategy=p_strategy
+                    )
+                    st.success(f"Deployment Plan {plan.plan_code} generated successfully!")
+                except Exception as e:
+                    st.error(f"Deployment planning failed: {e}")
+
+            plans = planner_svc.list_deployments()
+            if plans:
+                st.markdown("#### Existing Deployment Plans")
+                p_df = pd.DataFrame([{
+                    "Plan Code": p.plan_code,
+                    "Name": p.name,
+                    "Region": p.region,
+                    "Dates": f"{p.date_start} to {p.date_end}",
+                    "Assigned (Tons)": f"{p.total_biomass_assigned_tons:.1f}t",
+                    "Units Deployed": p.total_units_deployed,
+                    "Capacity Utilization": f"{p.capacity_utilization_pct:.1f}%",
+                    "Total Distance": f"{p.total_route_distance_km:.1f} km",
+                    "Est. Transport Cost": f"INR {p.estimated_transport_cost_inr:,.0f}",
+                    "Unserved Farms": p.unserved_farms_count,
+                    "Status": p.status
+                } for p in plans])
+                st.dataframe(p_df, use_container_width=True, height=250)
+
+        with m_tab3:
+            plans = planner_svc.list_deployments()
+            if plans:
+                sel_plan = st.selectbox(
+                    "Select Deployment Plan to Inspect Routes",
+                    plans,
+                    format_func=lambda p: f"{p.plan_code} - {p.name} ({p.status})"
+                )
+                routes = db.query(RoutePlan).where(RoutePlan.deployment_plan_id == sel_plan.id).all()
+                st.metric("Total Route Plans", len(routes))
+
+                if routes:
+                    route_map = folium.Map(location=[30.80, 75.60], zoom_start=9, tiles="CartoDB positron")
+                    colors = ["blue", "green", "purple", "orange", "darkred"]
+                    for idx, r in enumerate(routes):
+                        color = colors[idx % len(colors)]
+                        stops = r.stops_json if isinstance(r.stops_json, list) else []
+                        pts = []
+                        for s in stops:
+                            loc = [s["latitude"], s["longitude"]]
+                            pts.append(loc)
+                            folium.Marker(
+                                location=loc,
+                                popup=f"<b>{s['stop_name']}</b><br>Action: {s['action']}<br>Payload: {s.get('payload_tons', 0)}t<br>Distance: {s.get('distance_from_prev_km', 0)} km",
+                                icon=folium.Icon(color=color, icon="home" if "DEPOT" in s["action"] else "briefcase")
+                            ).add_to(route_map)
+                        if len(pts) >= 2:
+                            folium.PolyLine(pts, color=color, weight=4, opacity=0.8).add_to(route_map)
+                    folium_static(route_map, width=1100, height=450)
+
+                    st.markdown("#### Route Sequencing Details")
+                    for r in routes:
+                        st.markdown(
+                            f"**Unit #{r.mobile_unit_id} Route** | Distance: `{r.total_distance_km} km` (NRIDA Tortuosity Ratio: `{r.road_tortuosity_ratio}`) | Duration: `{r.estimated_duration_hours} hrs` | Diesel: `{r.fuel_consumed_liters} L` | Payload: `{r.total_payload_tons} t`"
+                        )
+            else:
+                st.info("No deployment plans available.")
+
+        with m_tab4:
+            plans = planner_svc.list_deployments()
+            if plans:
+                sel_plan = st.selectbox(
+                    "Inspect Unserved Farms for Plan",
+                    plans,
+                    format_func=lambda p: f"{p.plan_code} - {p.name} ({p.unserved_farms_count} unserved)",
+                    key="unserved_sel"
+                )
+                params = sel_plan.parameters_json or {}
+                unserved = params.get("unserved_details", [])
+                if unserved:
+                    st.warning(f"{len(unserved)} farms could not be fully serviced.")
+                    st.dataframe(pd.DataFrame(unserved), use_container_width=True)
+                else:
+                    st.success("100% of candidate farms accommodated within fleet capacity and operating radius!")
+            else:
+                st.info("No deployment plans created.")
+
+    # ========================================================================
+    # PHASE 12: TECHNO-ECONOMIC DECISION SUPPORT
+    # ========================================================================
+    elif nav_mode == "Techno-Economic Decision Support":
+        st.markdown("## Techno-Economic Feasibility & Financial Engine")
+        st.caption("CAPEX/OPEX modeling, break-even analysis, multi-year DCF (NPV/IRR), sensitivity tornado analysis, and strictly separated physical revenues.")
+
+        econ_svc = FinancialEngineService(db)
+        scenarios = econ_svc.list_scenarios()
+        if not scenarios:
+            scenarios = [econ_svc.evaluate_scenario(FinancialScenarioCreate(scenario_name="Base Case"))]
+
+        latest_sc = scenarios[0]
+
+        ec_tab1, ec_tab2, ec_tab3, ec_tab4 = st.tabs([
+            "Feasibility Overview", "Preset Scenario Comparison", "Sensitivity Tornado Analysis", "Custom Financial Simulator"
+        ])
+
+        with ec_tab1:
+            st.markdown(f"### Baseline Scenario: `{latest_sc.scenario_name}` ({latest_sc.total_biomass_processed_tons:.0f}t processed)")
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Gross Revenue", f"INR {latest_sc.total_revenue_inr:,.0f}")
+            col2.metric("Total OPEX", f"INR {latest_sc.total_opex_inr:,.0f}")
+            col3.metric("Gross Profit", f"INR {latest_sc.gross_profit_inr:,.0f}", delta=f"{latest_sc.net_margin_pct:.1f}% Margin")
+            col4.metric("Break-Even Tonnage", f"{latest_sc.break_even_tons:,.0f}t")
+
+            col5, col6, col7, col8 = st.columns(4)
+            col5.metric("Farmer Procurement", f"INR {latest_sc.total_farmer_payments_inr:,.0f}")
+            col6.metric("Payback Period", f"{latest_sc.payback_period_years:.2f} Years")
+            col7.metric("Return on Investment", f"{latest_sc.roi_pct:.1f}% ROI")
+            col8.metric("Net Present Value (NPV)", f"INR {latest_sc.npv_inr:,.0f}")
+
+            st.info("Carbon Credit Revenue Separation: The figures above reflect physical product sales (briquettes + biochar) exclusively. Speculative carbon credits are NOT treated as operating cash revenue.")
+
+            rev_cost_df = pd.DataFrame({
+                "Component": ["Briquette Revenue", "Biochar Revenue", "Farmer Payout", "Transport Cost", "Processing & Labor"],
+                "Amount (INR)": [
+                    latest_sc.assumptions_json.get("briquettes_produced_tons", 0) * latest_sc.briquette_price_per_ton,
+                    latest_sc.assumptions_json.get("biochar_produced_tons", 0) * latest_sc.biochar_price_per_ton,
+                    latest_sc.total_farmer_payments_inr,
+                    latest_sc.total_transport_costs_inr,
+                    latest_sc.total_processing_costs_inr
+                ],
+                "Type": ["Revenue", "Revenue", "Cost", "Cost", "Cost"]
+            })
+            fig_fin = px.bar(rev_cost_df, x="Component", y="Amount (INR)", color="Type", title="Revenue Streams vs Operational Costs Breakdown")
+            st.plotly_chart(fig_fin, use_container_width=True)
+
+        with ec_tab2:
+            st.markdown("### Conservative vs Base Case vs Optimistic Scenarios")
+            comp_summary = econ_svc.compare_preset_scenarios(biomass_tons=latest_sc.total_biomass_processed_tons)
+            comp_data = []
+            for s in comp_summary.scenarios:
+                comp_data.append({
+                    "Scenario": s.scenario_name,
+                    "Revenue (INR)": s.total_revenue_inr,
+                    "OPEX (INR)": s.total_opex_inr,
+                    "Profit (INR)": s.gross_profit_inr,
+                    "Margin (%)": s.net_margin_pct,
+                    "ROI (%)": s.roi_pct,
+                    "Payback (Yrs)": s.payback_period_years
+                })
+            comp_df = pd.DataFrame(comp_data)
+            st.dataframe(comp_df, use_container_width=True)
+
+            fig_comp = px.bar(
+                comp_df,
+                x="Scenario",
+                y=["Revenue (INR)", "OPEX (INR)", "Profit (INR)"],
+                barmode="group",
+                title="Scenario Comparison: Financial Returns"
+            )
+            st.plotly_chart(fig_comp, use_container_width=True)
+
+        with ec_tab3:
+            st.markdown("### Sensitivity Tornado Model (+/- 10% and +/- 20% Swings)")
+            tornado = econ_svc.calculate_sensitivity(latest_sc.id)
+            tor_df = pd.DataFrame([{
+                "Parameter": t.parameter_name,
+                "Variation": f"{t.variation_pct:+.0f}%",
+                "Resulting Profit (INR)": t.resulting_profit_inr,
+                "Profit Delta (INR)": t.resulting_profit_inr - latest_sc.gross_profit_inr,
+                "Resulting ROI %": t.resulting_roi_pct,
+                "Elasticity": t.profit_elasticity
+            } for t in tornado])
+            st.dataframe(tor_df, use_container_width=True)
+
+            fig_tor = px.bar(
+                tor_df,
+                x="Profit Delta (INR)",
+                y="Parameter",
+                color="Variation",
+                orientation="h",
+                title="Profit Elasticity Sensitivity Tornado"
+            )
+            st.plotly_chart(fig_tor, use_container_width=True)
+
+        with ec_tab4:
+            st.markdown("### Interactive Financial Simulator")
+            sim_c1, sim_c2 = st.columns(2)
+            with sim_c1:
+                sim_tons = st.number_input("Biomass Volume (Tons)", 100.0, 10000.0, 1000.0, step=100.0)
+                sim_briq_price = st.slider("Briquette Price (INR/Ton)", 4000.0, 8000.0, 6000.0, 250.0)
+                sim_bio_price = st.slider("Biochar Price (INR/Ton)", 8000.0, 20000.0, 15000.0, 500.0)
+            with sim_c2:
+                sim_farmer_price = st.slider("Farmer Payout (INR/Ton)", 500.0, 3000.0, 1500.0, 100.0)
+                sim_diesel = st.slider("Diesel Price (INR/Liter)", 70.0, 120.0, 89.50, 1.0)
+                sim_wacc = st.slider("WACC Discount Rate %", 6.0, 16.0, 10.5, 0.5)
+
+            if st.button("Simulate Custom Financial Return"):
+                custom_sc = econ_svc.evaluate_scenario(FinancialScenarioCreate(
+                    scenario_name="Custom Simulation",
+                    biomass_processed_tons=sim_tons,
+                    briquette_price_per_ton=sim_briq_price,
+                    biochar_price_per_ton=sim_bio_price,
+                    farmer_procurement_price_per_ton=sim_farmer_price,
+                    diesel_price_per_liter=sim_diesel,
+                    wacc_discount_rate_pct=sim_wacc
+                ))
+                st.success("Custom scenario simulated!")
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Revenue", f"INR {custom_sc.total_revenue_inr:,.0f}")
+                m2.metric("Gross Profit", f"INR {custom_sc.gross_profit_inr:,.0f}")
+                m3.metric("Net Margin", f"{custom_sc.net_margin_pct:.1f}%")
+                m4.metric("ROI", f"{custom_sc.roi_pct:.1f}%")
+
+    # ========================================================================
+    # PHASE 12: LCA ENVIRONMENTAL IMPACT ASSESSMENT
+    # ========================================================================
+    elif nav_mode == "LCA Environmental Impact Assessment":
+        st.markdown("## Life Cycle Assessment & Net Environmental Accounting")
+        st.caption("Cradle-to-grave GHG accounting comparing open-field burning against mobile processing, sub-bituminous coal substitution, and biochar carbon permanence.")
+
+        lca_svc = LifeCycleAssessmentService(db)
+        assessments = lca_svc.list_assessments()
+        if not assessments:
+            assessments = [lca_svc.conduct_lca(EnvironmentalAssessmentCreate(biomass_diverted_tons=500.0))]
+
+        lca = assessments[0]
+
+        env_tab1, env_tab2, env_tab3 = st.tabs([
+            "Net Environmental Accounting", "Carbon Credit Eligibility", "System Boundary & Provenance"
+        ])
+
+        with env_tab1:
+            st.markdown(f"### Assessment for {lca.biomass_diverted_tons:.1f}t Stubble Diverted")
+
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Baseline Burning CO2e", f"{lca.baseline_total_co2e_tons:.1f}t")
+            col2.metric("Project Emissions", f"{lca.project_total_emissions_co2e_tons:.1f}t")
+            col3.metric("Coal Displaced CO2e", f"{lca.avoided_coal_co2e_tons:.1f}t")
+            col4.metric("Biochar Carbon Stored", f"{lca.biochar_stable_carbon_stored_co2e_tons:.1f}t")
+
+            col5, col6, col7, col8 = st.columns(4)
+            col5.metric("Net Avoided CO2e", f"{lca.net_avoided_co2e_tons:.1f} tCO2e", delta=f"{lca.net_benefit_ratio:.2f}x Benefit Ratio")
+            col6.metric("Fine Particulate (PM2.5)", f"{lca.baseline_burning_pm25_tons:.2f}t Avoided")
+            col7.metric("Sub-Bituminous Coal", f"{lca.coal_displaced_tons:.1f}t Displaced")
+            col8.metric("Verifiable Carbon Credits", f"{lca.carbon_credit_eligible_tons:.1f} tCO2e")
+
+            ghg_df = pd.DataFrame({
+                "Category": [
+                    "Open Burning Avoided",
+                    "Project Diesel Combustion",
+                    "Coal Thermal Displacement",
+                    "Biochar 100-Year Storage",
+                    "Net Climate Benefit"
+                ],
+                "Impact (tCO2e)": [
+                    lca.baseline_total_co2e_tons,
+                    -lca.project_total_emissions_co2e_tons,
+                    lca.avoided_coal_co2e_tons,
+                    lca.biochar_stable_carbon_stored_co2e_tons,
+                    lca.net_avoided_co2e_tons
+                ],
+                "Type": ["Positive", "Negative", "Positive", "Positive", "Net"]
+            })
+            fig_ghg = px.bar(ghg_df, x="Category", y="Impact (tCO2e)", color="Type", title="Cradle-to-Grave Net GHG Balance (tCO2e)")
+            st.plotly_chart(fig_ghg, use_container_width=True)
+
+        with env_tab2:
+            st.markdown("### Carbon Credit Eligibility & Offset Separation")
+            st.info("Strict Additionality Accounting: International carbon registries (Verra VM0044, Gold Standard, Puro.earth) generally classify baseline open-burning CO2 as short-cycle biogenic carbon. Therefore, verifiable carbon offset credits apply exclusively to additionality:")
+            cred_df = pd.DataFrame({
+                "Emissions Stream": [
+                    "Avoided Methane (CH4) Burning",
+                    "Avoided Nitrous Oxide (N2O) Burning",
+                    "Displaced Industrial Coal Combustion",
+                    "Biochar 100-Year Soil Carbon Sequestration",
+                    "Project Transport & Processing Diesel",
+                    "Verifiable Carbon Credit Additionality"
+                ],
+                "Climate Impact (tCO2e)": [
+                    lca.baseline_burning_ch4_tons * 27.9,
+                    lca.baseline_burning_n2o_tons * 273.0,
+                    lca.avoided_coal_co2e_tons,
+                    lca.biochar_stable_carbon_stored_co2e_tons,
+                    -lca.project_total_emissions_co2e_tons,
+                    lca.carbon_credit_eligible_tons
+                ],
+                "Eligibility Status": [
+                    "Eligible (High GWP additionality)",
+                    "Eligible (High GWP additionality)",
+                    "Eligible (Fossil displacement)",
+                    "Eligible (Permanent carbon removal)",
+                    "Debited (Project lifecycle footprint)",
+                    "NET VERIFIABLE CREDITS"
+                ]
+            })
+            st.dataframe(cred_df, use_container_width=True)
+
+        with env_tab3:
+            st.markdown("### System Boundary & Scientific Provenance")
+            sb = LifeCycleAssessmentService.get_system_boundary()
+            st.markdown(f"**Baseline Pathway:** `{sb.baseline_pathway}`")
+            st.markdown("**Project Lifecycle Pathways:**")
+            for p in sb.project_pathways:
+                st.markdown(f"- {p}")
+            st.markdown(f"**GWP Metric Version:** `{sb.gwp_version}`")
+            st.markdown(f"**Grid & Coal Emissions Database:** `{sb.grid_emission_factor_source}`")
+            st.markdown(f"**Methodology Provenance Citation:** `{lca.methodology_provenance}`")
+
+    # ========================================================================
     # MODULE 1: AGRICULTURAL WASTE MANAGEMENT & BIO-REFINERIES
     # ========================================================================
-    if nav_mode == "🌾 Agricultural Waste & Bio-Refineries":
+    elif nav_mode in ("Agricultural Waste & Bio-Refineries", "🌾 Agricultural Waste & Bio-Refineries"):
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
             "🏠 Home", "📥 Data Input", "🗺️ Clustering & Routes", "💰 Economics", "📊 Executive Dashboard"
         ])
@@ -614,7 +1186,7 @@ def main():
     # ========================================================================
     # MODULE 2: NASA FIRE INTELLIGENCE & SCIENTIFIC HARMONIZATION
     # ========================================================================
-    elif nav_mode == "🛰️ NASA Fire Intelligence & Harmonization":
+    elif nav_mode in ("NASA Fire Intelligence & Harmonization", "🛰️ NASA Fire Intelligence & Harmonization"):
         st.markdown("### 🛰️ NASA FIRMS Earth Observation & MODIS-VIIRS Harmonization")
         st.caption("Fulfilling NASA Space Apps Challenge 09: Harmonization of MODIS and VIIRS Hot Spots")
 
@@ -735,7 +1307,7 @@ def main():
     # ========================================================================
     # MODULE 3: HISTORICAL BURNING ACTIVITY CALENDAR
     # ========================================================================
-    elif nav_mode == "📅 Burning Activity Calendar":
+    elif nav_mode in ("Burning Activity Calendar", "📅 Burning Activity Calendar"):
         st.markdown("### 📅 Historical Burning Activity Calendar")
         st.caption("Daily, monthly, and seasonal burning patterns derived dynamically from harmonized NASA observations.")
 
@@ -824,7 +1396,7 @@ def main():
     # ========================================================================
     # MODULE 4: ADVANCED GEOSPATIAL INTELLIGENCE MAP
     # ========================================================================
-    elif nav_mode == "🌍 Geospatial Intelligence Map":
+    elif nav_mode in ("Geospatial Intelligence Map", "🌍 Geospatial Intelligence Map"):
         st.markdown("### 🌍 Advanced Multi-Layer Geospatial Fire & Biomass Map")
         st.caption("Interactive visual exploration of raw satellite observations, harmonized burning activity, and mobile refinery clusters.")
 
@@ -953,7 +1525,7 @@ def main():
     # ========================================================================
     # MODULE: SEASONAL INTELLIGENCE & ANOMALY DETECTION (PHASE 8)
     # ========================================================================
-    elif nav_mode == "📈 Seasonal & Anomaly Intelligence":
+    elif nav_mode in ("Seasonal & Anomaly Intelligence", "📈 Seasonal & Anomaly Intelligence"):
         st.markdown("### 📈 Seasonal Intelligence & Statistical Anomaly Detection")
         st.caption("Empirical burning profiles, multi-year statistical normals, and explainable multi-method fire anomaly detection.")
 
@@ -1146,7 +1718,7 @@ def main():
     # ========================================================================
     # MODULE: AGRICULTURAL FIRE CONTEXT INTELLIGENCE (PHASE 9)
     # ========================================================================
-    elif nav_mode == "🌱 Agricultural Fire Context Intelligence":
+    elif nav_mode in ("Agricultural Fire Context Intelligence", "🌱 Agricultural Fire Context Intelligence"):
         st.markdown("### 🌱 Agricultural Fire Context Intelligence")
         st.caption(
             "Evidence-based attribution distinguishing agricultural residue burning from other land-use fire activity "
@@ -1311,7 +1883,7 @@ def main():
     # ========================================================================
     # MODULE 5: CONFIGURATION REGISTRY
     # ========================================================================
-    elif nav_mode == "⚙️ Configuration Registry":
+    elif nav_mode in ("Configuration Registry", "⚙️ Configuration Registry"):
         st.markdown("### ⚙️ Domain & Scientific Configuration Registry")
         st.caption("Zero hardcoding guarantee: All scientific, economic, and operational parameters with provenance metadata.")
 
