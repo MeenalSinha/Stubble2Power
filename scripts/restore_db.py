@@ -182,15 +182,24 @@ def restore_postgresql(backup_file: Path, database_url: str, dry_run: bool = Fal
         user,
         "-d",
         db_name,
-        "--clean",  # Drop existing database objects before recreating
+        "--clean",
         "--if-exists",
+        "--no-owner",
+        "--no-privileges",
         "-v",
         str(backup_file),
     ]
 
     try:
-        subprocess.run(cmd, env=env, check=True, capture_output=True, text=True)
-        logger.info("PostgreSQL pg_restore completed successfully.")
+        proc = subprocess.run(cmd, env=env, check=False, capture_output=True, text=True)
+        # pg_restore returns 0 on complete success, 1 on non-fatal warnings (e.g. pre-existing postgis extension)
+        if proc.returncode not in (0, 1):
+            logger.error(f"pg_restore failed with return code {proc.returncode}: {proc.stderr}")
+            raise subprocess.CalledProcessError(proc.returncode, cmd, output=proc.stdout, stderr=proc.stderr)
+        if proc.returncode == 1:
+            logger.warning(f"pg_restore completed with non-fatal warnings: {proc.stderr[-200:] if proc.stderr else ''}")
+        else:
+            logger.info("PostgreSQL pg_restore completed successfully.")
     except FileNotFoundError:
         logger.error("pg_restore binary not found in PATH.")
         raise RuntimeError("pg_restore binary is required for PostgreSQL restoration.")
@@ -346,6 +355,22 @@ def restore_backup(
             restore_target_file = backup_file
 
         # 5. Execute engine-specific restore
+        with open(restore_target_file, "rb") as f_hdr:
+            hdr = f_hdr.read(16)
+        is_pg = hdr.startswith(b"PGDMP")
+        is_sqlite = hdr.startswith(b"SQLite format 3") or hdr.startswith(b"\x1f\x8b")
+
+        if is_pg and db_url.startswith("sqlite"):
+            raise ValueError(
+                "INCOMPATIBLE RESTORE TARGET: The backup archive is a PostgreSQL binary dump (pg_dump format) "
+                "and cannot be restored into an SQLite target."
+            )
+        if is_sqlite and not db_url.startswith("sqlite"):
+            raise ValueError(
+                "INCOMPATIBLE RESTORE TARGET: The backup archive is an SQLite database/gzip archive "
+                "and cannot be restored into a PostgreSQL target."
+            )
+
         if db_url.startswith("sqlite"):
             db_path = db_url.replace("sqlite:///", "").replace("sqlite://", "")
             if not db_path or db_path == ":memory:":

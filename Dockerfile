@@ -31,9 +31,10 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Install minimal runtime shared libraries only (libpq5 for PostgreSQL, curl for health checks)
+# Install minimal runtime shared libraries only (libpq5 and postgresql-client for PostgreSQL/pg_dump/pg_restore, curl for health checks)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    postgresql-client \
     curl \
     && rm -rf /var/lib/apt/lists/*
 

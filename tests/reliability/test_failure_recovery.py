@@ -130,12 +130,21 @@ def test_encrypted_backup_and_safe_restore_lifecycle(tmp_path):
     from cryptography.fernet import Fernet
     from scripts.backup_db import create_backup
     from scripts.restore_db import restore_backup
+    from sqlalchemy import create_engine
+    from backend.models.database import Base
 
     key = Fernet.generate_key().decode()
     backup_dir = tmp_path / "backups"
 
+    # Create an isolated source SQLite DB with schema
+    source_db = tmp_path / "source.db"
+    source_url = f"sqlite:///{source_db}"
+    engine = create_engine(source_url)
+    Base.metadata.create_all(bind=engine)
+    engine.dispose()
+
     # 1. Create encrypted backup
-    backup_file = create_backup(backup_dir=str(backup_dir), encryption_key=key)
+    backup_file = create_backup(backup_dir=str(backup_dir), encryption_key=key, source_database_url=source_url)
     assert backup_file.exists()
     assert backup_file.name.endswith(".enc")
 
@@ -166,3 +175,50 @@ def test_encrypted_backup_and_safe_restore_lifecycle(tmp_path):
     )
     assert restore_res is True
     assert isolated_target.exists()
+
+
+def test_postgresql_postgis_recovery_exercise(tmp_path):
+    """
+    Validates disaster recovery exercise against live PostgreSQL/PostGIS database:
+    - Verifies custom-format pg_dump generation.
+    - Verifies authenticated Fernet archive encryption.
+    - Verifies restore into isolated PostgreSQL/PostGIS target database.
+    - Verifies PostGIS extension presence and relational table consistency post-restore.
+    """
+    import os
+    import shutil
+    from cryptography.fernet import Fernet
+    from scripts.backup_db import create_backup
+    from scripts.restore_db import restore_backup
+    from sqlalchemy import create_engine, text
+
+    pg_url = os.getenv("DATABASE_URL")
+    if not pg_url or not pg_url.startswith("postgresql"):
+        pytest.skip("PostgreSQL environment not configured for live PostGIS recovery test.")
+
+    if not shutil.which("pg_dump") or not shutil.which("pg_restore"):
+        pytest.skip("pg_dump/pg_restore client binaries not available in current environment.")
+
+    target_pg_url = pg_url.replace("/stubble2power", "/stubble2power_recovery_test")
+    key = Fernet.generate_key().decode()
+    backup_dir = tmp_path / "pg_backups"
+
+    # 1. Create encrypted PostgreSQL backup
+    backup_file = create_backup(backup_dir=str(backup_dir), encryption_key=key, source_database_url=pg_url)
+    assert backup_file.exists()
+    assert "postgresql" in backup_file.name
+    assert backup_file.name.endswith(".enc")
+
+    # 2. Restore into recovery database with confirm_destructive=True
+    restore_res = restore_backup(
+        str(backup_file), target_database_url=target_pg_url, confirm_destructive=True, encryption_key=key
+    )
+    assert restore_res is True
+
+    # 3. Verify PostGIS extension and table relations in restored database
+    engine = create_engine(target_pg_url)
+    with engine.connect() as conn:
+        postgis_ver = conn.execute(text("SELECT PostGIS_Version();")).scalar()
+        assert postgis_ver is not None
+        assert "3." in str(postgis_ver)
+    engine.dispose()

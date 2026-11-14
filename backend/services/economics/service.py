@@ -62,7 +62,15 @@ class EconomicsService:
         margin = (profit / total_revenue * 100.0) if total_revenue > 0 else 0.0
         cost_per_ton = (total_cost / stubble_tons) if stubble_tons > 0 else 0.0
         revenue_per_ton = (total_revenue / stubble_tons) if stubble_tons > 0 else 0.0
-        breakeven_tons = (total_cost / revenue_per_ton) if revenue_per_ton > 0 else 0.0
+        if stubble_tons == 0.0:
+            breakeven_tons = 0.0
+            breakeven_status = "ZERO_INPUT"
+        elif revenue_per_ton > cost_per_ton:
+            breakeven_tons = total_cost / revenue_per_ton
+            breakeven_status = "ACHIEVABLE"
+        else:
+            breakeven_tons = None
+            breakeven_status = "NOT_ACHIEVABLE"
 
         return EconomicsCalculationResult(
             stubble_tons=stubble_tons,
@@ -80,6 +88,7 @@ class EconomicsService:
                 cost_per_ton=cost_per_ton,
                 revenue_per_ton=revenue_per_ton,
                 breakeven_tons=breakeven_tons,
+                breakeven_status=breakeven_status,
             ),
         )
 

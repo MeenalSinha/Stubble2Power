@@ -34,7 +34,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://${POSTGRES_USER:-stubble_user}:${POSTGRES_PASSWORD:-stubble_secure_password}@db:5432/${POSTGRES_DB:-stubble2power}}
       API_HOST: 0.0.0.0
       API_PORT: 8000
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-stubble2power-secure-production-jwt-secret-key-2026-v230}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-stubble2power-secure-development-jwt-key-2026-v250}
       NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-${FIRMS_MAP_KEY:-}}
       FIRMS_MAP_KEY: ${FIRMS_MAP_KEY:-${NASA_FIRMS_MAP_KEY:-}}
     ports:
@@ -52,7 +52,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-development}
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://${POSTGRES_USER:-stubble_user}:${POSTGRES_PASSWORD:-stubble_secure_password}@db:5432/${POSTGRES_DB:-stubble2power}}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-stubble2power-secure-production-jwt-secret-key-2026-v230}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-stubble2power-secure-development-jwt-key-2026-v250}
       NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-${FIRMS_MAP_KEY:-}}
       FIRMS_MAP_KEY: ${FIRMS_MAP_KEY:-${NASA_FIRMS_MAP_KEY:-}}
     ports:

@@ -47,7 +47,7 @@ class FinancialScenarioResponse(BaseModel):
     gross_profit_inr: float
     net_margin_pct: float
     cost_per_ton_processed_inr: float
-    break_even_tons: float
+    break_even_tons: Optional[float] = None
     roi_pct: float
     payback_period_years: float
     npv_inr: float

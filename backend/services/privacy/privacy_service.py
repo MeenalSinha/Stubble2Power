@@ -156,3 +156,42 @@ class PrivacyService:
             blurred_lon = round(longitude, self.blur_decimals)
 
         return (blurred_lat, blurred_lon, True)
+
+    def apply_spatial_obfuscation(
+        self,
+        latitude: float,
+        longitude: float,
+        min_radius_km: float = 1.0,
+        max_radius_km: float = 2.5,
+        seed: Optional[int] = None,
+    ) -> Tuple[float, float, float]:
+        """
+        Applies guaranteed-radius annular spatial obfuscation (uniform annulus noise injection).
+        Unlike naive coordinate truncation (which collapses to <100m displacement near grid vertices
+        and scales non-uniformly with longitude cosine), this method mathematically guarantees that
+        ground-truth coordinates are displaced by AT LEAST min_radius_km (default 1.0 km) in an
+        isotropic random angle theta in [0, 2*pi).
+
+        Returns:
+            (obfuscated_lat, obfuscated_lon, actual_displacement_km)
+        """
+        import random
+
+        rng = random.Random(seed) if seed is not None else random.Random()
+
+        # Sample distance uniformly over the circular annulus area
+        u = rng.random()
+        r_km = math.sqrt(u * (max_radius_km**2 - min_radius_km**2) + min_radius_km**2)
+        theta = rng.random() * 2.0 * math.pi
+
+        # Displacements on WGS84 ellipsoid
+        lat_rad = math.radians(latitude)
+        cos_lat = max(math.cos(lat_rad), 0.05)
+
+        delta_lat_deg = (r_km * math.cos(theta)) / 111.132
+        delta_lon_deg = (r_km * math.sin(theta)) / (111.320 * cos_lat)
+
+        obfuscated_lat = round(latitude + delta_lat_deg, 5)
+        obfuscated_lon = round(longitude + delta_lon_deg, 5)
+
+        return (obfuscated_lat, obfuscated_lon, round(r_km, 3))

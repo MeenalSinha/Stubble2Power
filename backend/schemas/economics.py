@@ -2,6 +2,7 @@
 Pydantic schemas for Unit Economics and Scenario Modeling.
 """
 
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -29,7 +30,13 @@ class FinancialMetrics(BaseModel):
     margin: float = Field(..., description="Operating margin percentage")
     cost_per_ton: float = Field(..., description="Cost per ton of stubble in INR/ton")
     revenue_per_ton: float = Field(..., description="Revenue per ton of stubble in INR/ton")
-    breakeven_tons: float = Field(..., description="Minimum stubble tonnage required to break even")
+    breakeven_tons: Optional[float] = Field(
+        None,
+        description="Minimum stubble tonnage required to break even; null if unattainable under current assumptions",
+    )
+    breakeven_status: str = Field(
+        "ACHIEVABLE", description="Status of break-even: 'ACHIEVABLE', 'NOT_ACHIEVABLE', or 'ZERO_INPUT'"
+    )
 
 
 class EconomicsCalculationResult(BaseModel):

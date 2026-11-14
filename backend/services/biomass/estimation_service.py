@@ -112,12 +112,25 @@ class BiomassEstimationService:
         retained_frac = default_retained if retained_override is None else retained_override
         competing_frac = default_competing if competing_override is None else competing_override
 
-        # 3. Mathematical Residue Quantities
+        # 3. Mathematical Stage-Gate Residue Mass-Balance
+        # Stage 1: Gross Agronomic Residue (Product-to-Residue agronomic baseline)
         gross_residue = grain_production * rpr
+
+        # Stage 2: In-Situ Soil Conservation & Competing Fodder (Allocated from Gross Residue)
         retained_residue = gross_residue * retained_frac
         competing_demand = gross_residue * competing_frac
+
+        # Stage 3: Field-Collectable Biomass Pool
+        # Denominator basis: Residue physically left on field available for collection equipment
         collectable_residue = max(0.0, gross_residue - retained_residue - competing_demand)
 
+        # Stage 4: Collection, Baling, and Handling Losses
+        # CRITICAL METHODOLOGICAL SPECIFICATION (DENOMINATOR):
+        # Handling loss fraction (f_loss = 0.08) operates strictly on the FIELD-COLLECTABLE residue pool
+        # (collectable_residue), NOT gross residue. Stubble already retained in soil or diverted to livestock
+        # does not enter the mechanical baling/transit chain and cannot incur logistics handling loss.
+        # Formula: handling_loss = collectable_residue * handling_loss_frac
+        # Net Usable: net_usable = collectable_residue * (1.0 - handling_loss_frac)
         handling_loss = collectable_residue * self.handling_loss_frac
         net_usable = max(0.0, collectable_residue - handling_loss)
 

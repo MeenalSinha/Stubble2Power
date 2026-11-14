@@ -155,8 +155,10 @@ def test_negative_unit_economics_handling(db_session: Session):
     assert scenario.gross_profit_inr < 0
     # Net margin must be negative
     assert scenario.net_margin_pct < 0
-    # Break-even must be 0.0 (unachievable with negative contribution margin)
-    assert scenario.break_even_tons == 0.0
+    # Break-even must be None (unattainable with negative contribution margin)
+    assert scenario.break_even_tons is None
+    assert scenario.assumptions_json.get("break_even_status") == "NOT_ACHIEVABLE"
+    assert scenario.assumptions_json.get("break_even_note") == "Not achievable under current assumptions"
     # ROI and Payback must be 0.0
     assert scenario.roi_pct == 0.0
     assert scenario.payback_period_years == 0.0

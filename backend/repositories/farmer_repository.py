@@ -41,6 +41,7 @@ class FarmerRepository:
         district: Optional[str] = None,
         village: Optional[str] = None,
         min_stubble: Optional[float] = None,
+        organization_id: Optional[int] = None,
         limit: int = 1000,
         offset: int = 0,
     ) -> List[Farmer]:
@@ -52,6 +53,8 @@ class FarmerRepository:
             filters.append(Farmer.village.ilike(f"%{village}%"))
         if min_stubble is not None:
             filters.append(Farmer.stubble_tons >= min_stubble)
+        if organization_id is not None:
+            filters.append(Farmer.organization_id == organization_id)
 
         if filters:
             stmt = stmt.where(and_(*filters))

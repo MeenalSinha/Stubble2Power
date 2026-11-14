@@ -160,7 +160,12 @@ def prune_old_backups(backup_dir: Path, retention_days: int) -> int:
     return pruned_count
 
 
-def create_backup(backup_dir: str = "backups", retention_days: int = 14, encryption_key: Optional[str] = None) -> Path:
+def create_backup(
+    backup_dir: str = "backups",
+    retention_days: int = 14,
+    encryption_key: Optional[str] = None,
+    source_database_url: Optional[str] = None,
+) -> Path:
     """
     Main backup orchestration entrypoint.
     1. Extracts database from environment (PostgreSQL in production, SQLite in dev).
@@ -177,7 +182,7 @@ def create_backup(backup_dir: str = "backups", retention_days: int = 14, encrypt
     key_fingerprint = hashlib.sha256(key).hexdigest()[:16]
 
     timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
-    db_url = os.getenv("DATABASE_URL")
+    db_url = source_database_url or os.getenv("DATABASE_URL")
     if not db_url:
         try:
             from backend.core.config.settings import app_settings

@@ -816,7 +816,7 @@ class FinancialScenario(Base):
     gross_profit_inr: Mapped[float] = mapped_column(Float, default=0.0)
     net_margin_pct: Mapped[float] = mapped_column(Float, default=0.0)
     cost_per_ton_processed_inr: Mapped[float] = mapped_column(Float, default=0.0)
-    break_even_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    break_even_tons: Mapped[Optional[float]] = mapped_column(Float, nullable=True, default=None)
     roi_pct: Mapped[float] = mapped_column(Float, default=0.0)
     payback_period_years: Mapped[float] = mapped_column(Float, default=0.0)
     npv_inr: Mapped[float] = mapped_column(Float, default=0.0)

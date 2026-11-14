@@ -145,6 +145,27 @@ def test_geospatial_location_privacy_blurring(db_session):
     assert op_lon == exact_lon
 
 
+def test_guaranteed_spatial_obfuscation_annulus(db_session):
+    """
+    Validates that annular spatial obfuscation mathematically guarantees
+    a minimum displacement distance >= 1.0 km, mitigating cadastral re-identification.
+    """
+    from backend.services.geospatial.service import GeospatialService
+
+    priv_svc = PrivacyService(db_session)
+    exact_lat = 30.705623
+    exact_lon = 76.222289
+
+    for seed in range(50):
+        obf_lat, obf_lon, expected_r = priv_svc.apply_spatial_obfuscation(
+            exact_lat, exact_lon, min_radius_km=1.0, max_radius_km=2.5, seed=seed
+        )
+        actual_distance = GeospatialService.haversine_distance(exact_lat, exact_lon, obf_lat, obf_lon)
+        # Mathematical invariant: actual distance must be at least 1.0 km and bounded by 2.5 km (+/- WGS84 margin)
+        assert actual_distance >= 0.99, f"Failed minimum privacy radius: {actual_distance} km"
+        assert actual_distance <= 2.55, f"Exceeded maximum privacy radius: {actual_distance} km"
+
+
 def test_audit_logging_and_security_events(db_session):
     audit_svc = AuditService(db_session)
     log = audit_svc.record_audit(

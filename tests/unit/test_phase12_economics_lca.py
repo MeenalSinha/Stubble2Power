@@ -163,8 +163,10 @@ def test_custom_scenario_and_negative_contribution_margin(db_session):
     result = econ_svc.evaluate_scenario(payload)
     assert result.scenario_name == "Stress Test High Cost"
     assert result.gross_profit_inr < 0.0
-    # Negative contribution margin should result in 0.0 break even (unachievable)
-    assert result.break_even_tons == 0.0
+    # Negative contribution margin should result in None break even (unattainable)
+    assert result.break_even_tons is None
+    assert result.assumptions_json["break_even_status"] == "NOT_ACHIEVABLE"
+    assert result.assumptions_json["break_even_note"] == "Not achievable under current assumptions"
     assert result.payback_period_years == 0.0
     assert result.roi_pct == 0.0
 

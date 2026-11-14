@@ -131,8 +131,12 @@ class FinancialEngineService:
         contribution_margin_per_ton = rev_per_ton - var_cost_per_ton
         if contribution_margin_per_ton > 0:
             break_even_tons = round(total_fixed_cost / contribution_margin_per_ton, 1)
+            break_even_status = "ACHIEVABLE"
+            break_even_note = f"{break_even_tons} tonnes"
         else:
-            break_even_tons = 0.0  # Unit economics negative; break-even unachievable under given prices
+            break_even_tons = None  # None indicates mathematically unattainable under non-positive contribution margin
+            break_even_status = "NOT_ACHIEVABLE"
+            break_even_note = "Not achievable under current assumptions"
 
         # 6. Capital Budgeting (Payback, ROI, NPV, IRR)
         annual_net_operating_profit = max(0.0, gross_profit * season_multiplier - total_fixed_cost)
@@ -181,6 +185,9 @@ class FinancialEngineService:
                 "units_count": units_count,
                 "total_capex_inr": total_capex,
                 "annual_fixed_cost_inr": total_fixed_cost,
+                "contribution_margin_per_ton_inr": round(contribution_margin_per_ton, 2),
+                "break_even_status": break_even_status,
+                "break_even_note": break_even_note,
             },
         )
         self.db.add(scenario_record)
