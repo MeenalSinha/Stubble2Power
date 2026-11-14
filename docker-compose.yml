@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: stubble2power-db
+    restart: always
+    environment:
+      POSTGRES_DB: stubble2power
+      POSTGRES_USER: stubble_user
+      POSTGRES_PASSWORD: stubble_secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stubble_user -d stubble2power"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: stubble2power-backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql://stubble_user:stubble_secure_password@db:5432/stubble2power
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-}
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: .
+    container_name: stubble2power-frontend
+    restart: always
+    depends_on:
+      - backend
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+    environment:
+      DATABASE_URL: postgresql://stubble_user:stubble_secure_password@db:5432/stubble2power
+      NASA_FIRMS_MAP_KEY: ${NASA_FIRMS_MAP_KEY:-}
+    ports:
+      - "8501:8501"
+
+volumes:
+  postgres_data:
