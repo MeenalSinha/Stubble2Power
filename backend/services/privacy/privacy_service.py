@@ -25,13 +25,19 @@ class PrivacyService:
     def record_consent(
         self,
         farmer_id: int,
-        consent_purpose: str,
+        consent_purpose: Optional[str] = None,
         consent_version: str = "v1.0",
         user_id: Optional[int] = None,
         ip_address: Optional[str] = None,
         notes: Optional[str] = None,
+        purpose: Optional[str] = None,
     ) -> ConsentRecord:
         """Records granular, purpose-bound farmer consent."""
+        effective_purpose = consent_purpose or purpose
+        if not effective_purpose:
+            raise ValidationError(message="Consent purpose is required.", field="consent_purpose")
+        consent_purpose = effective_purpose
+
         farmer = self.db.scalars(select(Farmer).where(Farmer.id == farmer_id)).first()
         if not farmer:
             raise NotFoundError(message=f"Farmer {farmer_id} not found.", entity="Farmer")
@@ -72,18 +78,48 @@ class PrivacyService:
         logger.info(f"Recorded consent purpose '{consent_purpose}' for farmer ID {farmer_id}.")
         return record
 
-    def withdraw_consent(self, consent_id: int, user_id: Optional[int] = None) -> ConsentRecord:
+    def withdraw_consent(
+        self,
+        consent_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        farmer_id: Optional[int] = None,
+        purpose: Optional[str] = None,
+    ) -> Optional[ConsentRecord]:
         """Executes consent withdrawal for a specific processing purpose."""
-        consent = self.db.scalars(select(ConsentRecord).where(ConsentRecord.id == consent_id)).first()
-        if not consent:
-            raise NotFoundError(message=f"Consent record {consent_id} not found.", entity="ConsentRecord")
+        if consent_id is not None:
+            consent = self.db.scalars(select(ConsentRecord).where(ConsentRecord.id == consent_id)).first()
+            if not consent:
+                raise NotFoundError(message=f"Consent record {consent_id} not found.", entity="ConsentRecord")
 
-        consent.is_granted = False
-        consent.withdrawn_at = datetime.utcnow()
-        self.db.commit()
-        self.db.refresh(consent)
-        logger.info(f"Withdrawn consent purpose '{consent.consent_purpose}' (Record {consent_id}).")
-        return consent
+            consent.is_granted = False
+            consent.withdrawn_at = datetime.utcnow()
+            self.db.commit()
+            self.db.refresh(consent)
+            logger.info(f"Withdrawn consent purpose '{consent.consent_purpose}' (Record {consent_id}).")
+            return consent
+        elif farmer_id is not None and purpose is not None:
+            consent = self.db.scalars(
+                select(ConsentRecord).where(
+                    and_(
+                        ConsentRecord.farmer_id == farmer_id,
+                        ConsentRecord.consent_purpose == purpose,
+                        ConsentRecord.is_granted.is_(True),
+                    )
+                )
+            ).first()
+            if consent:
+                consent.is_granted = False
+                consent.withdrawn_at = datetime.utcnow()
+                self.db.commit()
+                self.db.refresh(consent)
+                logger.info(f"Withdrawn consent purpose '{purpose}' for farmer ID {farmer_id}.")
+                return consent
+            return None
+        else:
+            raise ValidationError(
+                message="Either consent_id or (farmer_id and purpose) must be provided.",
+                field="consent_id"
+            )
 
     def list_consents_for_farmer(self, farmer_id: int) -> List[ConsentRecord]:
         """Lists active and historical consent records for a farmer."""
@@ -157,6 +193,50 @@ class PrivacyService:
 
         return (blurred_lat, blurred_lon, True)
 
+    def submit_data_subject_request(
+        self, user_id: int, request_type: str, details: Optional[Dict[str, Any]] = None
+    ) -> DataSubjectRequest:
+        """Alias for submit_subject_request for frontend compatibility."""
+        return self.submit_subject_request(user_id=user_id, request_type=request_type, details=details)
+
+    def obfuscate_coordinates(
+        self,
+        observation: Any,
+        decimal_places: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Obfuscates observation coordinates for public transparency viewers under DPDP Act 2023.
+        Accepts either an ORM model (NormalizedSatelliteObservation) or a dictionary.
+        Returns a dictionary containing all original fields with blurred latitude and longitude.
+        """
+        decimals = decimal_places if decimal_places is not None else self.blur_decimals
+
+        if isinstance(observation, dict):
+            raw_lat = observation.get("latitude", 0.0)
+            raw_lon = observation.get("longitude", 0.0)
+            res = dict(observation)
+        else:
+            raw_lat = getattr(observation, "latitude", 0.0)
+            raw_lon = getattr(observation, "longitude", 0.0)
+            res = {
+                "id": getattr(observation, "id", None),
+                "satellite": getattr(observation, "satellite", None),
+                "acquisition_date": getattr(observation, "acquisition_date", None),
+                "acquisition_time": getattr(observation, "acquisition_time", None),
+                "confidence_numeric": getattr(observation, "confidence_numeric", 0.0),
+                "frp": getattr(observation, "frp", 0.0),
+                "brightness": getattr(observation, "brightness", None),
+                "scan": getattr(observation, "scan", None),
+                "track": getattr(observation, "track", None),
+                "daynight": getattr(observation, "daynight", None),
+                "raw_payload": getattr(observation, "raw_payload", None),
+            }
+
+        res["latitude"] = round(float(raw_lat or 0.0), decimals)
+        res["longitude"] = round(float(raw_lon or 0.0), decimals)
+        res["is_blurred"] = True
+        return res
+
     def apply_spatial_obfuscation(
         self,
         latitude: float,
@@ -195,3 +275,10 @@ class PrivacyService:
         obfuscated_lon = round(longitude + delta_lon_deg, 5)
 
         return (obfuscated_lat, obfuscated_lon, round(r_km, 3))
+
+
+# Direct alias for frontend and service interoperability
+PrivacyGovernanceService = PrivacyService
+
+__all__ = ["PrivacyService", "PrivacyGovernanceService"]
+
