@@ -33,8 +33,8 @@ services:
           cpus: '2.0'
           memory: 4096M
         reservations:
-          cpus: '0.5'
-          memory: 1024M
+          cpus: '0.2'
+          memory: 256M
 
   backend:
     build:
@@ -91,6 +91,7 @@ services:
       APP_ENV: production
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       BACKEND_API_URL: http://backend:8000
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY environment variable is required in production}
     # Ingress Security: Frontend bound to localhost or reverse proxy ingress
     ports:
       - "127.0.0.1:8501:8501"

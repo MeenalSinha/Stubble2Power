@@ -29,6 +29,10 @@ The platform unites three core pillars:
 - **Challenge Portal**: [https://www.spaceappschallenge.org/2026/challenges/modis-and-viirs-hot-spots/](https://www.spaceappschallenge.org/2026/challenges/modis-and-viirs-hot-spots/)
 - **NASA FIRMS Documentation**: [https://firms.modaps.eosdis.nasa.gov/api/](https://firms.modaps.eosdis.nasa.gov/api/)
 
+### Official Demonstration Video
+- **Submission-Ready 1080p Walkthrough (30 Seconds)**: [stubble2power_demo_1080p.mp4](stubble2power_demo_1080p.mp4)  
+  Demonstrates all 9 core capabilities: Home Dashboard, NASA Fire Intelligence, Geodesic MODIS–VIIRS Harmonization, Historical Burning Activity Calendar, Seasonal & Anomaly Intelligence, Agricultural Fire Context, Farmer & Biomass Management, Mobile Bio-Refinery Deployment, and Financial/Environmental Impact Dashboard.
+
 ---
 
 ## Platform Architecture
@@ -190,6 +194,32 @@ Open your browser at `http://localhost:8501`.
 
 ---
 
+## Production Cloud Deployment (AWS & Google Cloud)
+
+### 1. Amazon Web Services (AWS) Deployment
+
+Stubble2Power provides automated production deployment to AWS (`ap-south-1` Mumbai region recommended):
+
+- **1-Click AWS CloudFormation**: Upload [aws/cloudformation-ec2.yml](aws/cloudformation-ec2.yml) directly in the AWS Console. Automatically provisions an encrypted EC2 instance, PostGIS 16 database, FastAPI backend, Streamlit frontend, hardened Nginx reverse proxy, and Let's Encrypt SSL.
+- **Automated Python CLI (Boto3)**:
+  ```bash
+  python scripts/deploy_aws.py deploy --region ap-south-1 --email meenal.iitpatna@gmail.com
+  ```
+- **Shell Deployment Script**:
+  ```bash
+  bash scripts/deploy_aws.sh cloudformation
+  ```
+- **AWS Operations Runbook**: See [docs/AWS_DEPLOYMENT_RUNBOOK.md](docs/AWS_DEPLOYMENT_RUNBOOK.md) for full architecture diagrams, SSL setup, and S3 offsite backups.
+
+### 2. Google Cloud Platform (GCP) Deployment
+
+- **Google Cloud Run Deployment**:
+  ```bash
+  bash scripts/deploy_gcp.sh
+  ```
+
+---
+
 ## Production Deployment via Docker Compose
 
 ### 1. Configure Production Environment
@@ -239,6 +269,7 @@ python -m pytest tests/reliability/ -v
 | [SCIENTIFIC_VALIDATION.md](docs/SCIENTIFIC_VALIDATION.md) | Peer-reviewed mathematical models, empirical tests, and literature benchmarks. |
 | [DEPLOYMENT_ARCHITECTURE.md](docs/DEPLOYMENT_ARCHITECTURE.md) | System topology, container network isolation, resource limits, and security perimeter. |
 | [DEPLOYMENT_RUNBOOK.md](docs/DEPLOYMENT_RUNBOOK.md) | Production setup, TLS/Nginx reverse proxy, rolling updates, and disaster recovery. |
+| [AWS_DEPLOYMENT_RUNBOOK.md](docs/AWS_DEPLOYMENT_RUNBOOK.md) | Turnkey AWS CloudFormation, EC2, PostGIS, Nginx, Let's Encrypt SSL, and S3 backup runbook. |
 | [USER_GUIDES.md](docs/USER_GUIDES.md) | Step-by-step operating manuals for Farmers, Fleet Operators, Plant Managers, Analysts, and Admins. |
 | [API.md](docs/API.md) | OpenAPI REST API route catalog covering all 21 router groups. |
 | [CONFIGURATION.md](docs/CONFIGURATION.md) | Centralized configuration registry catalog (85+ parameters with provenance metadata). |

@@ -1,0 +1,414 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Stubble2Power - Automated Production Deployment on AWS EC2
+  Deploys PostGIS 16, FastAPI Backend, Streamlit Frontend, and Nginx Reverse Proxy
+  with SSL/TLS and automated daily backups.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Application Configuration"
+        Parameters:
+          - AdminEmail
+          - DomainName
+          - NASAKey
+      - Label:
+          default: "Compute & Network Configuration"
+        Parameters:
+          - InstanceType
+          - KeyName
+          - AllowedCIDR
+
+Parameters:
+  AdminEmail:
+    Type: String
+    Default: "meenal.iitpatna@gmail.com"
+    Description: "Administrator email for SSL/TLS certificates and automated maintenance notifications."
+
+  DomainName:
+    Type: String
+    Default: ""
+    Description: "(Optional) Fully qualified domain name (e.g. s2p.yourdomain.com). If provided, Let's Encrypt SSL is provisioned automatically."
+
+  NASAKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: "(Optional) NASA FIRMS MAP Key for real-time MODIS/VIIRS satellite fire ingestion."
+
+  InstanceType:
+    Type: String
+    Default: "t3.micro"
+    AllowedValues:
+      - t3.micro
+      - t2.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - m6i.large
+      - c6i.large
+    Description: "EC2 Instance Type (t3.micro and t2.micro are 100% AWS Free Tier eligible)."
+
+  KeyName:
+    Type: String
+    Default: ""
+    Description: "(Optional) EC2 Key Pair for SSH access. If left empty, use AWS SSM Session Manager for secure browser-based terminal access."
+
+  AllowedCIDR:
+    Type: String
+    Default: "0.0.0.0/0"
+    Description: "CIDR block permitted for SSH access."
+
+  LatestUbuntuAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+    Description: "Auto-resolves the latest official Ubuntu 24.04 LTS AMI in the current AWS region."
+
+Conditions:
+  HasKeyName: !Not [!Equals [!Ref KeyName, ""]]
+  HasDomainName: !Not [!Equals [!Ref DomainName, ""]]
+
+Resources:
+  # IAM Role for AWS Systems Manager (SSM) - No SSH keys required for console access
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Name
+          Value: Stubble2Power-EC2-Role
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InstanceRole
+
+  # Security Group
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow HTTP, HTTPS, and SSH traffic for Stubble2Power"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: "Inbound HTTP"
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: "Inbound HTTPS"
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedCIDR
+          Description: "Inbound SSH"
+      Tags:
+        - Key: Name
+          Value: Stubble2Power-SG
+
+  # EC2 Instance
+  Stubble2PowerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref LatestUbuntuAmiId
+      KeyName: !If [HasKeyName, !Ref KeyName, !Ref "AWS::NoValue"]
+      IamInstanceProfile: !Ref InstanceProfile
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 30
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: Stubble2Power-Production-Server
+        - Key: Project
+          Value: Stubble2Power
+        - Key: Owner
+          Value: !Ref AdminEmail
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          exec > >(tee -a /var/log/stubble2power-init.log) 2>&1
+
+          echo "=========================================================="
+          echo " Starting Stubble2Power AWS Automated Provisioning"
+          echo " Timestamp: $(date -u)"
+          echo " Admin Email: ${AdminEmail}"
+          echo "=========================================================="
+
+          # 0. Configure 4GB Swap Space (Essential for Free Tier 1GB RAM instances to run PostGIS + ML models)
+          if [ ! -f /swapfile ]; then
+              echo "Allocating 4GB swapfile on SSD..."
+              fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096
+              chmod 600 /swapfile
+              mkswap /swapfile
+              swapon /swapfile
+              echo '/swapfile none swap sw 0 0' >> /etc/fstab
+              sysctl vm.swappiness=10
+              echo 'vm.swappiness=10' >> /etc/sysctl.conf
+          fi
+
+          # 1. Update packages and install prerequisites
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -y
+          apt-get install -y --no-install-recommends \
+              apt-transport-https \
+              ca-certificates \
+              curl \
+              gnupg \
+              lsb-release \
+              git \
+              nginx \
+              certbot \
+              python3-certbot-nginx \
+              openssl \
+              jq \
+              unzip
+
+          # 2. Install official Docker Engine and Docker Compose v2
+          mkdir -p /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+            $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+          apt-get update -y
+          apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+          systemctl enable docker
+          systemctl start docker
+
+          # 3. Clone Stubble2Power platform repository
+          INSTALL_DIR="/opt/stubble2power"
+          mkdir -p "$INSTALL_DIR"
+          cd "$INSTALL_DIR"
+
+          if [ ! -d ".git" ]; then
+              echo "Cloning Stubble2Power repository..."
+              git clone https://github.com/MeenalSinha/Stubble2Power.git . || true
+          fi
+
+          # 4. Generate high-entropy production cryptographic credentials
+          JWT_SECRET=$(openssl rand -hex 32)
+          POSTGRES_PWD=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 24)
+          BACKUP_KEY=$(openssl rand -hex 16)
+
+          mkdir -p /etc/stubble2power
+          chmod 700 /etc/stubble2power
+
+          cat <<EOF > /etc/stubble2power/.env.production
+          APP_ENV=production
+          LOG_LEVEL=INFO
+          POSTGRES_DB=stubble2power_prod
+          POSTGRES_USER=s2p_admin
+          POSTGRES_PASSWORD=$POSTGRES_PWD
+          DATABASE_URL=postgresql+psycopg2://s2p_admin:$POSTGRES_PWD@db:5432/stubble2power_prod
+          JWT_SECRET_KEY=$JWT_SECRET
+          JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
+          NASA_FIRMS_MAP_KEY=${NASAKey}
+          FIRMS_MAP_KEY=${NASAKey}
+          ADMIN_EMAIL=${AdminEmail}
+          BACKUP_ENCRYPTION_KEY=$BACKUP_KEY
+          ALLOW_PRODUCTION_SEED=false
+          EOF
+          chmod 600 /etc/stubble2power/.env.production
+          ln -sf /etc/stubble2power/.env.production "$INSTALL_DIR/.env"
+
+          # 5. Build and launch production Docker containers
+          echo "Building and launching Docker containers..."
+          cd "$INSTALL_DIR"
+          docker compose -f docker-compose.prod.yml --env-file /etc/stubble2power/.env.production pull || true
+          docker compose -f docker-compose.prod.yml --env-file /etc/stubble2power/.env.production up -d --build
+
+          # 6. Wait for PostgreSQL/PostGIS database readiness and synchronize schema
+          echo "Awaiting PostGIS database healthcheck..."
+          until docker exec stubble2power-prod-db pg_isready -U s2p_admin -d stubble2power_prod >/dev/null 2>&1; do
+              echo "Waiting for PostGIS container..."
+              sleep 3
+          done
+          echo "PostGIS database ready. Synchronizing schema..."
+          docker compose -f docker-compose.prod.yml --env-file /etc/stubble2power/.env.production exec -T backend python -c "
+          from backend.models.entities import Base
+          from backend.core.database.engine import engine
+          Base.metadata.create_all(bind=engine)
+          print('PostGIS schema synchronized successfully.')
+          " || true
+
+          # 7. Configure Nginx Reverse Proxy
+          mkdir -p /var/www/certbot
+          cat <<'NGINX_CONF' > /etc/nginx/sites-available/stubble2power
+          limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/s;
+          limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=5r/s;
+
+          server {
+              listen 80;
+              listen [::]:80;
+              server_name _;
+
+              client_max_body_size 50M;
+              gzip on;
+              gzip_vary on;
+              gzip_min_length 1024;
+              gzip_proxied expired no-cache no-store private auth;
+              gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/json application/xml application/javascript;
+
+              add_header X-Content-Type-Options nosniff always;
+              add_header X-XSS-Protection "1; mode=block" always;
+              add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+              location /.well-known/acme-challenge/ {
+                  root /var/www/certbot;
+                  try_files $uri =404;
+              }
+
+              location = /health {
+                  proxy_pass http://127.0.0.1:8000/api/v1/health;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+
+              location /api/v1/auth/ {
+                  limit_req zone=auth_limit burst=10 nodelay;
+                  proxy_pass http://127.0.0.1:8000/api/v1/auth/;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+
+              location /api/ {
+                  limit_req zone=api_limit burst=50 nodelay;
+                  proxy_pass http://127.0.0.1:8000/api/;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_read_timeout 120s;
+                  proxy_send_timeout 120s;
+              }
+
+              location ~ ^/(docs|redoc|openapi.json) {
+                  proxy_pass http://127.0.0.1:8000;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+
+              location ^~ /_stcore/stream {
+                  proxy_pass http://127.0.0.1:8501/_stcore/stream;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_read_timeout 86400;
+                  proxy_send_timeout 86400;
+                  proxy_buffering off;
+              }
+
+              location / {
+                  proxy_pass http://127.0.0.1:8501/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_read_timeout 86400;
+              }
+          }
+          NGINX_CONF
+
+          rm -f /etc/nginx/sites-enabled/default
+          ln -sf /etc/nginx/sites-available/stubble2power /etc/nginx/sites-enabled/stubble2power
+          nginx -t && systemctl restart nginx
+
+          # 8. Automated SSL/TLS Configuration if DomainName provided
+          DOMAIN="${DomainName}"
+          if [ -n "$DOMAIN" ]; then
+              echo "Configuring Let's Encrypt SSL certificate for $DOMAIN with email ${AdminEmail}..."
+              certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "${AdminEmail}" --redirect || true
+          fi
+
+          # 9. Configure daily automated encrypted database backup cron
+          cat <<'CRON' > /etc/cron.daily/stubble2power-backup
+          #!/bin/bash
+          cd /opt/stubble2power
+          docker compose -f docker-compose.prod.yml --env-file /etc/stubble2power/.env.production exec -T backend python scripts/backup_db.py --keep-days 14 >> /var/log/s2p-backup.log 2>&1
+          CRON
+          chmod +x /etc/cron.daily/stubble2power-backup
+
+          # 10. Register systemd auto-restart service for the Docker stack
+          cat <<'SERVICE' > /etc/systemd/system/stubble2power.service
+          [Unit]
+          Description=Stubble2Power Docker Compose Application Stack
+          Requires=docker.service
+          After=docker.service network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          WorkingDirectory=/opt/stubble2power
+          ExecStart=/usr/bin/docker compose -f docker-compose.prod.yml --env-file /etc/stubble2power/.env.production up -d
+          ExecStop=/usr/bin/docker compose -f docker-compose.prod.yml --env-file /etc/stubble2power/.env.production down
+          TimeoutStartSec=0
+
+          [Install]
+          WantedBy=multi-user.target
+          SERVICE
+          systemctl daemon-reload
+          systemctl enable stubble2power.service
+
+          echo "=========================================================="
+          echo " Stubble2Power Provisioning Completed Successfully!"
+          echo "=========================================================="
+
+Outputs:
+  InstanceId:
+    Description: "EC2 Instance ID"
+    Value: !Ref Stubble2PowerInstance
+
+  PublicIP:
+    Description: "Public IPv4 Address of Stubble2Power server"
+    Value: !GetAtt Stubble2PowerInstance.PublicIp
+
+  FrontendURL:
+    Description: "Web Dashboard URL (Streamlit Glassmorphism UI)"
+    Value: !Sub "http://${Stubble2PowerInstance.PublicIp}"
+
+  APIDocsURL:
+    Description: "FastAPI Interactive OpenAPI / Swagger Documentation"
+    Value: !Sub "http://${Stubble2PowerInstance.PublicIp}/docs"
+
+  HealthCheckURL:
+    Description: "System Health Check Endpoint"
+    Value: !Sub "http://${Stubble2PowerInstance.PublicIp}/health"
+
+  SSMConsoleURL:
+    Description: "AWS SSM Session Manager (Browser-based shell terminal)"
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/systems-manager/session-manager/${Stubble2PowerInstance}"

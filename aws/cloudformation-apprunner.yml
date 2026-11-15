@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Stubble2Power - AWS App Runner & Amazon ECR Serverless Deployment
+  Serverless containerized deployment of FastAPI Backend and Streamlit Frontend.
+
+Parameters:
+  AdminEmail:
+    Type: String
+    Default: "meenal.iitpatna@gmail.com"
+    Description: "Administrator contact email."
+
+  RepositoryName:
+    Type: String
+    Default: "stubble2power-app"
+    Description: "Amazon ECR repository name for container images."
+
+Resources:
+  # Amazon ECR Repository for Stubble2Power multi-stage image
+  ContainerRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref RepositoryName
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last 5 container images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
+      Tags:
+        - Key: Project
+          Value: Stubble2Power
+        - Key: Owner
+          Value: !Ref AdminEmail
+
+  # IAM Role for App Runner to pull images from ECR
+  AppRunnerECRAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: build.apprunner.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
+      Tags:
+        - Key: Project
+          Value: Stubble2Power
+
+Outputs:
+  ECRRepositoryUri:
+    Description: "Amazon ECR Repository URI to push Docker images"
+    Value: !GetAtt ContainerRepository.RepositoryUri
+
+  AppRunnerRoleArn:
+    Description: "IAM Role ARN for App Runner ECR Access"
+    Value: !GetAtt AppRunnerECRAccessRole.Arn
