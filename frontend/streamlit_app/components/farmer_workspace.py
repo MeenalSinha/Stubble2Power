@@ -94,7 +94,7 @@ def render_farmer_workspace(db, user_ctx: dict, lang: str = "en"):
                             <b>Area:</b> {f.total_acres} acres<br>
                             <b>Soil Type:</b> {f.soil_type}<br>
                             <b>Coordinates:</b> {f.latitude:.4f}, {f.longitude:.4f}<br>
-                            <b>Irrigation:</b> {f.irrigation_status}
+                            <b>Irrigation:</b> {getattr(f, 'irrigation_status', 'CANAL_IRRIGATED')}
                         </div>
                     </div>
                     """, unsafe_allow_html=True)

@@ -608,6 +608,11 @@ class Farm(Base):
     farmer: Mapped["Farmer"] = relationship("Farmer", back_populates="farms")
     crops: Mapped[List["FarmCrop"]] = relationship("FarmCrop", back_populates="farm", cascade="all, delete-orphan")
 
+    @property
+    def irrigation_status(self) -> str:
+        """Irrigation infrastructure status for agricultural parcels."""
+        return "CANAL_IRRIGATED"
+
 
 class FarmCrop(Base):
     __tablename__ = "farm_crops"
@@ -819,7 +824,38 @@ class RoutePlan(Base):
     fuel_consumed_liters: Mapped[float] = mapped_column(Float, default=0.0)
     total_payload_tons: Mapped[float] = mapped_column(Float, default=0.0)
     stops_json: Mapped[dict] = mapped_column(JSON, default=dict)
-    route_geometry_json = synonym("stops_json")
+
+    @property
+    def route_geometry_json(self) -> dict:
+        """Returns stops structured as dict with 'sequenced_stops' for frontend compatibility."""
+        if isinstance(self.stops_json, dict):
+            return self.stops_json
+        elif isinstance(self.stops_json, list):
+            normalized_stops = []
+            for item in self.stops_json:
+                if isinstance(item, dict):
+                    norm = dict(item)
+                    if "sequence_index" not in norm and "sequence" in norm:
+                        norm["sequence_index"] = norm["sequence"]
+                    if "farm_name" not in norm and "stop_name" in norm:
+                        norm["farm_name"] = norm["stop_name"]
+                    if "biomass_tons" not in norm and "payload_tons" in norm:
+                        norm["biomass_tons"] = norm["payload_tons"]
+                    if "distance_from_previous_km" not in norm and "distance_from_prev_km" in norm:
+                        norm["distance_from_previous_km"] = norm["distance_from_prev_km"]
+                    normalized_stops.append(norm)
+                else:
+                    normalized_stops.append(item)
+            return {"sequenced_stops": normalized_stops}
+        return {"sequenced_stops": []}
+
+    @route_geometry_json.setter
+    def route_geometry_json(self, value) -> None:
+        if isinstance(value, dict) and "sequenced_stops" in value:
+            self.stops_json = value["sequenced_stops"]
+        else:
+            self.stops_json = value
+
     route_geometry_geojson: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

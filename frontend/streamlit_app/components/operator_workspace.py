@@ -59,7 +59,13 @@ def render_operator_workspace(db, user_ctx: dict, lang: str = "en"):
         st.caption("Route order optimized via 2-Opt local search edge-swaps to minimize travel distance.")
 
         if route_plan and route_plan.route_geometry_json:
-            seq_stops = route_plan.route_geometry_json.get("sequenced_stops", [])
+            raw_geo = route_plan.route_geometry_json
+            if isinstance(raw_geo, dict):
+                seq_stops = raw_geo.get("sequenced_stops", [])
+            elif isinstance(raw_geo, list):
+                seq_stops = raw_geo
+            else:
+                seq_stops = []
             total_dist_km = route_plan.total_distance_km
             est_duration = route_plan.estimated_duration_hours
 
@@ -102,9 +108,20 @@ def render_operator_workspace(db, user_ctx: dict, lang: str = "en"):
         st.markdown("### Interactive Stop Status Dispatcher")
         st.caption("Update operational stop statuses in real time. Changes are persisted and recorded in the audit trail.")
 
-        if route_plan and route_plan.route_geometry_json and route_plan.route_geometry_json.get("sequenced_stops"):
-            seq_stops = route_plan.route_geometry_json.get("sequenced_stops", [])
-            stop_options = [f"Stop #{s.get('sequence_index')}: {s.get('farm_name')} [Status: {s.get('status', 'PENDING')}]" for s in seq_stops]
+        raw_geo = route_plan.route_geometry_json if route_plan else None
+        if isinstance(raw_geo, dict):
+            disp_stops = raw_geo.get("sequenced_stops", [])
+        elif isinstance(raw_geo, list):
+            disp_stops = raw_geo
+        else:
+            disp_stops = []
+
+        if route_plan and disp_stops:
+            seq_stops = disp_stops
+            stop_options = [
+                f"Stop #{s.get('sequence_index', s.get('sequence', idx+1))}: {s.get('farm_name', s.get('stop_name', 'Stop'))} [Status: {s.get('status', 'PENDING')}]"
+                for idx, s in enumerate(seq_stops)
+            ]
 
             selected_stop_str = st.selectbox("Select Stop to Update", options=stop_options)
             stop_idx = int(selected_stop_str.split(":")[0].replace("Stop #", "").strip())
@@ -132,12 +149,15 @@ def render_operator_workspace(db, user_ctx: dict, lang: str = "en"):
             if new_status:
                 # Update status in json
                 for s in seq_stops:
-                    if s.get("sequence_index") == stop_idx:
+                    if s.get("sequence_index", s.get("sequence")) == stop_idx:
                         s["status"] = new_status
                         s["updated_at"] = datetime.utcnow().isoformat()
                         break
 
-                route_plan.route_geometry_json["sequenced_stops"] = seq_stops
+                if isinstance(route_plan.route_geometry_json, dict):
+                    route_plan.route_geometry_json["sequenced_stops"] = seq_stops
+                else:
+                    route_plan.stops_json = seq_stops
                 db.commit()
 
                 # Audit log
