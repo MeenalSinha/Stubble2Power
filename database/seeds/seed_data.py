@@ -13,7 +13,8 @@ from sqlalchemy.orm import Session
 from backend.models.database import SessionLocal, init_db
 from backend.models.entities import (
     Farmer, AdministrativeRegion, AreaOfInterest, SatelliteProduct,
-    IngestionJob, NormalizedSatelliteObservation, HarmonizationRun, HarmonizedObservation
+    IngestionJob, NormalizedSatelliteObservation, HarmonizationRun, HarmonizedObservation,
+    HistoricalBaseline, SeasonalProfile
 )
 from backend.services.geospatial.service import GeospatialService
 from backend.services.harmonization.engine import HarmonizationEngine
@@ -623,6 +624,91 @@ def seed_database():
             db.add_all(policies)
             db.commit()
             logger.info("Phase 14 data retention policies seeded.")
+
+        # Seed Phase 8: Historical Baselines & Seasonal Profiles
+        if not db.query(HistoricalBaseline).first():
+            baselines = []
+            # Generate multi-year autumn Kharif post-harvest baseline (DOY 290 to 314)
+            # Peak burning in Punjab and Haryana happens around DOY 300 - 310 (late Oct - early Nov)
+            for doy in range(290, 315):
+                # Bell curve centered at day 305 for Punjab
+                dist_from_peak_pb = abs(doy - 305)
+                mean_frp_pb = round(max(15.0, 85.0 * (0.88 ** dist_from_peak_pb)), 1)
+                median_frp_pb = round(mean_frp_pb * 0.92, 1)
+                p90_frp_pb = round(mean_frp_pb * 1.35, 1)
+
+                baselines.append(HistoricalBaseline(
+                    region_id="Punjab",
+                    analysis_period="OCT_NOV_MULTIYEAR",
+                    metric_type="harmonized_frp_mw",
+                    day_of_year=doy,
+                    mean_val=mean_frp_pb,
+                    median_val=median_frp_pb,
+                    std_val=round(mean_frp_pb * 0.22, 1),
+                    mad_val=round(mean_frp_pb * 0.18, 1),
+                    p75_val=round(mean_frp_pb * 1.15, 1),
+                    p90_val=p90_frp_pb,
+                    min_val=round(mean_frp_pb * 0.4, 1),
+                    max_val=round(p90_frp_pb * 1.25, 1),
+                    sample_count=4,
+                    data_coverage_ratio=1.0,
+                    data_sufficiency_status="SUFFICIENT"
+                ))
+
+                # Bell curve centered at day 302 for Haryana
+                dist_from_peak_hr = abs(doy - 302)
+                mean_frp_hr = round(max(8.0, 42.0 * (0.86 ** dist_from_peak_hr)), 1)
+                median_frp_hr = round(mean_frp_hr * 0.90, 1)
+                p90_frp_hr = round(mean_frp_hr * 1.30, 1)
+
+                baselines.append(HistoricalBaseline(
+                    region_id="Haryana",
+                    analysis_period="OCT_NOV_MULTIYEAR",
+                    metric_type="harmonized_frp_mw",
+                    day_of_year=doy,
+                    mean_val=mean_frp_hr,
+                    median_val=median_frp_hr,
+                    std_val=round(mean_frp_hr * 0.20, 1),
+                    mad_val=round(mean_frp_hr * 0.16, 1),
+                    p75_val=round(mean_frp_hr * 1.12, 1),
+                    p90_val=p90_frp_hr,
+                    min_val=round(mean_frp_hr * 0.35, 1),
+                    max_val=round(p90_frp_hr * 1.20, 1),
+                    sample_count=4,
+                    data_coverage_ratio=1.0,
+                    data_sufficiency_status="SUFFICIENT"
+                ))
+
+            db.add_all(baselines)
+            db.commit()
+            logger.info("Historical fire baselines seeded (Punjab & Haryana).")
+
+        if not db.query(SeasonalProfile).first():
+            profiles = [
+                SeasonalProfile(
+                    region_id="Punjab",
+                    year=2026,
+                    season_name="KHARIF_AUTUMN",
+                    onset_date=date(2026, 10, 15),
+                    peak_date=date(2026, 11, 2),
+                    decay_date=date(2026, 11, 25),
+                    total_volume_mw=4850.0,
+                    cumulative_distribution_json={"p10": 290, "p50": 305, "p90": 318}
+                ),
+                SeasonalProfile(
+                    region_id="Haryana",
+                    year=2026,
+                    season_name="KHARIF_AUTUMN",
+                    onset_date=date(2026, 10, 10),
+                    peak_date=date(2026, 10, 29),
+                    decay_date=date(2026, 11, 18),
+                    total_volume_mw=2150.0,
+                    cumulative_distribution_json={"p10": 286, "p50": 302, "p90": 314}
+                )
+            ]
+            db.add_all(profiles)
+            db.commit()
+            logger.info("Seasonal profiles seeded.")
 
     finally:
         db.close()
