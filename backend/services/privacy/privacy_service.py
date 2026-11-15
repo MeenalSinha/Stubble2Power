@@ -218,12 +218,19 @@ class PrivacyService:
         else:
             raw_lat = getattr(observation, "latitude", 0.0)
             raw_lon = getattr(observation, "longitude", 0.0)
+            conf_num = getattr(observation, "confidence_numeric", None)
+            if conf_num is None:
+                conf_norm = getattr(observation, "confidence_normalized", None)
+                conf_num = round(conf_norm * 100.0, 1) if conf_norm is not None else 0.0
+
+            acq_time = getattr(observation, "acquisition_time_utc", getattr(observation, "acquisition_time", None))
+
             res = {
                 "id": getattr(observation, "id", None),
                 "satellite": getattr(observation, "satellite", None),
                 "acquisition_date": getattr(observation, "acquisition_date", None),
-                "acquisition_time": getattr(observation, "acquisition_time", None),
-                "confidence_numeric": getattr(observation, "confidence_numeric", 0.0),
+                "acquisition_time": acq_time,
+                "confidence_numeric": conf_num,
                 "frp": getattr(observation, "frp", 0.0),
                 "brightness": getattr(observation, "brightness", None),
                 "scan": getattr(observation, "scan", None),

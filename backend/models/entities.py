@@ -20,7 +20,7 @@ from sqlalchemy import (
     JSON,
     event,
 )
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy.orm import relationship, Mapped, mapped_column, synonym
 from backend.models.database import Base
 
 
@@ -268,6 +268,7 @@ class NormalizedSatelliteObservation(Base):
     product_version: Mapped[str] = mapped_column(String(50), default="6.1NRT")
     acquisition_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
     acquisition_time_utc: Mapped[str] = mapped_column(String(10), nullable=False)
+    acquisition_time = synonym("acquisition_time_utc")
     timestamp_utc: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=False)
     latitude: Mapped[float] = mapped_column(Float, index=True, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, index=True, nullable=False)
@@ -282,6 +283,13 @@ class NormalizedSatelliteObservation(Base):
     spatial_grid_id: Mapped[Optional[str]] = mapped_column(String(50), index=True, nullable=True)
     is_valid: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     quarantine_reason: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    @property
+    def confidence_numeric(self) -> float:
+        """Normalized confidence score as percentage (0.0 to 100.0)."""
+        if self.confidence_normalized is not None:
+            return round(self.confidence_normalized * 100.0, 1)
+        return 0.0
 
     __table_args__ = (
         Index("idx_norm_obs_spatial_temporal", "acquisition_date", "latitude", "longitude"),

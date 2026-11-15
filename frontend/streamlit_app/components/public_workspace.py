@@ -48,7 +48,7 @@ def render_public_workspace(db, lang: str = "en"):
         # Query recent observations
         obs_records = db.query(NormalizedSatelliteObservation).order_by(
             NormalizedSatelliteObservation.acquisition_date.desc(),
-            NormalizedSatelliteObservation.acquisition_time.desc()
+            NormalizedSatelliteObservation.acquisition_time_utc.desc()
         ).limit(300).all()
 
         if obs_records:
