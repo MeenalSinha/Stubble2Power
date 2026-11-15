@@ -130,12 +130,28 @@ def render_farmer_workspace(db, user_ctx: dict, lang: str = "en"):
                 submit_harvest = st.form_submit_button("Log Harvest & Compute Residue")
 
                 if submit_harvest and selected_farm:
+                    # Resolve or create FarmCrop association
+                    farm_crop = db.query(FarmCrop).filter(
+                        FarmCrop.farm_id == selected_farm.id,
+                        FarmCrop.crop_type == selected_crop
+                    ).first()
+                    if not farm_crop:
+                        farm_crop = FarmCrop(
+                            farm_id=selected_farm.id,
+                            crop_type=selected_crop,
+                            cultivated_acres=selected_farm.total_acres,
+                            crop_season="Kharif",
+                            crop_year=date.today().year
+                        )
+                        db.add(farm_crop)
+                        db.commit()
+                        db.refresh(farm_crop)
+
                     # Save HarvestRecord
                     rec = HarvestRecord(
-                        farm_id=selected_farm.id,
+                        farm_crop_id=farm_crop.id,
                         harvest_date=harvest_dt,
-                        crop_name=selected_crop,
-                        grain_yield_tons=float(grain_tons),
+                        actual_grain_yield_tons=float(grain_tons),
                         harvest_method="COMBINE_HARVESTER_WITH_SMS",
                         notes=f"Interactive harvest entry by {user_ctx.get('full_name')}"
                     )
@@ -160,7 +176,7 @@ def render_farmer_workspace(db, user_ctx: dict, lang: str = "en"):
         st.markdown("---")
         st.markdown("#### Historical Harvest Logs")
         farm_ids = [f.id for f in farms]
-        harvests = db.query(HarvestRecord).filter(HarvestRecord.farm_id.in_(farm_ids)).order_by(HarvestRecord.harvest_date.desc()).all()
+        harvests = db.query(HarvestRecord).filter(HarvestRecord.farm_id.in_(farm_ids)).order_by(HarvestRecord.harvest_date.desc()).all() if farm_ids else []
         if harvests:
             h_df = pd.DataFrame([{
                 "Harvest ID": h.id,
@@ -180,7 +196,7 @@ def render_farmer_workspace(db, user_ctx: dict, lang: str = "en"):
         st.caption("Residue availability calculations with PAU soil retention factors.")
 
         farm_ids = [f.id for f in farms]
-        estimates = db.query(BiomassEstimate).filter(BiomassEstimate.farm_id.in_(farm_ids)).all()
+        estimates = db.query(BiomassEstimate).filter(BiomassEstimate.farm_id.in_(farm_ids)).all() if farm_ids else []
         if estimates:
             col_b1, col_b2, col_b3 = st.columns(3)
             total_residue = sum(e.total_residue_tons for e in estimates)

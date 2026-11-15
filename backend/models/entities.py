@@ -19,8 +19,9 @@ from sqlalchemy import (
     UniqueConstraint,
     JSON,
     event,
+    select,
 )
-from sqlalchemy.orm import relationship, Mapped, mapped_column, synonym
+from sqlalchemy.orm import relationship, Mapped, mapped_column, synonym, column_property
 from backend.models.database import Base
 
 
@@ -649,6 +650,7 @@ class HarvestRecord(Base):
     farm_crop_id: Mapped[int] = mapped_column(Integer, ForeignKey("farm_crops.id"), index=True, nullable=False)
     harvest_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
     actual_grain_yield_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    grain_yield_tons = synonym("actual_grain_yield_tons")
     grain_moisture_pct: Mapped[float] = mapped_column(Float, default=14.0)
     harvest_method: Mapped[str] = mapped_column(String(50), default="COMBINE_HARVESTER")
     is_measured: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -656,6 +658,17 @@ class HarvestRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     crop: Mapped[FarmCrop] = relationship("FarmCrop", back_populates="harvests")
+
+    farm_id = column_property(
+        select(FarmCrop.farm_id)
+        .where(FarmCrop.id == farm_crop_id)
+        .correlate_except(FarmCrop)
+        .scalar_subquery()
+    )
+
+    @property
+    def crop_name(self) -> str:
+        return self.crop.crop_type if self.crop else "PADDY"
 
 
 class BiomassEstimate(Base):
@@ -665,9 +678,11 @@ class BiomassEstimate(Base):
     farm_crop_id: Mapped[int] = mapped_column(Integer, ForeignKey("farm_crops.id"), index=True, nullable=False)
     harvest_record_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("harvest_records.id"), nullable=True)
     gross_residue_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    total_residue_tons = synonym("gross_residue_tons")
     retained_residue_tons: Mapped[float] = mapped_column(Float, default=0.0)
     competing_demand_tons: Mapped[float] = mapped_column(Float, default=0.0)
     collectable_residue_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    collectable_biomass_tons = synonym("collectable_residue_tons")
     handling_loss_tons: Mapped[float] = mapped_column(Float, default=0.0)
     net_usable_biomass_tons: Mapped[float] = mapped_column(Float, nullable=False)
     moisture_content_pct: Mapped[float] = mapped_column(Float, default=14.0)
@@ -675,6 +690,7 @@ class BiomassEstimate(Base):
     estimation_source: Mapped[str] = mapped_column(
         String(50), default="SCIENTIFIC_MODEL"
     )  # MEASURED, FARMER_REPORTED, OFFICIAL_STATISTICS, SCIENTIFIC_MODEL
+    estimation_method = synonym("estimation_source")
     confidence_score: Mapped[float] = mapped_column(Float, default=0.90)
     availability_start_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
     availability_end_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
@@ -685,6 +701,17 @@ class BiomassEstimate(Base):
     transactions: Mapped[List["BiomassInventoryTransaction"]] = relationship(
         "BiomassInventoryTransaction", back_populates="biomass_estimate", cascade="all, delete-orphan"
     )
+
+    farm_id = column_property(
+        select(FarmCrop.farm_id)
+        .where(FarmCrop.id == farm_crop_id)
+        .correlate_except(FarmCrop)
+        .scalar_subquery()
+    )
+
+    @property
+    def crop_name(self) -> str:
+        return self.crop.crop_type if self.crop else "PADDY"
 
 
 class BiomassInventoryTransaction(Base):
