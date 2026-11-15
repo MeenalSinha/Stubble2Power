@@ -167,15 +167,11 @@ cp .env.example .env
 
 ### 3. Initialize and Seed the Database
 ```bash
+# Run database migrations
+alembic upgrade head
+
 # Initialize schema and seed benchmark reference data
-python -c "
-from backend.models.entities import Base
-from backend.core.database.engine import engine
-from database.seeds.seed_data import seed_all
-Base.metadata.create_all(bind=engine)
-seed_all()
-print('Database initialized and benchmark data seeded successfully.')
-"
+python -c "from database.seeds.seed_data import seed_database; seed_database(); print('Database initialized and benchmark data seeded successfully.')"
 ```
 
 ### 4. Run the Backend API Server
