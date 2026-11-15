@@ -73,7 +73,7 @@ def render_farmer_workspace(db, user_ctx: dict, lang: str = "en"):
             with col_m1:
                 center_lat = sum(f.latitude for f in farms) / len(farms)
                 center_lon = sum(f.longitude for f in farms) / len(farms)
-                farm_map = folium.Map(location=[center_lat, center_lon], zoom_start=12, tiles="CartoDB positron")
+                farm_map = folium.Map(location=[center_lat, center_lon], zoom_start=12, tiles="OpenStreetMap")
 
                 for f in farms:
                     folium.Marker(

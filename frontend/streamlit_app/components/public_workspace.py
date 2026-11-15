@@ -68,7 +68,7 @@ def render_public_workspace(db, lang: str = "en"):
             # Folium Map
             center_lat = sum(o["latitude"] for o in obfuscated_records) / len(obfuscated_records)
             center_lon = sum(o["longitude"] for o in obfuscated_records) / len(obfuscated_records)
-            m = folium.Map(location=[center_lat, center_lon], zoom_start=8, tiles="CartoDB positron")
+            m = folium.Map(location=[center_lat, center_lon], zoom_start=8, tiles="OpenStreetMap")
 
             for o in obfuscated_records[:120]:
                 is_modis = "MODIS" in (o.get("satellite") or "").upper()

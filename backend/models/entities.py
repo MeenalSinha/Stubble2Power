@@ -160,7 +160,9 @@ class Farmer(Base):
     state: Mapped[str] = mapped_column(String(150), default="Punjab", index=True, nullable=False)
     country: Mapped[str] = mapped_column(String(50), default="IND", nullable=False)
     acres: Mapped[float] = mapped_column(Float, nullable=False)
+    total_acres = synonym("acres")
     stubble_tons: Mapped[float] = mapped_column(Float, nullable=False)
+    stubble_tonnage = synonym("stubble_tons")
     harvest_date: Mapped[date] = mapped_column(Date, nullable=False)
     latitude: Mapped[float] = mapped_column(Float, index=True, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, index=True, nullable=False)
@@ -173,6 +175,11 @@ class Farmer(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     farms: Mapped[List["Farm"]] = relationship("Farm", back_populates="farmer", cascade="all, delete-orphan")
+
+    @property
+    def aadhaar_hash(self) -> str:
+        """Masked Aadhaar hash representation."""
+        return f"SHA256-AADHAAR-{self.id:04d}"
 
     __table_args__ = (
         Index("idx_farmer_coords", "latitude", "longitude"),
@@ -338,6 +345,10 @@ class HarmonizedObservation(Base):
     modis_count: Mapped[int] = mapped_column(Integer, default=0)
     viirs_count: Mapped[int] = mapped_column(Integer, default=0)
     total_detections: Mapped[int] = mapped_column(Integer, default=0)
+    detection_count = synonym("total_detections")
+    cluster_center_lat = synonym("centroid_lat")
+    cluster_center_lon = synonym("centroid_lon")
+    confidence_score = synonym("consensus_score")
     associated_pairs_count: Mapped[int] = mapped_column(Integer, default=0)
     modis_mean_frp: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     viirs_mean_frp: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -346,6 +357,15 @@ class HarmonizedObservation(Base):
     consensus_score: Mapped[float] = mapped_column(Float, default=1.0)  # 0 to 1
     uncertainty_level: Mapped[str] = mapped_column(String(20), default="LOW")
     data_coverage_flag: Mapped[str] = mapped_column(String(50), default="DUAL_SENSOR")
+
+    @property
+    def sensors_included(self) -> str:
+        parts = []
+        if (self.modis_count or 0) > 0:
+            parts.append(f"MODIS ({self.modis_count})")
+        if (self.viirs_count or 0) > 0:
+            parts.append(f"VIIRS ({self.viirs_count})")
+        return " + ".join(parts) if parts else (self.data_coverage_flag or "DUAL_SENSOR")
 
     harmonization_run: Mapped[HarmonizationRun] = relationship(
         "HarmonizationRun", back_populates="harmonized_observations"
@@ -694,9 +714,11 @@ class MobileBioRefinery(Base):
         Integer, ForeignKey("organizations.id"), nullable=True, index=True
     )
     unit_code: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    refinery_code = synonym("unit_code")
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     equipment_type: Mapped[str] = mapped_column(String(50), default="TRAILER_MOUNTED_DENSIFIER")
     technology: Mapped[str] = mapped_column(String(50), default="BRIQUETTING")  # BRIQUETTING, SLOW_PYROLYSIS
+    processing_type = synonym("technology")
     hourly_capacity_tons: Mapped[float] = mapped_column(Float, default=2.5)
     daily_operating_hours: Mapped[float] = mapped_column(Float, default=10.0)
     daily_capacity_tons: Mapped[float] = mapped_column(Float, default=25.0)
@@ -705,9 +727,12 @@ class MobileBioRefinery(Base):
     current_status: Mapped[str] = mapped_column(
         String(50), default="AVAILABLE"
     )  # AVAILABLE, DEPLOYED, MAINTENANCE, STANDBY
+    operational_status = synonym("current_status")
     home_depot_name: Mapped[str] = mapped_column(String(150), default="Ludhiana Central Depot")
     home_latitude: Mapped[float] = mapped_column(Float, default=30.9010)
+    current_lat = synonym("home_latitude")
     home_longitude: Mapped[float] = mapped_column(Float, default=75.8573)
+    current_lon = synonym("home_longitude")
     max_travel_radius_km: Mapped[float] = mapped_column(Float, default=60.0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -722,6 +747,7 @@ class DeploymentPlan(Base):
     )
     plan_code: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
+    plan_name = synonym("name")
     region: Mapped[str] = mapped_column(String(100), default="Punjab")
     date_start: Mapped[date] = mapped_column(Date, index=True, nullable=False)
     date_end: Mapped[date] = mapped_column(Date, index=True, nullable=False)
@@ -729,13 +755,21 @@ class DeploymentPlan(Base):
         String(50), default="OPTIMIZED"
     )  # DRAFT, OPTIMIZED, APPROVED, EXECUTED, REJECTED
     total_biomass_assigned_tons: Mapped[float] = mapped_column(Float, default=0.0)
+    total_biomass_processed_tons = synonym("total_biomass_assigned_tons")
     total_units_deployed: Mapped[int] = mapped_column(Integer, default=0)
     total_route_distance_km: Mapped[float] = mapped_column(Float, default=0.0)
+    total_fleet_distance_km = synonym("total_route_distance_km")
     estimated_transport_cost_inr: Mapped[float] = mapped_column(Float, default=0.0)
     unserved_farms_count: Mapped[int] = mapped_column(Integer, default=0)
     capacity_utilization_pct: Mapped[float] = mapped_column(Float, default=0.0)
     parameters_json: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    @property
+    def optimization_strategy(self) -> str:
+        if self.parameters_json and isinstance(self.parameters_json, dict):
+            return self.parameters_json.get("optimization_strategy", "BALANCED")
+        return "BALANCED"
 
     assignments: Mapped[List["DeploymentAssignment"]] = relationship(
         "DeploymentAssignment", back_populates="deployment_plan", cascade="all, delete-orphan"
@@ -777,6 +811,7 @@ class RoutePlan(Base):
     mobile_unit_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("mobile_bio_refineries.id"), index=True, nullable=False
     )
+    mobile_refinery_id = synonym("mobile_unit_id")
     route_date: Mapped[date] = mapped_column(Date, nullable=False)
     total_distance_km: Mapped[float] = mapped_column(Float, nullable=False)
     road_tortuosity_ratio: Mapped[float] = mapped_column(Float, default=1.35)
@@ -784,6 +819,7 @@ class RoutePlan(Base):
     fuel_consumed_liters: Mapped[float] = mapped_column(Float, default=0.0)
     total_payload_tons: Mapped[float] = mapped_column(Float, default=0.0)
     stops_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    route_geometry_json = synonym("stops_json")
     route_geometry_geojson: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

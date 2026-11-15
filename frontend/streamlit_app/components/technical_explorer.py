@@ -107,7 +107,7 @@ def render_technical_engine_explorer(db, farmer_svc, sat_repo, harm_repo, cal_sv
             farms_list = db.query(Farm).all()
             st.metric("Total Registered Farms", len(farms_list))
             if farms_list:
-                farm_map = folium.Map(location=[30.70, 75.60], zoom_start=9, tiles="CartoDB positron")
+                farm_map = folium.Map(location=[30.70, 75.60], zoom_start=9, tiles="OpenStreetMap")
                 for f in farms_list:
                     folium.Marker(
                         location=[f.latitude, f.longitude],
@@ -379,7 +379,7 @@ def render_technical_engine_explorer(db, farmer_svc, sat_repo, harm_repo, cal_sv
                 st.metric("Total Route Plans", len(routes))
 
                 if routes:
-                    route_map = folium.Map(location=[30.80, 75.60], zoom_start=9, tiles="CartoDB positron")
+                    route_map = folium.Map(location=[30.80, 75.60], zoom_start=9, tiles="OpenStreetMap")
                     colors = ["blue", "green", "purple", "orange", "darkred"]
                     for idx, r in enumerate(routes):
                         color = colors[idx % len(colors)]
@@ -1712,7 +1712,7 @@ def render_technical_engine_explorer(db, farmer_svc, sat_repo, harm_repo, cal_sv
             filtered_ass = [a for a in assessments if a.context_classification in cat_filter and a.confidence_score >= min_conf]
 
             # Build Folium Context Map
-            context_map = folium.Map(location=[30.9, 75.5], zoom_start=8, tiles="CartoDB positron")
+            context_map = folium.Map(location=[30.9, 75.5], zoom_start=8, tiles="OpenStreetMap")
             color_map = {
                 "LIKELY_AGRICULTURAL_CONTEXT": "#e67e22",     # Amber/Orange
                 "POSSIBLE_AGRICULTURAL_CONTEXT": "#f1c40f",   # Yellow
