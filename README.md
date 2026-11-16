@@ -30,7 +30,7 @@ The platform unites three core pillars:
 - **NASA FIRMS Documentation**: [https://firms.modaps.eosdis.nasa.gov/api/](https://firms.modaps.eosdis.nasa.gov/api/)
 
 ### Official Demonstration Video
-- **Submission-Ready 1080p Walkthrough (30 Seconds)**: [stubble2power_demo_1080p.mp4](stubble2power_demo_1080p.mp4)  
+- **Submission-Ready 1080p Walkthrough**: [Stubble2Power_NASA_SpaceApps_Demo.mp4](Stubble2Power_NASA_SpaceApps_Demo.mp4)  
   Demonstrates all 9 core capabilities: Home Dashboard, NASA Fire Intelligence, Geodesic MODIS–VIIRS Harmonization, Historical Burning Activity Calendar, Seasonal & Anomaly Intelligence, Agricultural Fire Context, Farmer & Biomass Management, Mobile Bio-Refinery Deployment, and Financial/Environmental Impact Dashboard.
 
 ---
